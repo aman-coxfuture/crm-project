@@ -1,0 +1,57 @@
+export const mockResearchProjects = [
+  {
+    id: 'RES-PRJ-001',
+    title: 'Quantum Key Distribution in High-Noise Satellite Networks',
+    pi: 'Prof. Dr. K. Ramanathan',
+    coPi: 'Dr. Anandhita Basu',
+    department: 'Department of Quantum Physics & Computing',
+    fundingAgency: 'DST - Department of Science and Technology',
+    grantAmount: '₹ 4,80,00,000',
+    duration: '2024 - 2027 (3 Years)',
+    status: 'Ongoing',
+    publicationsCount: 8,
+  },
+  {
+    id: 'RES-PRJ-002',
+    title: 'CRISPR-Cas9 Mediated Gene Editing for Drought Resistant Millets',
+    pi: 'Dr. S. K. Manjunatha',
+    coPi: 'Dr. Pratibha Das',
+    department: 'Department of Biotechnology & Genetics',
+    fundingAgency: 'DBT - Department of Biotechnology',
+    grantAmount: '₹ 2,95,00,000',
+    duration: '2025 - 2028 (3 Years)',
+    status: 'Ongoing',
+    publicationsCount: 5,
+  },
+  {
+    id: 'RES-PRJ-003',
+    title: 'Autonomous Edge AI for Next-Gen Electric Grid Fault Detection',
+    pi: 'Prof. B. N. Murthy',
+    coPi: 'Dr. Shalini S.',
+    department: 'Department of Electrical & Computer Engineering',
+    fundingAgency: 'SERB & PowerGrid Industry Grant',
+    grantAmount: '₹ 1,75,00,000',
+    duration: '2023 - 2026 (3 Years)',
+    status: 'In Final Review',
+    publicationsCount: 11,
+  },
+  {
+    id: 'RES-PRJ-004',
+    title: 'AI Assisted Diagnostics for Rare Pediatric Neurological Disorders',
+    pi: 'Dr. V. Lakshmi Devi, MD',
+    coPi: 'Dr. Srinivas Teja',
+    department: 'School of Medical Sciences',
+    fundingAgency: 'ICMR - Indian Council of Medical Research',
+    grantAmount: '₹ 3,40,00,000',
+    duration: '2024 - 2027 (3 Years)',
+    status: 'Ongoing',
+    publicationsCount: 6,
+  }
+];
+
+export const mockResearchers = [
+  { id: 'RSC-001', scholarName: 'Arunav Sengupta', fellowship: 'CSIR-JRF Fellow', guide: 'Prof. Dr. K. Ramanathan', department: 'Quantum Physics', thesisTopic: 'Decoherence Mitigation in Photonic Qubits', year: 'Year 3 (Ph.D.)', status: 'Active' },
+  { id: 'RSC-002', scholarName: 'Pooja Chandrasekhar', fellowship: 'DBT-BET Fellow', guide: 'Dr. S. K. Manjunatha', department: 'Biotechnology', thesisTopic: 'Transcriptomic Profiling of Sorghum under Arid Stress', year: 'Year 2 (Ph.D.)', status: 'Active' },
+  { id: 'RSC-003', scholarName: 'Syed Tariq Hashmi', fellowship: 'Prime Minister Research Fellow (PMRF)', guide: 'Prof. B. N. Murthy', department: 'Computer Engineering', thesisTopic: 'Hardware Acceleration for Sparse Transformers', year: 'Year 4 (Ph.D.)', status: 'Thesis Submitted' },
+  { id: 'RSC-004', scholarName: 'Deepa Madhavan', fellowship: 'UGC-NET SRF', guide: 'Dr. Debabrata Roy', department: 'Chemical Sciences', thesisTopic: 'Metal-Organic Frameworks for Solar Hydrogen Evolution', year: 'Year 3 (Ph.D.)', status: 'Active' },
+];
