@@ -1,136 +1,90 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Bell, Database, Lock, Save } from 'lucide-react';
-import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
-import Select from '../../components/common/Select';
+import React, { useState } from 'react';
 import { useToast } from '../../context/ToastContext';
-import { settingsService } from '../../services';
+import { FormInput, Select } from '../../components/common/FormInput';
+import { Settings, Shield, Server, Bell, Save } from 'lucide-react';
 
 export default function SuperAdminSettingsPage() {
-  const { addToast } = useToast();
-  const [platformName, setPlatformName] = useState('EduCRM Enterprise Platform');
-  const [contactEmail, setContactEmail] = useState('support@edusys-corp.in');
+  const { success } = useToast();
+  const [platformName, setPlatformName] = useState('EduEnterprise Global School CRM');
+  const [supportEmail, setSupportEmail] = useState('support@schoolcrm.io');
   const [sessionTimeout, setSessionTimeout] = useState('60');
-  const [enable2FA, setEnable2FA] = useState(true);
-  const [backupSchedule, setBackupSchedule] = useState('Daily at 03:00 UTC');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function loadSettings() {
-      try {
-        const data = await settingsService.getSuperAdminSettings();
-        if (data) {
-          if (data.platformName) setPlatformName(data.platformName);
-          if (data.contactEmail) setContactEmail(data.contactEmail);
-          if (data.sessionTimeout) setSessionTimeout(data.sessionTimeout);
-          if (data.enable2FA !== undefined) setEnable2FA(data.enable2FA);
-          if (data.backupSchedule) setBackupSchedule(data.backupSchedule);
-          if (data.maintenanceMode !== undefined) setMaintenanceMode(data.maintenanceMode);
-        }
-      } catch (err) {
-        addToast('Failed to load settings', 'error');
-      }
-    }
-    loadSettings();
-  }, []);
-
-  const handleSave = async (e) => {
+  const handleSave = (e) => {
     e.preventDefault();
-    try {
-      setLoading(true);
-      await settingsService.updateSuperAdminSettings({
-        platformName,
-        contactEmail,
-        sessionTimeout,
-        enable2FA,
-        backupSchedule,
-        maintenanceMode,
-      });
-      addToast('System settings saved successfully', 'success');
-    } catch (err) {
-      addToast('Failed to save settings', 'error');
-    } finally {
-      setLoading(false);
-    }
+    success('Platform settings saved successfully');
   };
 
   return (
-    <div>
+    <div style={{ maxWidth: '900px' }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Super Admin Platform Settings</h1>
-          <p className="page-subtitle">Configure global tenant defaults, security parameters, and data governance</p>
+          <h1 className="page-title">
+            <Settings size={26} color="var(--primary)" />
+            Platform & System Settings
+          </h1>
+          <p className="page-subtitle">
+            Configure global defaults, multi-tenant parameters and system governance
+          </p>
         </div>
-        <Button variant="primary" icon={Save} onClick={handleSave}>
-          Save Changes
-        </Button>
       </div>
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div className="card">
-          <h2 className="card-title" style={{ marginBottom: '16px' }}>General Platform Configuration</h2>
+      <form onSubmit={handleSave}>
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Global Platform Identity</h3>
+          </div>
           <div className="grid-2">
-            <Input
+            <FormInput
               label="Platform Branding Name"
               value={platformName}
               onChange={(e) => setPlatformName(e.target.value)}
             />
-            <Input
-              label="Central Support & Escalation Email"
+            <FormInput
+              label="Global Tech Support Email"
               type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
             />
           </div>
-        </div>
-
-        <div className="card">
-          <h2 className="card-title" style={{ marginBottom: '16px' }}>Security & Access Governance</h2>
           <div className="grid-2">
             <Select
-              label="Admin Idle Session Timeout (Minutes)"
+              label="Default Academic Year Schema"
+              value="2025-2026"
+              options={['2025-2026', '2026-2027']}
+            />
+            <FormInput
+              label="Session Inactivity Timeout (Minutes)"
               value={sessionTimeout}
               onChange={(e) => setSessionTimeout(e.target.value)}
-              options={['15', '30', '60', '120']}
             />
-            <Select
-              label="Automated Database Backup Frequency"
-              value={backupSchedule}
-              onChange={(e) => setBackupSchedule(e.target.value)}
-              options={['Every 6 Hours', 'Daily at 03:00 UTC', 'Twice Daily', 'Weekly']}
-            />
-          </div>
-          <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={enable2FA}
-                onChange={(e) => setEnable2FA(e.target.checked)}
-                style={{ accentColor: '#111827' }}
-              />
-              <span>Enforce Multi-Factor Authentication (MFA/2FA) for all Administrator accounts</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={maintenanceMode}
-                onChange={(e) => setMaintenanceMode(e.target.checked)}
-                style={{ accentColor: '#111827' }}
-              />
-              <span>System Maintenance Mode (Restricts access to Super Admins only)</span>
-            </label>
           </div>
         </div>
 
-        <div className="card">
-          <h2 className="card-title" style={{ marginBottom: '16px' }}>Tenant Default Quotas</h2>
-          <div className="grid-3">
-            <Input label="Max School Students Default" defaultValue="3,000" />
-            <Input label="Max College Students Default" defaultValue="5,000" />
-            <Input label="Max University Students Default" defaultValue="25,000" />
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Security & Maintenance</h3>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>Maintenance Mode</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Restrict access across all school subdomains for scheduled upgrades
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={maintenanceMode}
+              onChange={(e) => setMaintenanceMode(e.target.checked)}
+              style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
           </div>
         </div>
+
+        <button type="submit" className="btn btn-primary btn-lg">
+          <Save size={18} />
+          <span>Save Global Configurations</span>
+        </button>
       </form>
     </div>
   );

@@ -1,470 +1,329 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { schoolDataService } from '../../services/schoolDataService';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import StatCard from '../../components/common/StatCard';
+import { BarChart, DonutChart, TrendLineChart } from '../../components/common/Charts';
+import DataTable from '../../components/common/DataTable';
+import Modal from '../../components/common/Modal';
+import { FormInput, Select, Textarea } from '../../components/common/FormInput';
 import {
   Building2,
-  School,
-  GraduationCap,
   Users,
-  UserCheck,
-  CheckCircle2,
-  Clock,
+  GraduationCap,
+  Briefcase,
   Plus,
-  ArrowRight,
-  Eye,
-  Edit2,
-  Trash2,
+  ExternalLink,
   Power,
   ShieldCheck,
-  Download,
-  Activity
+  TrendingUp,
+  Activity,
+  CheckCircle2,
 } from 'lucide-react';
-import StatCard from '../../components/dashboard/StatCard';
-import ChartCard, { BarChart, DonutChart } from '../../components/dashboard/ChartCard';
-import QuickActions from '../../components/dashboard/QuickActions';
-import ActivityList from '../../components/dashboard/ActivityList';
-import Button from '../../components/common/Button';
-import Badge from '../../components/common/Badge';
-import FormModal from '../../components/modals/FormModal';
-import DeleteModal from '../../components/modals/DeleteModal';
-import ViewModal from '../../components/modals/ViewModal';
-import Input from '../../components/common/Input';
-import Select from '../../components/common/Select';
-import { institutionService, analyticsService } from '../../services';
-import { useToast } from '../../context/ToastContext';
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { changeSchool, switchRole } = useAuth();
+  const { success, info } = useToast();
 
-  const [institutions, setInstitutions] = useState([]);
-  const [stats, setStats] = useState({
-    totalInstitutions: 8,
-    totalSchools: 3,
-    totalColleges: 3,
-    totalUniversities: 2,
-    totalStudents: 46790,
-    totalFaculty: 2388,
-    activeInstitutions: 6,
-    pendingInstitutions: 1,
-    inactiveInstitutions: 1,
-  });
-  const [growthData, setGrowthData] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [selectedInst, setSelectedInst] = useState(null);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-  // Form State
-  const [formData, setFormData] = useState({
+  const [schools, setSchools] = useState(() => schoolDataService.getSchools());
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newSchool, setNewSchool] = useState({
     name: '',
-    type: 'School',
-    admin: '',
+    schoolCode: '',
+    principal: '',
     email: '',
     phone: '',
-    location: '',
-    plan: 'Standard',
+    address: '',
+    affiliation: 'CBSE / State Board',
+    establishedYear: '2020',
   });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  // Aggregated platform stats
+  const totalSchools = schools.length;
+  const activeSchools = schools.filter((s) => s.status === 'Active').length;
+  const inactiveSchools = totalSchools - activeSchools;
+  const totalStudents = schools.reduce((acc, s) => acc + (s.studentsCount || 0), 0);
+  const totalTeachers = schools.reduce((acc, s) => acc + (s.teachersCount || 0), 0);
+  const totalStaff = schools.reduce((acc, s) => acc + (s.staffCount || 0), 0);
 
-  const loadDashboardData = async () => {
-    const [instList, analytics] = await Promise.all([
-      institutionService.getInstitutions(),
-      analyticsService.getSuperAdminAnalytics(),
-    ]);
-    setInstitutions(instList);
-    setStats(analytics.stats);
-    setGrowthData(analytics.growthData);
-    setActivities(analytics.recentActivities);
+  const handleToggleStatus = (id) => {
+    const updated = schoolDataService.toggleSchoolStatus(id);
+    setSchools(updated);
+    info('School status updated');
   };
 
-  const handleOpenAdd = () => {
-    setFormData({
+  const handleOpenSchool = async (school) => {
+    changeSchool(school);
+    await switchRole('school-admin');
+    success(`Launched management dashboard for ${school.name}`);
+    navigate('/school-admin/dashboard');
+  };
+
+  const handleAddSchoolSubmit = (e) => {
+    e.preventDefault();
+    if (!newSchool.name || !newSchool.principal) return;
+    const created = schoolDataService.addSchool(newSchool);
+    setSchools(schoolDataService.getSchools());
+    setIsAddModalOpen(false);
+    setNewSchool({
       name: '',
-      type: 'School',
-      admin: '',
+      schoolCode: '',
+      principal: '',
       email: '',
       phone: '',
-      location: '',
-      plan: 'Standard',
+      address: '',
+      affiliation: 'CBSE / State Board',
+      establishedYear: '2020',
     });
-    setIsAddOpen(true);
+    success(`School "${created.name}" created successfully!`);
   };
 
-  const handleOpenEdit = (inst) => {
-    setSelectedInst(inst);
-    setFormData({ ...inst });
-    setIsEditOpen(true);
-  };
+  const schoolChartData = schools.map((s) => ({
+    label: s.name.split(' ')[0],
+    value: s.studentsCount || 0,
+    color: '#4f46e5',
+  }));
 
-  const handleOpenView = (inst) => {
-    setSelectedInst(inst);
-    setIsViewOpen(true);
-  };
-
-  const handleOpenDelete = (inst) => {
-    setSelectedInst(inst);
-    setIsDeleteOpen(true);
-  };
-
-  const handleToggleStatus = async (inst) => {
-    const updated = await institutionService.toggleStatus(inst.id);
-    setInstitutions((prev) =>
-      prev.map((i) => (i.id === inst.id ? { ...i, status: updated.status } : i))
-    );
-    addToast(`${inst.name} is now ${updated.status}`, 'info');
-  };
-
-  const handleSaveAdd = async (e) => {
-    e.preventDefault();
-    const created = await institutionService.createInstitution(formData);
-    setInstitutions([created, ...institutions]);
-    setIsAddOpen(false);
-    addToast(`Institution "${formData.name}" registered successfully`, 'success');
-  };
-
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    const updated = await institutionService.updateInstitution(selectedInst.id, formData);
-    setInstitutions((prev) =>
-      prev.map((i) => (i.id === selectedInst.id ? { ...i, ...updated } : i))
-    );
-    setIsEditOpen(false);
-    addToast(`Institution updated successfully`, 'success');
-  };
-
-  const handleConfirmDelete = async () => {
-    await institutionService.deleteInstitution(selectedInst.id);
-    setInstitutions((prev) => prev.filter((i) => i.id !== selectedInst.id));
-    setIsDeleteOpen(false);
-    addToast(`Institution deleted`, 'error');
-  };
-
-  const donutData = [
-    { label: 'Schools', value: institutions.filter((i) => i.type === 'School').length, color: '#111827' },
-    { label: 'Colleges', value: institutions.filter((i) => i.type === 'College').length, color: '#6b7280' },
-    { label: 'Universities', value: institutions.filter((i) => i.type === 'University').length, color: '#9ca3af' },
+  const statusDonutData = [
+    { label: 'Active Schools', value: activeSchools, color: '#10b981' },
+    { label: 'Inactive / Suspended', value: inactiveSchools, color: '#ef4444' },
   ];
 
-  const barChartData = [
-    { label: 'Jan', value: 24, secondary: 12 },
-    { label: 'Feb', value: 28, secondary: 16 },
-    { label: 'Mar', value: 34, secondary: 20 },
-    { label: 'Apr', value: 40, secondary: 26 },
-    { label: 'May', value: 48, secondary: 32 },
-    { label: 'Jun', value: 56, secondary: 38 },
+  const growthTrend = [
+    { label: '2021', value: 2 },
+    { label: '2022', value: 5 },
+    { label: '2023', value: 9 },
+    { label: '2024', value: 16 },
+    { label: '2025', value: 24 },
+  ];
+
+  const columns = [
+    {
+      header: 'School Name & Code',
+      accessor: 'name',
+      sortable: true,
+      render: (val, row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.4rem' }}>{row.logo || '🏫'}</span>
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{val}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{row.schoolCode} • Est. {row.establishedYear}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Principal / Head',
+      accessor: 'principal',
+      sortable: true,
+      render: (val, row) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{val}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{row.email}</div>
+        </div>
+      ),
+    },
+    {
+      header: 'Enrollment',
+      accessor: 'studentsCount',
+      sortable: true,
+      render: (val, row) => (
+        <div style={{ fontSize: '0.85rem' }}>
+          <strong>{val?.toLocaleString()}</strong> students
+          <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>{row.teachersCount} teachers</div>
+        </div>
+      ),
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      isStatus: true,
+      sortable: true,
+    },
+    {
+      header: 'Actions',
+      accessor: 'id',
+      render: (id, row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => handleOpenSchool(row)}
+            title="Open School Admin Dashboard"
+          >
+            <ExternalLink size={13} />
+            <span>Launch</span>
+          </button>
+          <button
+            className={`btn btn-sm ${row.status === 'Active' ? 'btn-outline' : 'btn-success'}`}
+            onClick={() => handleToggleStatus(id)}
+            title={row.status === 'Active' ? 'Deactivate School' : 'Activate School'}
+          >
+            <Power size={13} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
     <div>
-      {/* Page Header */}
+      {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Super Admin Dashboard</h1>
-          <p className="page-subtitle">Multi-tenant system monitoring, institutional control & telemetry</p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button variant="secondary" icon={Download} onClick={() => addToast('System audit log exported', 'info')}>
-            Export Audit
-          </Button>
-          <Button variant="primary" icon={Plus} onClick={handleOpenAdd}>
-            Add Institution
-          </Button>
-        </div>
-      </div>
-
-      {/* Quick Actions Bar */}
-      <QuickActions
-        actions={[
-          { label: 'Register New Institution', icon: Plus, onClick: handleOpenAdd },
-          { label: 'View All Institutions', icon: Building2, onClick: () => navigate('/super-admin/institutions') },
-          { label: 'System Analytics', icon: Activity, onClick: () => navigate('/super-admin/analytics') },
-          { label: 'Global Notice Dispatch', icon: ShieldCheck, onClick: () => navigate('/super-admin/notices') },
-        ]}
-      />
-
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <StatCard title="Total Institutions" value={institutions.length} subtitle="Managed globally" icon={Building2} change="+2 this month" />
-        <StatCard title="Total Schools" value={institutions.filter((i) => i.type === 'School').length} subtitle="K-12 Institutes" icon={School} />
-        <StatCard title="Total Colleges" value={institutions.filter((i) => i.type === 'College').length} subtitle="Degree Colleges" icon={Building2} />
-        <StatCard title="Total Universities" value={institutions.filter((i) => i.type === 'University').length} subtitle="Central & State" icon={GraduationCap} />
-        <StatCard title="Total Students" value={stats.totalStudents?.toLocaleString() || '46,790'} subtitle="Across all tenants" icon={Users} change="+8.4% YoY" />
-        <StatCard title="Total Faculty & Staff" value={stats.totalFaculty?.toLocaleString() || '2,388'} subtitle="Active educators" icon={UserCheck} />
-        <StatCard title="Active Tenants" value={institutions.filter((i) => i.status === 'Active').length} subtitle="Healthy status" icon={CheckCircle2} />
-        <StatCard title="Pending Review" value={institutions.filter((i) => i.status === 'Pending').length} subtitle="Awaiting compliance" icon={Clock} />
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid-2" style={{ marginBottom: '24px' }}>
-        <ChartCard
-          title="Tenant Growth Trend"
-          subtitle="Monthly active student and institutional onboarding"
-        >
-          <BarChart data={barChartData} height={170} />
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px', fontSize: '11.5px', color: 'var(--text-tertiary)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: 8, height: 8, backgroundColor: '#111827', borderRadius: 2 }} /> Institutions
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: 8, height: 8, backgroundColor: '#9ca3af', borderRadius: 2 }} /> Admins
-            </span>
-          </div>
-        </ChartCard>
-
-        <ChartCard
-          title="Institution Distribution"
-          subtitle="Proportion of registered tenant categories"
-        >
-          <DonutChart data={donutData} size={140} />
-        </ChartCard>
-      </div>
-
-      {/* Main Table & Activity Stream */}
-      <div className="grid-3" style={{ gridTemplateColumns: '2fr 1fr' }}>
-        {/* Quick Institution Management */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                Recent Institutions
-              </h2>
-              <p className="text-xs text-muted">Direct management and status control</p>
-            </div>
-            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right" onClick={() => navigate('/super-admin/institutions')}>
-              View All
-            </Button>
-          </div>
-
-          <div className="table-responsive" style={{ border: 'none', borderRadius: 0 }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Institution Name</th>
-                  <th>Type</th>
-                  <th>Admin</th>
-                  <th>Students</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {institutions.slice(0, 5).map((inst) => (
-                  <tr key={inst.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{inst.name}</div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)' }}>{inst.location}</div>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '12px', fontWeight: 500 }}>{inst.type}</span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '12.5px' }}>{inst.admin}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{inst.email}</div>
-                    </td>
-                    <td>
-                      <strong>{inst.students.toLocaleString()}</strong>
-                    </td>
-                    <td>
-                      <Badge variant={inst.status}>{inst.status}</Badge>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                        <button
-                          onClick={() => handleOpenView(inst)}
-                          className="btn-ghost btn-icon"
-                          title="View Details"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleOpenEdit(inst)}
-                          className="btn-ghost btn-icon"
-                          title="Edit Institution"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(inst)}
-                          className="btn-ghost btn-icon"
-                          title={inst.status === 'Active' ? 'Deactivate' : 'Activate'}
-                        >
-                          <Power size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleOpenDelete(inst)}
-                          className="btn-ghost btn-icon"
-                          title="Delete Institution"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <h1 className="page-title">
+            <ShieldCheck size={28} color="var(--primary)" />
+            Super Admin Control Center
+          </h1>
+          <p className="page-subtitle">
+            Global multi-school monitoring, institution onboarding and system statistics
+          </p>
         </div>
 
-        {/* Recent Activities */}
+        <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+          <Plus size={16} />
+          <span>Add New School</span>
+        </button>
+      </div>
+
+      {/* Top Aggregated Metric Cards */}
+      <div className="grid-4" style={{ marginBottom: '24px' }}>
+        <StatCard
+          title="Total Schools Managed"
+          value={totalSchools}
+          icon={Building2}
+          color="indigo"
+          subtitle={`${activeSchools} Active • ${inactiveSchools} Inactive`}
+        />
+        <StatCard
+          title="Total Students (Global)"
+          value={totalStudents.toLocaleString()}
+          icon={Users}
+          color="emerald"
+          trend="+18%"
+          trendPositive={true}
+        />
+        <StatCard
+          title="Total Teachers (Global)"
+          value={totalTeachers.toLocaleString()}
+          icon={GraduationCap}
+          color="sky"
+          trend="+12%"
+          trendPositive={true}
+        />
+        <StatCard
+          title="Total Staff Personnel"
+          value={totalStaff.toLocaleString()}
+          icon={Briefcase}
+          color="purple"
+          subtitle="Non-teaching operations"
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid-3" style={{ marginBottom: '24px' }}>
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <div className="card-header">
+            <h3 className="card-title">School Student Capacity & Enrollment</h3>
+            <span className="badge badge-primary">Current Term</span>
+          </div>
+          <BarChart data={schoolChartData} height={200} color="#6366f1" />
+        </div>
+
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Recent System Activities</h2>
+            <h3 className="card-title">Institution Status</h3>
           </div>
-          <ActivityList activities={activities} />
+          <DonutChart data={statusDonutData} size={150} />
         </div>
       </div>
 
-      {/* Add Modal */}
-      <FormModal
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        onSubmit={handleSaveAdd}
-        title="Register New Institution"
-        subtitle="Add a new School, College, or University to the central CRM"
-        submitLabel="Create Institution"
-      >
-        <div className="grid-2">
-          <Input
-            label="Institution Name"
-            required
-            placeholder="e.g. Cambridge Senior Secondary"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-          <Select
-            label="Institution Type"
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            options={['School', 'College', 'University']}
-          />
-        </div>
-        <div className="grid-2">
-          <Input
-            label="Head Administrator Name"
-            required
-            placeholder="Dr. Rajesh / Prof. Sharma"
-            value={formData.admin}
-            onChange={(e) => setFormData({ ...formData, admin: e.target.value })}
-          />
-          <Input
-            label="Official Contact Email"
-            type="email"
-            required
-            placeholder="admin@school.edu.in"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          />
-        </div>
-        <div className="grid-2">
-          <Input
-            label="Phone Number"
-            placeholder="+91 98112 00000"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          />
-          <Input
-            label="Campus Location (City, State)"
-            placeholder="New Delhi, Delhi"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          />
-        </div>
-        <Select
-          label="Subscription Plan"
-          value={formData.plan}
-          onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-          options={['Basic', 'Standard', 'Enterprise', 'Ultra Enterprise']}
-        />
-      </FormModal>
-
-      {/* Edit Modal */}
-      <FormModal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        onSubmit={handleSaveEdit}
-        title="Edit Institution Details"
-        subtitle={selectedInst?.name}
-        submitLabel="Save Changes"
-      >
-        <div className="grid-2">
-          <Input
-            label="Institution Name"
-            required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-          <Select
-            label="Institution Type"
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            options={['School', 'College', 'University']}
-          />
-        </div>
-        <div className="grid-2">
-          <Input
-            label="Head Administrator"
-            required
-            value={formData.admin}
-            onChange={(e) => setFormData({ ...formData, admin: e.target.value })}
-          />
-          <Input
-            label="Email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          />
-        </div>
-        <div className="grid-2">
-          <Input
-            label="Phone"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          />
-          <Input
-            label="Location"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          />
-        </div>
-      </FormModal>
-
-      {/* View Modal */}
-      <ViewModal
-        isOpen={isViewOpen}
-        onClose={() => setIsViewOpen(false)}
-        title={selectedInst?.name || 'Institution Details'}
-        subtitle={`System ID: ${selectedInst?.id} • Code: ${selectedInst?.code}`}
-        data={selectedInst || {}}
-        fields={[
-          { label: 'Institution Name', key: 'name' },
-          { label: 'Institution Type', key: 'type' },
-          { label: 'Head Administrator', key: 'admin' },
-          { label: 'Official Email', key: 'email' },
-          { label: 'Contact Phone', key: 'phone' },
-          { label: 'Location', key: 'location' },
-          { label: 'Total Enrolled Students', key: 'students', render: (v) => v?.toLocaleString() },
-          { label: 'Total Faculty & Staff', key: 'faculty', render: (v) => v?.toLocaleString() },
-          { label: 'Status', key: 'status', render: (v) => <Badge variant={v}>{v}</Badge> },
-          { label: 'Subscription Plan', key: 'plan' },
-          { label: 'Onboarded Date', key: 'createdDate' },
-        ]}
+      {/* Schools DataTable */}
+      <DataTable
+        title="Managed Schools Directory"
+        subtitle="List of all registered educational campuses on the platform"
+        columns={columns}
+        data={schools}
+        searchKeys={['name', 'schoolCode', 'principal', 'email']}
+        pageSize={5}
       />
 
-      {/* Delete Confirmation Modal */}
-      <DeleteModal
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={handleConfirmDelete}
-        title="Delete Institution Tenant"
-        itemName={selectedInst?.name}
-        message="Are you sure you want to permanently remove this institution and all affiliated student and faculty records from the central CRM?"
-      />
+      {/* Add School Modal */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Register New School"
+        subtitle="Onboard a new educational campus into the CRM platform"
+        size="lg"
+      >
+        <form onSubmit={handleAddSchoolSubmit}>
+          <div className="grid-2">
+            <FormInput
+              label="School Name"
+              required
+              value={newSchool.name}
+              onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
+              placeholder="e.g. Cambridge International School"
+            />
+            <FormInput
+              label="Unique School ID / Code"
+              value={newSchool.schoolCode}
+              onChange={(e) => setNewSchool({ ...newSchool, schoolCode: e.target.value })}
+              placeholder="e.g. CIS-505"
+            />
+          </div>
+
+          <div className="grid-2">
+            <FormInput
+              label="Principal / Head Name"
+              required
+              value={newSchool.principal}
+              onChange={(e) => setNewSchool({ ...newSchool, principal: e.target.value })}
+              placeholder="e.g. Dr. Eleanor Vance"
+            />
+            <FormInput
+              label="Official Contact Email"
+              type="email"
+              value={newSchool.email}
+              onChange={(e) => setNewSchool({ ...newSchool, email: e.target.value })}
+              placeholder="contact@cambridge.edu"
+            />
+          </div>
+
+          <div className="grid-2">
+            <FormInput
+              label="Contact Phone"
+              value={newSchool.phone}
+              onChange={(e) => setNewSchool({ ...newSchool, phone: e.target.value })}
+              placeholder="+1 (555) 000-1122"
+            />
+            <Select
+              label="Board / Affiliation"
+              value={newSchool.affiliation}
+              onChange={(e) => setNewSchool({ ...newSchool, affiliation: e.target.value })}
+              options={['CBSE / State Board', 'ICSE / Cambridge', 'IB World School', 'Other State Board']}
+            />
+          </div>
+
+          <Textarea
+            label="Campus Address"
+            value={newSchool.address}
+            onChange={(e) => setNewSchool({ ...newSchool, address: e.target.value })}
+            placeholder="Full postal address with district and zip code"
+            rows={2}
+          />
+
+          <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setIsAddModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Register School
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

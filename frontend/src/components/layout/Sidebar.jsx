@@ -1,493 +1,357 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
-  Building2,
   Users,
   GraduationCap,
-  BookOpen,
-  Calendar,
-  CreditCard,
-  FileText,
-  Settings,
-  LogOut,
-  ChevronDown,
-  ChevronRight,
-  ShieldCheck,
-  School,
-  Award,
-  Bell,
-  MessageSquare,
-  BarChart3,
-  UserCheck,
   Briefcase,
   Layers,
-  FlaskConical,
-  Microscope,
-  FileCheck,
+  CalendarCheck,
   Clock,
-  User,
-  X
+  Award,
+  BookOpen,
+  DollarSign,
+  Bus,
+  Library,
+  Calendar,
+  Bell,
+  FileText,
+  BarChart3,
+  Settings,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  X,
+  ClipboardList,
+  UserCheck,
+  CheckSquare,
+  ShieldCheck,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
-export default function Sidebar({ isOpen, onClose, isMobile = false }) {
-  const { role, currentUser, logout } = useAuth();
+export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed }) {
+  const { role, currentUser, selectedSchool, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Navigation config per role
-  const getNavSections = () => {
-    switch (role) {
-      case 'super-admin':
-        return [
-          {
-            title: 'Overview',
-            items: [
-              { label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
-              { label: 'Analytics', path: '/super-admin/analytics', icon: BarChart3 },
-            ],
-          },
-          {
-            title: 'Multi-Tenant Management',
-            items: [
-              { label: 'All Institutions', path: '/super-admin/institutions', icon: Building2, badge: '8' },
-              { label: 'System Users', path: '/super-admin/users', icon: Users },
-              { label: 'Admins Directory', path: '/super-admin/admins', icon: ShieldCheck },
-            ],
-          },
-          {
-            title: 'Global Operations',
-            items: [
-              { label: 'Global Students', path: '/super-admin/students', icon: GraduationCap },
-              { label: 'Global Faculty & Staff', path: '/super-admin/faculty', icon: UserCheck },
-              { label: 'Academic Programs', path: '/super-admin/courses', icon: BookOpen },
-              { label: 'Global Fees & Finance', path: '/super-admin/fees', icon: CreditCard },
-              { label: 'Admissions Central', path: '/super-admin/admissions', icon: FileCheck },
-            ],
-          },
-          {
-            title: 'Communications & Audit',
-            items: [
-              { label: 'System Notices', path: '/super-admin/notices', icon: Bell },
-              { label: 'Global Events', path: '/super-admin/events', icon: Calendar },
-              { label: 'Audit & Reports', path: '/super-admin/reports', icon: FileText },
-            ],
-          },
-          {
-            title: 'System',
-            items: [
-              { label: 'Platform Settings', path: '/super-admin/settings', icon: Settings },
-              { label: 'My Profile', path: '/super-admin/profile', icon: User },
-            ],
-          },
-        ];
-
-      case 'school':
-        return [
-          {
-            title: 'Main',
-            items: [
-              { label: 'Dashboard', path: '/school/dashboard', icon: LayoutDashboard },
-            ],
-          },
-          {
-            title: 'Academic',
-            items: [
-              { label: 'Students', path: '/school/students', icon: GraduationCap, badge: '2.4k' },
-              { label: 'Teachers', path: '/school/teachers', icon: Users },
-              { label: 'Classes & Sections', path: '/school/classes', icon: Layers },
-              { label: 'Timetable', path: '/school/timetable', icon: Clock },
-              { label: 'Attendance', path: '/school/attendance', icon: UserCheck },
-              { label: 'Exams & Results', path: '/school/exams', icon: Award },
-            ],
-          },
-          {
-            title: 'Administration',
-            items: [
-              { label: 'Parents Directory', path: '/school/parents', icon: Users },
-              { label: 'Fee Management', path: '/school/fees', icon: CreditCard },
-              { label: 'School Notices', path: '/school/notices', icon: Bell },
-              { label: 'Events & Sports', path: '/school/events', icon: Calendar },
-            ],
-          },
-          {
-            title: 'Communication & Reports',
-            items: [
-              { label: 'Messages', path: '/school/messages', icon: MessageSquare },
-              { label: 'Reports & Analytics', path: '/school/reports', icon: FileText },
-            ],
-          },
-          {
-            title: 'System',
-            items: [
-              { label: 'School Settings', path: '/school/settings', icon: Settings },
-              { label: 'Profile', path: '/school/profile', icon: User },
-            ],
-          },
-        ];
-
-      case 'college':
-        return [
-          {
-            title: 'Main',
-            items: [
-              { label: 'Dashboard', path: '/college/dashboard', icon: LayoutDashboard },
-            ],
-          },
-          {
-            title: 'Academic',
-            items: [
-              { label: 'Students', path: '/college/students', icon: GraduationCap, badge: '3.6k' },
-              { label: 'Faculty Members', path: '/college/faculty', icon: Users },
-              { label: 'Departments', path: '/college/departments', icon: Building2 },
-              { label: 'Courses & Programs', path: '/college/courses', icon: BookOpen },
-              { label: 'Attendance', path: '/college/attendance', icon: UserCheck },
-              { label: 'Examinations (SEE/CIE)', path: '/college/exams', icon: Award },
-              { label: 'Timetable Schedule', path: '/college/timetable', icon: Clock },
-            ],
-          },
-          {
-            title: 'Administration',
-            items: [
-              { label: 'Admissions 2026', path: '/college/admissions', icon: FileCheck, badge: 'New' },
-              { label: 'Fee Management', path: '/college/fees', icon: CreditCard },
-              { label: 'Notices & Circulars', path: '/college/notices', icon: Bell },
-              { label: 'Events & Conclaves', path: '/college/events', icon: Calendar },
-            ],
-          },
-          {
-            title: 'Communication & Reports',
-            items: [
-              { label: 'Messages', path: '/college/messages', icon: MessageSquare },
-              { label: 'College Reports', path: '/college/reports', icon: FileText },
-            ],
-          },
-          {
-            title: 'System',
-            items: [
-              { label: 'College Settings', path: '/college/settings', icon: Settings },
-              { label: 'Profile', path: '/college/profile', icon: User },
-            ],
-          },
-        ];
-
-      case 'university':
-        return [
-          {
-            title: 'Main',
-            items: [
-              { label: 'Dashboard', path: '/university/dashboard', icon: LayoutDashboard },
-            ],
-          },
-          {
-            title: 'Academic & Institutes',
-            items: [
-              { label: 'Colleges & Institutes', path: '/university/colleges', icon: Building2, badge: '32' },
-              { label: 'Academic Programs', path: '/university/programs', icon: BookOpen },
-              { label: 'University Students', path: '/university/students', icon: GraduationCap },
-              { label: 'Faculty & Deans', path: '/university/faculty', icon: Users },
-              { label: 'Examinations Cell', path: '/university/exams', icon: Award },
-            ],
-          },
-          {
-            title: 'Research & Innovation',
-            items: [
-              { label: 'Research Projects', path: '/university/research', icon: Microscope, badge: '42' },
-              { label: 'Researchers & Ph.D.', path: '/university/researchers', icon: FlaskConical },
-            ],
-          },
-          {
-            title: 'Administration',
-            items: [
-              { label: 'Central Admissions', path: '/university/admissions', icon: FileCheck },
-              { label: 'Fee & Grant Accounts', path: '/university/fees', icon: CreditCard },
-              { label: 'University Notices', path: '/university/notices', icon: Bell },
-              { label: 'Conferences & Events', path: '/university/events', icon: Calendar },
-            ],
-          },
-          {
-            title: 'Reports & Governance',
-            items: [
-              { label: 'Messages & Dispatch', path: '/university/messages', icon: MessageSquare },
-              { label: 'NIRF / NAAC Reports', path: '/university/reports', icon: FileText },
-            ],
-          },
-          {
-            title: 'System',
-            items: [
-              { label: 'University Settings', path: '/university/settings', icon: Settings },
-              { label: 'Profile', path: '/university/profile', icon: User },
-            ],
-          },
-        ];
-
-      default:
-        return [];
-    }
-  };
-
-  const sections = getNavSections();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const sidebarContent = (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        backgroundColor: '#ffffff',
-        borderRight: '1px solid var(--border-subtle)',
-      }}
-    >
-      {/* Brand Header */}
-      <div
+  // Build role-specific navigation menus
+  const getNavSections = () => {
+    if (role === 'super-admin') {
+      return [
+        {
+          title: 'SUPER ADMIN',
+          items: [
+            { label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
+            { label: 'All Schools', path: '/super-admin/schools', icon: Building2 },
+            { label: 'Platform Analytics', path: '/super-admin/analytics', icon: BarChart3 },
+            { label: 'System Settings', path: '/super-admin/settings', icon: Settings },
+          ],
+        },
+      ];
+    }
+
+    if (role === 'teacher') {
+      return [
+        {
+          title: 'TEACHER PORTAL',
+          items: [
+            { label: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
+            { label: 'My Students', path: '/teacher/students', icon: Users },
+            { label: 'Attendance', path: '/teacher/attendance', icon: CalendarCheck },
+            { label: 'Assignments', path: '/teacher/assignments', icon: BookOpen },
+            { label: 'Exam Marks', path: '/teacher/marks', icon: Award },
+            { label: 'My Timetable', path: '/teacher/timetable', icon: Clock },
+            { label: 'Apply Leave', path: '/teacher/leave', icon: ClipboardList },
+            { label: 'Notices', path: '/teacher/notices', icon: Bell },
+            { label: 'My Profile', path: '/teacher/profile', icon: UserCheck },
+          ],
+        },
+      ];
+    }
+
+    if (role === 'student') {
+      return [
+        {
+          title: 'STUDENT PORTAL',
+          items: [
+            { label: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
+            { label: 'My Profile', path: '/student/profile', icon: UserCheck },
+            { label: 'Timetable', path: '/student/timetable', icon: Clock },
+            { label: 'Assignments', path: '/student/assignments', icon: BookOpen },
+            { label: 'Exam Results', path: '/student/results', icon: Award },
+            { label: 'Fee Status', path: '/student/fees', icon: DollarSign },
+            { label: 'Leave Request', path: '/student/leave', icon: ClipboardList },
+            { label: 'Notices', path: '/student/notices', icon: Bell },
+          ],
+        },
+      ];
+    }
+
+    // Default: School Admin / Principal (Full 18 Module Navigation)
+    return [
+      {
+        title: 'MAIN',
+        items: [
+          { label: 'Dashboard', path: '/school-admin/dashboard', icon: LayoutDashboard },
+        ],
+      },
+      {
+        title: 'ACADEMICS & USERS',
+        items: [
+          { label: 'Students', path: '/school-admin/students', icon: Users },
+          { label: 'Teachers', path: '/school-admin/teachers', icon: GraduationCap },
+          { label: 'Staff Management', path: '/school-admin/staff', icon: Briefcase },
+          { label: 'Classes & Sections', path: '/school-admin/classes', icon: Layers },
+          { label: 'Attendance', path: '/school-admin/attendance', icon: CalendarCheck },
+          { label: 'Timetable', path: '/school-admin/timetable', icon: Clock },
+          { label: 'Examinations', path: '/school-admin/exams', icon: Award },
+          { label: 'Assignments', path: '/school-admin/assignments', icon: BookOpen },
+        ],
+      },
+      {
+        title: 'OPERATIONS',
+        items: [
+          { label: 'Fee Management', path: '/school-admin/fees', icon: DollarSign },
+          { label: 'Transport & Drivers', path: '/school-admin/transport', icon: Bus },
+          { label: 'Library', path: '/school-admin/library', icon: Library },
+          { label: 'Events & Calendar', path: '/school-admin/events', icon: Calendar },
+          { label: 'Notices Board', path: '/school-admin/notices', icon: Bell },
+          { label: 'Leave Management', path: '/school-admin/leave', icon: ClipboardList },
+          { label: 'Reports & Analytics', path: '/school-admin/reports', icon: BarChart3 },
+          { label: 'School Settings', path: '/school-admin/settings', icon: Settings },
+        ],
+      },
+    ];
+  };
+
+  const navSections = getNavSections();
+
+  return (
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          onClick={() => setIsMobileOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 998,
+          }}
+        />
+      )}
+
+      <aside
         style={{
-          height: 'var(--header-height)',
+          width: isCollapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width)',
+          backgroundColor: 'var(--bg-sidebar)',
+          borderRight: '1px solid var(--sidebar-border)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 16px',
-          borderBottom: '1px solid var(--border-subtle)',
+          flexDirection: 'column',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          zIndex: 999,
+          transition: 'width var(--transition-normal), transform var(--transition-normal)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
+        className={isMobileOpen ? 'sidebar-mobile-open' : ''}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              backgroundColor: '#111827',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '13px',
-              letterSpacing: '-0.05em',
-            }}
-          >
-            E
-          </div>
-          <div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              EDU<span style={{ fontWeight: 400 }}>CRM</span>
-            </div>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
-              {role === 'super-admin' ? 'Master Admin' : `${role} Edition`}
-            </div>
-          </div>
-        </div>
-
-        {isMobile && (
-          <button
-            onClick={onClose}
-            className="btn-ghost btn-icon"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
-            <X size={18} />
-          </button>
-        )}
-      </div>
-
-      {/* Institution Info Card */}
-      <div
-        style={{
-          padding: '12px 14px',
-          margin: '12px 12px 4px 12px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-        }}
-      >
-        <div style={{ fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-          Active Tenant
-        </div>
-        <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {currentUser?.institutionName || 'Global Workspace'}
-        </div>
-      </div>
-
-      {/* Navigation Sections */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
-        {sections.map((section, idx) => (
-          <div key={idx} style={{ marginBottom: '16px' }}>
+        {/* Sidebar Header Brand */}
+        <div
+          style={{
+            height: 'var(--header-height)',
+            padding: '0 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'space-between',
+            borderBottom: '1px solid var(--sidebar-border)',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
             <div
               style={{
-                fontSize: '10.5px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: 'var(--text-muted)',
-                padding: '4px 10px 6px 10px',
-              }}
-            >
-              {section.title}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {section.items.map((item) => {
-                const ItemIcon = item.icon;
-                const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => isMobile && onClose && onClose()}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '7px 10px',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '13px',
-                      fontWeight: isActive ? 600 : 500,
-                      backgroundColor: isActive ? 'var(--bg-tertiary)' : 'transparent',
-                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      transition: 'all var(--transition-fast)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <ItemIcon size={16} style={{ color: isActive ? '#111827' : 'var(--text-tertiary)', flexShrink: 0 }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.label}
-                      </span>
-                    </div>
-
-                    {item.badge && (
-                      <span
-                        style={{
-                          fontSize: '10.5px',
-                          padding: '1px 6px',
-                          borderRadius: '10px',
-                          backgroundColor: isActive ? '#111827' : 'var(--border-subtle)',
-                          color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </NavLink>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer Profile & Logout */}
-      <div
-        style={{
-          padding: '12px 14px',
-          borderTop: '1px solid var(--border-subtle)',
-          backgroundColor: '#ffffff',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                backgroundColor: '#111827',
-                color: '#ffffff',
+                width: '38px',
+                height: '38px',
+                borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: 600,
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '1.2rem',
                 flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(79, 70, 229, 0.4)',
               }}
             >
-              {currentUser?.avatar || 'AD'}
+              {selectedSchool?.logo || '🏫'}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {currentUser?.name}
+
+            {!isCollapsed && (
+              <div style={{ overflow: 'hidden' }}>
+                <div
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {role === 'super-admin'
+                    ? 'Super Admin CRM'
+                    : selectedSchool?.name?.split(' ')[0] + ' School' || 'School CRM'}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.7rem',
+                    color: '#64748b',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {role.replace('-', ' ')}
+                </div>
               </div>
-              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                {currentUser?.roleLabel || 'Admin'}
-              </div>
-            </div>
+            )}
           </div>
 
+          {/* Mobile close button */}
           <button
-            onClick={handleLogout}
-            title="Sign Out"
+            className="mobile-only-btn"
+            onClick={() => setIsMobileOpen(false)}
             style={{
-              padding: '6px',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-tertiary)',
+              display: 'none',
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
             }}
           >
-            <LogOut size={15} />
+            <X size={20} />
           </button>
         </div>
-      </div>
-    </div>
-  );
 
-  // Desktop static sidebar
-  if (!isMobile) {
-    return (
-      <aside
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: 'var(--sidebar-width)',
-          zIndex: 30,
-          display: isOpen ? 'block' : 'none',
-        }}
-      >
-        {sidebarContent}
+        {/* Navigation Sections */}
+        <div style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {navSections.map((section, sIdx) => (
+            <div key={sIdx}>
+              {!isCollapsed && section.title && (
+                <div
+                  style={{
+                    fontSize: '0.675rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    letterSpacing: '0.08em',
+                    padding: '0 12px 6px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {section.title}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMobileOpen(false)}
+                      style={({ isActive }) => ({
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: isCollapsed ? '12px 0' : '10px 14px',
+                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.85rem',
+                        fontWeight: isActive ? 700 : 500,
+                        color: isActive ? '#ffffff' : 'var(--sidebar-text)',
+                        backgroundColor: isActive ? 'var(--primary)' : 'transparent',
+                        textDecoration: 'none',
+                        transition: 'all var(--transition-fast)',
+                      })}
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <Icon size={18} style={{ flexShrink: 0 }} />
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sidebar Footer / Collapse & User */}
+        <div
+          style={{
+            padding: '12px',
+            borderTop: '1px solid var(--sidebar-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          {/* Collapse Toggle Button for Desktop */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isCollapsed ? 'center' : 'space-between',
+              padding: '8px 12px',
+              backgroundColor: 'transparent',
+              border: '1px solid var(--sidebar-border)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--sidebar-text)',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+            }}
+          >
+            {!isCollapsed && <span>Collapse Menu</span>}
+            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+
+          {/* Quick Logout */}
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              gap: '10px',
+              padding: '8px 12px',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: 'var(--radius-md)',
+              color: '#f87171',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+            }}
+            title="Log out"
+          >
+            <LogOut size={16} />
+            {!isCollapsed && <span>Sign Out</span>}
+          </button>
+        </div>
       </aside>
-    );
-  }
-
-  // Mobile drawer
-  if (!isOpen) return null;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        backgroundColor: 'rgba(0, 0, 0, 0.45)',
-        animation: 'fadeIn 0.2s ease',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: '270px',
-          height: '100%',
-          backgroundColor: '#ffffff',
-          boxShadow: 'var(--shadow-lg)',
-          animation: 'slideRight 0.2s ease',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {sidebarContent}
-      </div>
-      <style>{`
-        @keyframes slideRight {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
