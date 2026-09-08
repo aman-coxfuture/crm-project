@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 
 // Layout
@@ -11,162 +12,179 @@ import LoginPage from './pages/auth/LoginPage';
 
 // Super Admin Pages
 import SuperAdminDashboard from './pages/superAdmin/SuperAdminDashboard';
-import InstitutionsPage from './pages/superAdmin/InstitutionsPage';
-import UsersPage from './pages/superAdmin/UsersPage';
-import AnalyticsPage from './pages/superAdmin/AnalyticsPage';
-import GlobalReportsPage from './pages/superAdmin/GlobalReportsPage';
+import SchoolsManagementPage from './pages/superAdmin/SchoolsManagementPage';
+import SuperAdminAnalyticsPage from './pages/superAdmin/SuperAdminAnalyticsPage';
 import SuperAdminSettingsPage from './pages/superAdmin/SuperAdminSettingsPage';
 
-// School Pages
-import SchoolDashboard from './pages/school/SchoolDashboard';
-import SchoolStudentsPage from './pages/school/SchoolStudentsPage';
-import SchoolTeachersPage from './pages/school/SchoolTeachersPage';
-import SchoolClassesPage from './pages/school/SchoolClassesPage';
-import SchoolAttendancePage from './pages/school/SchoolAttendancePage';
-import SchoolExamsPage from './pages/school/SchoolExamsPage';
-import SchoolFeesPage from './pages/school/SchoolFeesPage';
-import SchoolTimetablePage from './pages/school/SchoolTimetablePage';
-import SchoolParentsPage from './pages/school/SchoolParentsPage';
-import SchoolNoticesPage from './pages/school/SchoolNoticesPage';
-import SchoolReportsPage from './pages/school/SchoolReportsPage';
+// School Admin / Principal Pages
+import SchoolAdminDashboard from './pages/school/SchoolAdminDashboard';
+import StudentsPage from './pages/school/StudentsPage';
+import TeachersPage from './pages/school/TeachersPage';
+import StaffPage from './pages/school/StaffPage';
+import ClassesPage from './pages/school/ClassesPage';
+import AttendancePage from './pages/school/AttendancePage';
+import TimetablePage from './pages/school/TimetablePage';
+import ExaminationsPage from './pages/school/ExaminationsPage';
+import AssignmentsPage from './pages/school/AssignmentsPage';
+import FeesPage from './pages/school/FeesPage';
+import TransportPage from './pages/school/TransportPage';
+import LibraryPage from './pages/school/LibraryPage';
+import EventsCalendarPage from './pages/school/EventsCalendarPage';
+import NoticesPage from './pages/school/NoticesPage';
+import LeaveManagementPage from './pages/school/LeaveManagementPage';
+import ReportsPage from './pages/school/ReportsPage';
+import SchoolSettingsPage from './pages/school/SchoolSettingsPage';
 
-// College Pages
-import CollegeDashboard from './pages/college/CollegeDashboard';
-import CollegeStudentsPage from './pages/college/CollegeStudentsPage';
-import CollegeFacultyPage from './pages/college/CollegeFacultyPage';
-import CollegeDepartmentsPage from './pages/college/CollegeDepartmentsPage';
-import CollegeCoursesPage from './pages/college/CollegeCoursesPage';
-import CollegeAdmissionsPage from './pages/college/CollegeAdmissionsPage';
-import CollegeAttendancePage from './pages/college/CollegeAttendancePage';
-import CollegeExamsPage from './pages/college/CollegeExamsPage';
-import CollegeFeesPage from './pages/college/CollegeFeesPage';
-import CollegeNoticesPage from './pages/college/CollegeNoticesPage';
-import CollegeReportsPage from './pages/college/CollegeReportsPage';
+// Teacher Pages
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherStudentsPage from './pages/teacher/TeacherStudentsPage';
+import TeacherAttendancePage from './pages/teacher/TeacherAttendancePage';
+import TeacherAssignmentsPage from './pages/teacher/TeacherAssignmentsPage';
+import TeacherMarksPage from './pages/teacher/TeacherMarksPage';
+import TeacherTimetablePage from './pages/teacher/TeacherTimetablePage';
+import TeacherLeavePage from './pages/teacher/TeacherLeavePage';
+import TeacherNoticesPage from './pages/teacher/TeacherNoticesPage';
+import TeacherProfilePage from './pages/teacher/TeacherProfilePage';
 
-// University Pages
-import UniversityDashboard from './pages/university/UniversityDashboard';
-import UniversityCollegesPage from './pages/university/UniversityCollegesPage';
-import UniversityResearchPage from './pages/university/UniversityResearchPage';
-import UniversityResearchersPage from './pages/university/UniversityResearchersPage';
-import UniversityProgramsPage from './pages/university/UniversityProgramsPage';
-import UniversityStudentsPage from './pages/university/UniversityStudentsPage';
-import UniversityFacultyPage from './pages/university/UniversityFacultyPage';
-import UniversityAdmissionsPage from './pages/university/UniversityAdmissionsPage';
-import UniversityFeesPage from './pages/university/UniversityFeesPage';
-import UniversityNoticesPage from './pages/university/UniversityNoticesPage';
-import UniversityReportsPage from './pages/university/UniversityReportsPage';
+// Student Pages
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentProfilePage from './pages/student/StudentProfilePage';
+import StudentTimetablePage from './pages/student/StudentTimetablePage';
+import StudentAssignmentsPage from './pages/student/StudentAssignmentsPage';
+import StudentResultsPage from './pages/student/StudentResultsPage';
+import StudentFeesPage from './pages/student/StudentFeesPage';
+import StudentNoticesPage from './pages/student/StudentNoticesPage';
+import StudentLeavePage from './pages/student/StudentLeavePage';
 
-// Common Pages
-import MessagesPage from './pages/common/MessagesPage';
-import EventsPage from './pages/common/EventsPage';
-import SettingsPage from './pages/common/SettingsPage';
-import ProfilePage from './pages/common/ProfilePage';
-import NotFoundPage from './pages/common/NotFoundPage';
+// Frontend Role Guard
+function RoleGuard({ allowedRoles, children }) {
+  const { role, isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  if (!allowedRoles.includes(role)) {
+    // Redirect to user's assigned dashboard
+    if (role === 'super-admin') return <Navigate to="/super-admin/dashboard" replace />;
+    if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
+    if (role === 'student') return <Navigate to="/student/dashboard" replace />;
+    return <Navigate to="/school-admin/dashboard" replace />;
+  }
+  return children;
+}
 
 function RootRedirect() {
   const { role, isAuthenticated } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  return <Navigate to={`/${role}/dashboard`} replace />;
+  if (role === 'super-admin') return <Navigate to="/super-admin/dashboard" replace />;
+  if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
+  if (role === 'student') return <Navigate to="/student/dashboard" replace />;
+  return <Navigate to="/school-admin/dashboard" replace />;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ToastProvider>
-          <Routes>
-            {/* Public Login Route */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<RootRedirect />} />
+        <ThemeProvider>
+          <ToastProvider>
+            <Routes>
+              {/* Public Login */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<RootRedirect />} />
 
-            {/* SUPER ADMIN PORTAL */}
-            <Route path="/super-admin" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/super-admin/dashboard" replace />} />
-              <Route path="dashboard" element={<SuperAdminDashboard />} />
-              <Route path="institutions" element={<InstitutionsPage />} />
-              <Route path="users" element={<UsersPage />} />
-              <Route path="admins" element={<UsersPage />} />
-              <Route path="students" element={<SchoolStudentsPage />} />
-              <Route path="faculty" element={<CollegeFacultyPage />} />
-              <Route path="courses" element={<CollegeCoursesPage />} />
-              <Route path="fees" element={<CollegeFeesPage />} />
-              <Route path="admissions" element={<CollegeAdmissionsPage />} />
-              <Route path="notices" element={<SchoolNoticesPage />} />
-              <Route path="events" element={<EventsPage />} />
-              <Route path="reports" element={<GlobalReportsPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="settings" element={<SuperAdminSettingsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
+              {/* SUPER ADMIN PORTAL */}
+              <Route
+                path="/super-admin"
+                element={
+                  <RoleGuard allowedRoles={['super-admin']}>
+                    <DashboardLayout />
+                  </RoleGuard>
+                }
+              >
+                <Route index element={<Navigate to="/super-admin/dashboard" replace />} />
+                <Route path="dashboard" element={<SuperAdminDashboard />} />
+                <Route path="schools" element={<SchoolsManagementPage />} />
+                <Route path="analytics" element={<SuperAdminAnalyticsPage />} />
+                <Route path="settings" element={<SuperAdminSettingsPage />} />
+              </Route>
 
-            {/* SCHOOL CRM PORTAL */}
-            <Route path="/school" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/school/dashboard" replace />} />
-              <Route path="dashboard" element={<SchoolDashboard />} />
-              <Route path="students" element={<SchoolStudentsPage />} />
-              <Route path="teachers" element={<SchoolTeachersPage />} />
-              <Route path="classes" element={<SchoolClassesPage />} />
-              <Route path="timetable" element={<SchoolTimetablePage />} />
-              <Route path="attendance" element={<SchoolAttendancePage />} />
-              <Route path="exams" element={<SchoolExamsPage />} />
-              <Route path="fees" element={<SchoolFeesPage />} />
-              <Route path="parents" element={<SchoolParentsPage />} />
-              <Route path="notices" element={<SchoolNoticesPage />} />
-              <Route path="events" element={<EventsPage />} />
-              <Route path="messages" element={<MessagesPage />} />
-              <Route path="reports" element={<SchoolReportsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
+              {/* SCHOOL ADMIN / PRINCIPAL PORTAL */}
+              <Route
+                path="/school-admin"
+                element={
+                  <RoleGuard allowedRoles={['school-admin']}>
+                    <DashboardLayout />
+                  </RoleGuard>
+                }
+              >
+                <Route index element={<Navigate to="/school-admin/dashboard" replace />} />
+                <Route path="dashboard" element={<SchoolAdminDashboard />} />
+                <Route path="students" element={<StudentsPage />} />
+                <Route path="teachers" element={<TeachersPage />} />
+                <Route path="staff" element={<StaffPage />} />
+                <Route path="classes" element={<ClassesPage />} />
+                <Route path="attendance" element={<AttendancePage />} />
+                <Route path="timetable" element={<TimetablePage />} />
+                <Route path="exams" element={<ExaminationsPage />} />
+                <Route path="assignments" element={<AssignmentsPage />} />
+                <Route path="fees" element={<FeesPage />} />
+                <Route path="transport" element={<TransportPage />} />
+                <Route path="library" element={<LibraryPage />} />
+                <Route path="events" element={<EventsCalendarPage />} />
+                <Route path="notices" element={<NoticesPage />} />
+                <Route path="leave" element={<LeaveManagementPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="settings" element={<SchoolSettingsPage />} />
+              </Route>
 
-            {/* COLLEGE CRM PORTAL */}
-            <Route path="/college" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/college/dashboard" replace />} />
-              <Route path="dashboard" element={<CollegeDashboard />} />
-              <Route path="students" element={<CollegeStudentsPage />} />
-              <Route path="faculty" element={<CollegeFacultyPage />} />
-              <Route path="departments" element={<CollegeDepartmentsPage />} />
-              <Route path="courses" element={<CollegeCoursesPage />} />
-              <Route path="attendance" element={<CollegeAttendancePage />} />
-              <Route path="exams" element={<CollegeExamsPage />} />
-              <Route path="timetable" element={<SchoolTimetablePage />} />
-              <Route path="admissions" element={<CollegeAdmissionsPage />} />
-              <Route path="fees" element={<CollegeFeesPage />} />
-              <Route path="notices" element={<CollegeNoticesPage />} />
-              <Route path="events" element={<EventsPage />} />
-              <Route path="messages" element={<MessagesPage />} />
-              <Route path="reports" element={<CollegeReportsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
+              {/* TEACHER PORTAL */}
+              <Route
+                path="/teacher"
+                element={
+                  <RoleGuard allowedRoles={['teacher']}>
+                    <DashboardLayout />
+                  </RoleGuard>
+                }
+              >
+                <Route index element={<Navigate to="/teacher/dashboard" replace />} />
+                <Route path="dashboard" element={<TeacherDashboard />} />
+                <Route path="students" element={<TeacherStudentsPage />} />
+                <Route path="attendance" element={<TeacherAttendancePage />} />
+                <Route path="assignments" element={<TeacherAssignmentsPage />} />
+                <Route path="marks" element={<TeacherMarksPage />} />
+                <Route path="timetable" element={<TeacherTimetablePage />} />
+                <Route path="leave" element={<TeacherLeavePage />} />
+                <Route path="notices" element={<TeacherNoticesPage />} />
+                <Route path="profile" element={<TeacherProfilePage />} />
+              </Route>
 
-            {/* UNIVERSITY CRM PORTAL */}
-            <Route path="/university" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/university/dashboard" replace />} />
-              <Route path="dashboard" element={<UniversityDashboard />} />
-              <Route path="colleges" element={<UniversityCollegesPage />} />
-              <Route path="programs" element={<UniversityProgramsPage />} />
-              <Route path="students" element={<UniversityStudentsPage />} />
-              <Route path="faculty" element={<UniversityFacultyPage />} />
-              <Route path="research" element={<UniversityResearchPage />} />
-              <Route path="researchers" element={<UniversityResearchersPage />} />
-              <Route path="admissions" element={<UniversityAdmissionsPage />} />
-              <Route path="exams" element={<CollegeExamsPage />} />
-              <Route path="fees" element={<UniversityFeesPage />} />
-              <Route path="notices" element={<UniversityNoticesPage />} />
-              <Route path="events" element={<EventsPage />} />
-              <Route path="messages" element={<MessagesPage />} />
-              <Route path="reports" element={<UniversityReportsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
+              {/* STUDENT PORTAL */}
+              <Route
+                path="/student"
+                element={
+                  <RoleGuard allowedRoles={['student']}>
+                    <DashboardLayout />
+                  </RoleGuard>
+                }
+              >
+                <Route index element={<Navigate to="/student/dashboard" replace />} />
+                <Route path="dashboard" element={<StudentDashboard />} />
+                <Route path="profile" element={<StudentProfilePage />} />
+                <Route path="timetable" element={<StudentTimetablePage />} />
+                <Route path="assignments" element={<StudentAssignmentsPage />} />
+                <Route path="results" element={<StudentResultsPage />} />
+                <Route path="fees" element={<StudentFeesPage />} />
+                <Route path="notices" element={<StudentNoticesPage />} />
+                <Route path="leave" element={<StudentLeavePage />} />
+              </Route>
 
-            {/* Fallback 404 Route */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </ToastProvider>
+              {/* Fallback */}
+              <Route path="*" element={<RootRedirect />} />
+            </Routes>
+          </ToastProvider>
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

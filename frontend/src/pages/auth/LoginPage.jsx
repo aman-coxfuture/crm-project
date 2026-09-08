@@ -1,313 +1,542 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { School, Building2, GraduationCap, ShieldCheck, ArrowRight, Lock, Mail, Info } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
 import { useToast } from '../../context/ToastContext';
+import { useTheme } from '../../context/ThemeContext';
+import {
+  School,
+  GraduationCap,
+  Building,
+  Shield,
+  UserCheck,
+  BookOpen,
+  ArrowRight,
+  Sparkles,
+  Lock,
+  Mail,
+  Hash,
+  Moon,
+  Sun,
+  CheckCircle2,
+} from 'lucide-react';
 
 export default function LoginPage() {
-  const [selectedRole, setSelectedRole] = useState('school'); // 'school' | 'college' | 'university' | 'super-admin'
-  const [email, setEmail] = useState('principal@dpis-delhi.edu.in');
-  const [password, setPassword] = useState('••••••••••••');
-  const [rememberMe, setRememberMe] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-
   const { login } = useAuth();
-  const { addToast } = useToast();
+  const { success, error } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
+  // Institution Selection: 'school', 'college', 'university'
+  const [selectedInstitution, setSelectedInstitution] = useState('school');
+
+  // Role Selection: 'principal', 'teacher', 'student', 'super-admin'
+  const [selectedRole, setSelectedRole] = useState('school-admin');
+
+  // Form Fields
+  const [email, setEmail] = useState('principal@greenwood.edu');
+  const [password, setPassword] = useState('password123');
+  const [rollNumber, setRollNumber] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // When role changes, set sensible mock defaults
   const handleRoleSelect = (roleKey) => {
     setSelectedRole(roleKey);
-    // Pre-fill demo email based on selected role
-    switch (roleKey) {
-      case 'school':
-        setEmail('principal@dpis-delhi.edu.in');
-        break;
-      case 'college':
-        setEmail('dean@heritagevalley.ac.in');
-        break;
-      case 'university':
-        setEmail('vc@apex-university.ac.in');
-        break;
-      case 'super-admin':
-        setEmail('admin@edusys-corp.in');
-        break;
-      default:
-        break;
+    if (roleKey === 'super-admin') {
+      setEmail('superadmin@schoolcrm.io');
+      setPassword('admin123');
+      setRollNumber('');
+    } else if (roleKey === 'school-admin') {
+      setEmail('principal@greenwood.edu');
+      setPassword('principal123');
+      setRollNumber('');
+    } else if (roleKey === 'teacher') {
+      setEmail('teacher@example.com');
+      setPassword('teacher123');
+      setRollNumber('');
+    } else if (roleKey === 'student') {
+      setEmail('student@example.com');
+      setRollNumber('STU001');
+      setPassword('');
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      login(selectedRole, { email });
-      addToast(`Logged in successfully as ${selectedRole.replace('-', ' ').toUpperCase()}`, 'success');
+    try {
+      if (!email && selectedRole !== 'student') {
+        error('Please enter an email address');
+        setIsLoading(false);
+        return;
+      }
+
+      if (selectedRole === 'student' && !email && !rollNumber) {
+        error('Please enter either student email or roll number');
+        setIsLoading(false);
+        return;
+      }
+
+      const user = await login({
+        role: selectedRole,
+        email,
+        password,
+        rollNumber,
+      });
+
+      success(`Welcome back, ${user.name}!`);
+
+      if (selectedRole === 'super-admin') {
+        navigate('/super-admin/dashboard');
+      } else if (selectedRole === 'teacher') {
+        navigate('/teacher/dashboard');
+      } else if (selectedRole === 'student') {
+        navigate('/student/dashboard');
+      } else {
+        navigate('/school-admin/dashboard');
+      }
+    } catch (err) {
+      error('Login failed. Please check your credentials.');
+    } finally {
       setIsLoading(false);
-      navigate(`/${selectedRole}/dashboard`);
-    }, 400);
+    }
   };
 
-  const roles = [
-    {
-      id: 'school',
-      title: 'School',
-      subtitle: 'K-12 Management',
-      icon: School,
-      tag: 'K-12 Board',
-    },
-    {
-      id: 'college',
-      title: 'College',
-      subtitle: 'UG/PG Programs',
-      icon: Building2,
-      tag: 'Autonomous/Affiliated',
-    },
-    {
-      id: 'university',
-      title: 'University',
-      subtitle: 'Multi-Institute & Research',
-      icon: GraduationCap,
-      tag: 'Central & State',
-    },
-  ];
+  // Quick 1-Click Persona Login
+  const handleQuickDemo = (roleKey) => {
+    handleRoleSelect(roleKey);
+    setTimeout(() => {
+      let creds = { role: roleKey };
+      if (roleKey === 'student') {
+        creds = { role: 'student', email: 'student@example.com', rollNumber: 'STU001' };
+      } else if (roleKey === 'teacher') {
+        creds = { role: 'teacher', email: 'teacher@example.com', password: 'demo' };
+      } else if (roleKey === 'super-admin') {
+        creds = { role: 'super-admin', email: 'superadmin@schoolcrm.io', password: 'demo' };
+      } else {
+        creds = { role: 'school-admin', email: 'principal@greenwood.edu', password: 'demo' };
+      }
+      login(creds).then((u) => {
+        success(`Logged in as ${u.name} (${roleKey.replace('-', ' ')})`);
+        if (roleKey === 'super-admin') navigate('/super-admin/dashboard');
+        else if (roleKey === 'teacher') navigate('/teacher/dashboard');
+        else if (roleKey === 'student') navigate('/student/dashboard');
+        else navigate('/school-admin/dashboard');
+      });
+    }, 50);
+  };
 
   return (
     <div
       style={{
         minHeight: '100vh',
+        backgroundColor: 'var(--bg-primary)',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f9fafb',
-        padding: '24px 16px',
+        alignItems: 'center',
+        padding: '24px',
+        position: 'relative',
       }}
     >
-      {/* Brand Header */}
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '40px',
-            height: '40px',
-            borderRadius: '8px',
-            backgroundColor: '#111827',
-            color: '#ffffff',
-            fontWeight: 800,
-            fontSize: '18px',
-            marginBottom: '12px',
-          }}
-        >
-          E
-        </div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', letterSpacing: '-0.02em' }}>
-          EDUCATION CRM
-        </h1>
-        <p style={{ fontSize: '13.5px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-          Manage Education Smarter • Unified Enterprise Platform
-        </p>
+      {/* Top right theme toggle */}
+      <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
+        <button onClick={toggleTheme} className="btn btn-icon" title="Toggle Theme">
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
       </div>
 
-      {/* Main Login Card */}
-      <div
-        className="card"
-        style={{
-          width: '100%',
-          maxWidth: '460px',
-          padding: '28px',
-          backgroundColor: '#ffffff',
-          boxShadow: 'var(--shadow-md)',
-        }}
-      >
-        {/* Step 1: Institution Selector (3 cards) */}
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
-            Select Institution Type
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            {roles.map((r) => {
-              const Icon = r.icon;
-              const isSelected = selectedRole === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => handleRoleSelect(r.id)}
-                  style={{
-                    padding: '12px 8px',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid',
-                    borderColor: isSelected ? '#111827' : 'var(--border-subtle)',
-                    backgroundColor: isSelected ? '#111827' : '#ffffff',
-                    color: isSelected ? '#ffffff' : 'var(--text-primary)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    cursor: 'pointer',
-                    transition: 'all var(--transition-fast)',
-                  }}
-                >
-                  <Icon size={18} style={{ color: isSelected ? '#ffffff' : 'var(--text-secondary)' }} />
-                  <span style={{ fontSize: '12.5px', fontWeight: 600 }}>{r.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Super Admin Alternative Switch */}
-        <div style={{ marginBottom: '22px' }}>
-          <button
-            type="button"
-            onClick={() => handleRoleSelect('super-admin')}
+      <div style={{ maxWidth: '960px', width: '100%' }}>
+        {/* Brand Banner */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div
             style={{
-              width: '100%',
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px dashed',
-              borderColor: selectedRole === 'super-admin' ? '#111827' : 'var(--border-medium)',
-              backgroundColor: selectedRole === 'super-admin' ? '#111827' : 'var(--bg-secondary)',
-              color: selectedRole === 'super-admin' ? '#ffffff' : 'var(--text-secondary)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
               gap: '8px',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)',
+              padding: '6px 14px',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: 'var(--primary-light)',
+              color: 'var(--primary)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              marginBottom: '12px',
             }}
           >
-            <ShieldCheck size={16} />
-            <span>Super Admin Access</span>
-          </button>
+            <Sparkles size={14} />
+            <span>Enterprise Education Platform</span>
+          </div>
+          <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            School Management CRM
+          </h1>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
+            Unified role-based administration portal for modern educational institutions
+          </p>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '14px' }}>
-            <Input
-              label="Email / Username"
-              type="text"
-              icon={Mail}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="name@institution.edu"
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label className="form-label" style={{ margin: 0 }}>Password</label>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                style={{ fontSize: '12px', color: 'var(--text-tertiary)', textDecoration: 'underline', cursor: 'pointer' }}
-              >
-                Forgot Password?
-              </button>
-            </div>
-            <Input
-              type="password"
-              icon={Lock}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ accentColor: '#111827' }}
-              />
-              Remember my session
-            </label>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Selected: <strong style={{ color: '#111827', textTransform: 'capitalize' }}>{selectedRole}</strong>
-            </span>
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="w-full"
-            icon={ArrowRight}
-            iconPosition="right"
-            disabled={isLoading}
+        {/* STEP 1: Institution Selection */}
+        <div style={{ marginBottom: '28px' }}>
+          <div
+            style={{
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              color: 'var(--text-tertiary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '12px',
+              textAlign: 'center',
+            }}
           >
-            {isLoading ? 'Signing In...' : `Sign in to ${selectedRole === 'super-admin' ? 'Super Admin' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
-          </Button>
-        </form>
+            Step 1: Select Institution Type
+          </div>
 
-        {/* Demo Helper box */}
-        <div
-          style={{
-            marginTop: '20px',
-            padding: '10px 12px',
-            backgroundColor: 'var(--bg-secondary)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '11.5px',
-            color: 'var(--text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Info size={14} style={{ flexShrink: 0, color: 'var(--text-tertiary)' }} />
-          <span>Click any role above for instant 1-click test access.</span>
-        </div>
-      </div>
-
-      {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div className="modal-overlay" onClick={() => setShowForgotPassword(false)}>
-          <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Reset Password</h3>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
-                Enter your registered administrator email to receive a password reset link.
-              </p>
-              <Input label="Email address" type="email" placeholder="admin@domain.edu" defaultValue={email} />
-            </div>
-            <div className="modal-footer">
-              <Button variant="secondary" onClick={() => setShowForgotPassword(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setShowForgotPassword(false);
-                  addToast('Reset instructions sent to your email (Mock)', 'info');
+          <div className="grid-3" style={{ maxWidth: '750px', margin: '0 auto' }}>
+            {/* School - Available */}
+            <div
+              onClick={() => setSelectedInstitution('school')}
+              className="card card-hover"
+              style={{
+                cursor: 'pointer',
+                borderColor: selectedInstitution === 'school' ? 'var(--primary)' : 'var(--border-color)',
+                backgroundColor: selectedInstitution === 'school' ? 'var(--primary-light)' : 'var(--bg-secondary)',
+                boxShadow: selectedInstitution === 'school' ? '0 0 0 2px var(--primary)' : undefined,
+                textAlign: 'center',
+                padding: '18px 14px',
+                position: 'relative',
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--primary)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px',
                 }}
               >
-                Send Link
-              </Button>
+                <School size={24} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>School</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                K-12 & Secondary CRM
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <span className="badge badge-success">Available</span>
+              </div>
+            </div>
+
+            {/* College - Coming Soon */}
+            <div
+              className="card"
+              style={{
+                opacity: 0.65,
+                cursor: 'not-allowed',
+                textAlign: 'center',
+                padding: '18px 14px',
+                backgroundColor: 'var(--bg-secondary)',
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-tertiary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px',
+                }}
+              >
+                <GraduationCap size={24} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>College</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                Undergraduate Degree
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <span className="badge badge-gray">Coming Soon</span>
+              </div>
+            </div>
+
+            {/* University - Coming Soon */}
+            <div
+              className="card"
+              style={{
+                opacity: 0.65,
+                cursor: 'not-allowed',
+                textAlign: 'center',
+                padding: '18px 14px',
+                backgroundColor: 'var(--bg-secondary)',
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-tertiary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px',
+                }}
+              >
+                <Building size={24} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>University</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                Multi-Faculty Campus
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <span className="badge badge-gray">Coming Soon</span>
+              </div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Footer */}
-      <div style={{ marginTop: '24px', fontSize: '12px', color: 'var(--text-muted)' }}>
-        © {new Date().getFullYear()} EduCRM Platform • Enterprise Edition
+        {/* STEP 2: Role Selector & Login Card */}
+        <div
+          className="card"
+          style={{
+            maxWidth: '650px',
+            margin: '0 auto',
+            padding: '28px',
+            boxShadow: 'var(--shadow-xl)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '12px',
+              }}
+            >
+              Step 2: Choose Portal Role
+            </div>
+
+            {/* Role Tabs */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '8px',
+                backgroundColor: 'var(--bg-tertiary)',
+                padding: '6px',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              {[
+                { key: 'school-admin', label: 'Principal', icon: Building },
+                { key: 'teacher', label: 'Teacher', icon: GraduationCap },
+                { key: 'student', label: 'Student', icon: BookOpen },
+                { key: 'super-admin', label: 'Super Admin', icon: Shield },
+              ].map((r) => {
+                const Icon = r.icon;
+                const isSelected = selectedRole === r.key;
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => handleRoleSelect(r.key)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '10px 6px',
+                      borderRadius: 'var(--radius-md)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
+                      color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: isSelected ? 800 : 600,
+                      fontSize: '0.775rem',
+                      boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all var(--transition-fast)',
+                    }}
+                  >
+                    <Icon size={16} />
+                    <span>{r.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Email Field */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="email">
+                {selectedRole === 'student' ? 'Student Email or ID' : 'Account Email'}
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-tertiary)',
+                  }}
+                />
+                <input
+                  id="email"
+                  type="text"
+                  className="form-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={selectedRole === 'student' ? 'student@example.com' : 'user@domain.com'}
+                  style={{ paddingLeft: '38px' }}
+                  required={selectedRole !== 'student'}
+                />
+              </div>
+            </div>
+
+            {/* Student Roll Number vs Password */}
+            {selectedRole === 'student' ? (
+              <div className="form-group">
+                <label className="form-label" htmlFor="rollNumber">
+                  Roll Number / Student ID
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Hash
+                    size={16}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  />
+                  <input
+                    id="rollNumber"
+                    type="text"
+                    className="form-input"
+                    value={rollNumber}
+                    onChange={(e) => setRollNumber(e.target.value)}
+                    placeholder="e.g. STU001"
+                    style={{ paddingLeft: '38px' }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>
+                  Demo Roll Numbers: <strong>STU001</strong>, <strong>STU002</strong>, <strong>STU003</strong>
+                </span>
+              </div>
+            ) : (
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="form-label" htmlFor="password">
+                    Password
+                  </label>
+                  <span style={{ fontSize: '0.725rem', color: 'var(--primary)', cursor: 'pointer' }}>
+                    Demo mode enabled
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <Lock
+                    size={16}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  />
+                  <input
+                    id="password"
+                    type="password"
+                    className="form-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    style={{ paddingLeft: '38px' }}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg"
+              disabled={isLoading}
+              style={{ width: '100%', marginTop: '8px' }}
+            >
+              <span>{isLoading ? 'Authenticating...' : `Enter ${selectedRole.replace('-', ' ').toUpperCase()} Portal`}</span>
+              <ArrowRight size={18} />
+            </button>
+          </form>
+
+          {/* Quick Demo Toolbar */}
+          <div
+            style={{
+              marginTop: '24px',
+              paddingTop: '18px',
+              borderTop: '1px solid var(--border-color)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                color: 'var(--text-tertiary)',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                marginBottom: '10px',
+              }}
+            >
+              Instant 1-Click Demo Logins
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo('school-admin')}
+                className="btn btn-secondary btn-sm"
+              >
+                🏫 Principal
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo('teacher')}
+                className="btn btn-secondary btn-sm"
+              >
+                👩‍🏫 Teacher
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo('student')}
+                className="btn btn-secondary btn-sm"
+              >
+                🎒 Student (STU001)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo('super-admin')}
+                className="btn btn-secondary btn-sm"
+              >
+                🛡️ Super Admin
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

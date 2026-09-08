@@ -1,46 +1,29 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import Navbar from './Navbar';
+import Header from './Header';
+import { useAuth } from '../../context/AuthContext';
 
 export default function DashboardLayout() {
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const toggleSidebar = () => {
-    if (window.innerWidth <= 1024) {
-      setIsMobileDrawerOpen((prev) => !prev);
-    } else {
-      setIsDesktopSidebarOpen((prev) => !prev);
-    }
-  };
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="app-container">
-      {/* Desktop Sidebar */}
-      <Sidebar isOpen={isDesktopSidebarOpen} isMobile={false} />
-
-      {/* Mobile Drawer Sidebar */}
       <Sidebar
-        isOpen={isMobileDrawerOpen}
-        onClose={() => setIsMobileDrawerOpen(false)}
-        isMobile={true}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
       />
-
-      {/* Main Content Area */}
-      <div
-        className="main-content"
-        style={{
-          marginLeft: isDesktopSidebarOpen ? 'var(--sidebar-width)' : '0',
-          transition: 'margin-left var(--transition-normal)',
-        }}
-      >
-        <Navbar
-          onToggleSidebar={toggleSidebar}
-          isMobileSidebarOpen={isMobileDrawerOpen}
-        />
-
-        <main className="page-body">
+      <div className="main-content">
+        <Header onMobileMenuClick={() => setIsMobileOpen(true)} />
+        <main className="page-wrapper">
           <Outlet />
         </main>
       </div>

@@ -1,104 +1,135 @@
-import api from './api';
+import { schoolDataService } from './schoolDataService';
 
-const DEFAULT_USERS = {
-  'super-admin': {
+const CURRENT_USER_KEY = 'school_crm_current_user';
+const SELECTED_SCHOOL_KEY = 'school_crm_selected_school';
+
+export const mockUsers = {
+  superAdmin: {
     id: 'USR-SA-01',
-    name: 'Vikramaditya Mehta',
-    email: 'admin@edusys-corp.in',
+    name: 'Chief Platform Director',
+    email: 'superadmin@schoolcrm.io',
     role: 'super-admin',
-    roleLabel: 'Super Admin',
-    institutionName: 'Apex Central Systems',
-    institutionType: 'System Wide',
-    avatar: 'VM',
-    token: 'mock-jwt-super-admin-token',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    schoolId: null,
   },
-  'school': {
-    id: 'USR-SCH-01',
-    name: 'Dr. Rajesh Sharma',
-    email: 'principal@dpis-delhi.edu.in',
-    role: 'school',
-    roleLabel: 'School Administrator',
-    institutionName: 'Delhi Public International School',
-    institutionType: 'School',
-    avatar: 'RS',
-    token: 'mock-jwt-school-token',
+  principal: {
+    id: 'USR-PR-01',
+    name: 'Dr. Robert Harrison',
+    email: 'principal@greenwood.edu',
+    role: 'school-admin',
+    title: 'Principal & Head of School',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+    schoolId: 'SCH-001',
   },
-  'college': {
-    id: 'USR-COL-01',
-    name: 'Prof. Sunita Rao',
-    email: 'dean@heritagevalley.ac.in',
-    role: 'college',
-    roleLabel: 'College Principal & Dean',
-    institutionName: 'Heritage Valley College of Engineering',
-    institutionType: 'College',
-    avatar: 'SR',
-    token: 'mock-jwt-college-token',
+  teacher: {
+    id: 'TCH-001',
+    name: 'Sarah Jenkins',
+    email: 'teacher@example.com',
+    role: 'teacher',
+    subject: 'Mathematics',
+    department: 'Science & Math',
+    classes: ['10-A', '10-B', '11-Science'],
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    schoolId: 'SCH-001',
   },
-  'university': {
-    id: 'USR-UNIV-01',
-    name: 'Prof. Dr. K. Ramanathan',
-    email: 'vc@apex-university.ac.in',
-    role: 'university',
-    roleLabel: 'University Vice Chancellor',
-    institutionName: 'Apex Central University of Science & Tech',
-    institutionType: 'University',
-    avatar: 'KR',
-    token: 'mock-jwt-university-token',
+  student: {
+    id: 'STU001',
+    name: 'Alex Johnson',
+    rollNumber: 'STU001',
+    email: 'student@example.com',
+    role: 'student',
+    class: '10',
+    section: 'A',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+    schoolId: 'SCH-001',
   },
 };
 
 export const authService = {
-  async login(role, credentials = {}) {
+  getCurrentUser: () => {
     try {
-      // Future API integration:
-      // const response = await api.post('/auth/login', { role, ...credentials });
-      // return response.data;
-      const user = { ...(DEFAULT_USERS[role] || DEFAULT_USERS['super-admin']), ...credentials, role };
-      localStorage.setItem('educrm_user', JSON.stringify(user));
-      localStorage.setItem('educrm_auth', 'true');
-      localStorage.setItem('educrm_token', user.token || 'mock-token');
-      return user;
-    } catch (error) {
-      console.warn('Backend login endpoint unavailable, using mock session', error);
-      const user = { ...(DEFAULT_USERS[role] || DEFAULT_USERS['super-admin']), ...credentials, role };
-      localStorage.setItem('educrm_user', JSON.stringify(user));
-      localStorage.setItem('educrm_auth', 'true');
-      return user;
+      const user = localStorage.getItem(CURRENT_USER_KEY);
+      return user ? JSON.parse(user) : mockUsers.principal;
+    } catch {
+      return mockUsers.principal;
     }
   },
 
-  async logout() {
+  isAuthenticated: () => {
+    return !!localStorage.getItem(CURRENT_USER_KEY);
+  },
+
+  getSelectedSchool: () => {
     try {
-      // await api.post('/auth/logout');
-    } catch (e) {
-      // ignore
-    } finally {
-      localStorage.removeItem('educrm_user');
-      localStorage.setItem('educrm_auth', 'false');
-      localStorage.removeItem('educrm_token');
+      const school = localStorage.getItem(SELECTED_SCHOOL_KEY);
+      if (school) return JSON.parse(school);
+    } catch {}
+    const schools = schoolDataService.getSchools();
+    return schools[0] || null;
+  },
+
+  setSelectedSchool: (school) => {
+    localStorage.setItem(SELECTED_SCHOOL_KEY, JSON.stringify(school));
+  },
+
+  login: async (credentials) => {
+    // credentials: { role, email, password, rollNumber }
+    const { role, email, rollNumber } = credentials;
+
+    if (role === 'student') {
+      const students = schoolDataService.getStudents();
+      const matched = students.find(
+        (s) =>
+          s.email.toLowerCase() === (email || '').toLowerCase() ||
+          s.rollNumber.toUpperCase() === (rollNumber || '').toUpperCase()
+      ) || mockUsers.student;
+
+      const userObj = {
+        id: matched.id,
+        name: matched.name,
+        email: matched.email,
+        rollNumber: matched.rollNumber,
+        role: 'student',
+        class: matched.class,
+        section: matched.section,
+        avatar: matched.profilePhoto || mockUsers.student.avatar,
+        schoolId: 'SCH-001',
+      };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userObj));
+      return userObj;
     }
-  },
 
-  getCurrentUser() {
-    const saved = localStorage.getItem('educrm_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse saved user', e);
-      }
+    if (role === 'super-admin') {
+      const userObj = { ...mockUsers.superAdmin, email: email || mockUsers.superAdmin.email };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userObj));
+      return userObj;
     }
-    return DEFAULT_USERS['super-admin'];
+
+    if (role === 'teacher') {
+      const teachers = schoolDataService.getTeachers();
+      const matched = teachers.find((t) => t.email.toLowerCase() === (email || '').toLowerCase()) || mockUsers.teacher;
+      const userObj = {
+        id: matched.id,
+        name: matched.name,
+        email: matched.email,
+        role: 'teacher',
+        subject: matched.subject,
+        department: matched.department,
+        classes: matched.classes || ['10-A'],
+        avatar: matched.avatar || mockUsers.teacher.avatar,
+        schoolId: 'SCH-001',
+      };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userObj));
+      return userObj;
+    }
+
+    // Default Principal / School Admin
+    const userObj = { ...mockUsers.principal, email: email || mockUsers.principal.email };
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userObj));
+    return userObj;
   },
 
-  isAuthenticated() {
-    const authFlag = localStorage.getItem('educrm_auth');
-    return authFlag !== 'false';
-  },
-
-  switchRole(role) {
-    return this.login(role);
+  logout: () => {
+    localStorage.removeItem(CURRENT_USER_KEY);
   },
 };
-
-export default authService;
