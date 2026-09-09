@@ -22,7 +22,7 @@ export default function StatCard({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
+        <span style={{ fontSize: '13.5px', fontWeight: 550, color: 'var(--text-tertiary)' }}>
           {title}
         </span>
         {Icon && (
@@ -37,13 +37,13 @@ export default function StatCard({
               justifyContent: 'center',
             }}
           >
-            <Icon size={15} />
+            <Icon size={16} />
           </div>
         )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 'auto' }}>
-        <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: '24px', fontWeight: 750, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           {value}
         </div>
 
@@ -53,13 +53,13 @@ export default function StatCard({
               display: 'flex',
               alignItems: 'center',
               gap: '2px',
-              fontSize: '11.5px',
+              fontSize: '12.5px',
               fontWeight: 600,
               color: 'var(--text-secondary)',
               backgroundColor: 'var(--bg-tertiary)',
               padding: '2px 6px',
               borderRadius: 'var(--radius-xs)',
-              border: '1px solid var(--border-subtle)',
+              border: '1px solid var(--border-subtle, var(--border-color))',
             }}
           >
             {changeType === 'positive' && <ArrowUpRight size={12} />}
@@ -72,7 +72,7 @@ export default function StatCard({
         {badge && (
           <div
             style={{
-              fontSize: '11px',
+              fontSize: '12px',
               padding: '2px 6px',
               borderRadius: 'var(--radius-xs)',
               backgroundColor: 'var(--bg-tertiary)',
@@ -85,7 +85,7 @@ export default function StatCard({
       </div>
 
       {subtitle && (
-        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+        <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
           {subtitle}
         </div>
       )}

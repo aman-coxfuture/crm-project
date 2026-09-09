@@ -8,41 +8,31 @@ import {
   Moon,
   Sun,
   Bell,
-  Search,
-  User,
   LogOut,
   ChevronDown,
   Building2,
-  Check,
   CheckCheck,
-  Settings,
   Shield,
-  GraduationCap,
-  BookOpen,
+  User,
 } from 'lucide-react';
 import { schoolDataService } from '../../services/schoolDataService';
 
 export default function Header({ onMobileMenuClick }) {
-  const { currentUser, role, selectedSchool, changeSchool, switchRole, logout } = useAuth();
+  const { currentUser, role, selectedSchool, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { info } = useToast();
   const navigate = useNavigate();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isSchoolSelectOpen, setIsSchoolSelectOpen] = useState(false);
 
   const notifRef = useRef(null);
   const profileRef = useRef(null);
-  const schoolRef = useRef(null);
-
-  const schools = schoolDataService.getSchools();
 
   const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Student Admission', desc: 'Ava Wilson admitted to Class 10-A', time: '10m ago', unread: true },
-    { id: 2, title: 'Teacher Leave Request', desc: 'Dr. Anita Patel applied for 3 days leave', time: '1h ago', unread: true },
-    { id: 3, title: 'Fee Reminder Sent', desc: 'Term 1 fee reminder broadcasted to 12 parents', time: '3h ago', unread: false },
-    { id: 4, title: 'Mid-Term Exam Schedule', desc: 'Timetable published for Classes 9 to 12', time: '1d ago', unread: false },
+    { id: 1, title: 'New Timetable Published', desc: '7-Period timetable active for all classes', time: '10m ago', unread: true },
+    { id: 2, title: 'Exam Schedule Notice', desc: 'Mid-Term schedule published for Classes 5 to 10', time: '1h ago', unread: true },
+    { id: 3, title: 'School Bulletin', desc: 'Curriculum alignment meeting scheduled for Friday', time: '3h ago', unread: false },
   ]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -57,19 +47,14 @@ export default function Header({ onMobileMenuClick }) {
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setIsNotificationsOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setIsProfileOpen(false);
-      if (schoolRef.current && !schoolRef.current.contains(e.target)) setIsSchoolSelectOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleRoleSwitch = async (newRole) => {
-    await switchRole(newRole);
-    setIsProfileOpen(false);
-    if (newRole === 'super-admin') navigate('/super-admin/dashboard');
-    else if (newRole === 'teacher') navigate('/teacher/dashboard');
-    else if (newRole === 'student') navigate('/student/dashboard');
-    else navigate('/school-admin/dashboard');
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -82,18 +67,18 @@ export default function Header({ onMobileMenuClick }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
+        flexShrink: 0,
+        width: '100%',
+        position: 'relative',
         zIndex: 990,
         backdropFilter: 'blur(8px)',
       }}
     >
-      {/* Left side: Hamburger & Active School Indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      {/* Left side: Hamburger & Active School Indicator (Scoped to School) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
         <button
           onClick={onMobileMenuClick}
-          className="btn btn-icon"
-          style={{ display: 'none' }}
+          className="btn btn-icon mobile-menu-trigger"
           id="mobile-menu-trigger"
           aria-label="Open navigation menu"
         >
@@ -101,7 +86,7 @@ export default function Header({ onMobileMenuClick }) {
         </button>
 
         {role === 'super-admin' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
             <span
               style={{
                 padding: '4px 10px',
@@ -113,19 +98,21 @@ export default function Header({ onMobileMenuClick }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               <Shield size={13} />
-              SUPER ADMIN OVERVIEW
+              SUPER ADMIN
             </span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-              Multi-School Control Center
+            <span className="header-subtitle-text" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Platform Multi-School Control
             </span>
           </div>
         ) : (
-          <div style={{ position: 'relative' }} ref={schoolRef}>
-            <button
-              onClick={() => setIsSchoolSelectOpen(!isSchoolSelectOpen)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
+            <div
+              className="header-school-pill"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -134,73 +121,21 @@ export default function Header({ onMobileMenuClick }) {
                 border: '1px solid var(--border-color)',
                 padding: '6px 12px',
                 borderRadius: 'var(--radius-md)',
-                cursor: 'pointer',
                 color: 'var(--text-primary)',
                 fontSize: '0.85rem',
-                fontWeight: 600,
+                fontWeight: 700,
+                minWidth: 0,
+                maxWidth: '240px',
               }}
             >
-              <span style={{ fontSize: '1.1rem' }}>{selectedSchool?.logo || '🏫'}</span>
-              <span style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{selectedSchool?.logo || '🏫'}</span>
+              <span className="header-school-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {selectedSchool?.name || 'Greenwood Public School'}
               </span>
-              <ChevronDown size={14} color="var(--text-tertiary)" />
-            </button>
-
-            {/* School Switcher Dropdown */}
-            {isSchoolSelectOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '110%',
-                  left: 0,
-                  width: '280px',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: 'var(--shadow-xl)',
-                  padding: '8px',
-                  zIndex: 999,
-                }}
-              >
-                <div style={{ padding: '6px 10px', fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>
-                  SWITCH ACTIVE SCHOOL
-                </div>
-                {schools.map((school) => (
-                  <button
-                    key={school.id}
-                    onClick={() => {
-                      changeSchool(school);
-                      setIsSchoolSelectOpen(false);
-                      info(`Switched context to ${school.name}`);
-                    }}
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-md)',
-                      background: selectedSchool?.id === school.id ? 'var(--primary-light)' : 'transparent',
-                      color: selectedSchool?.id === school.id ? 'var(--primary)' : 'var(--text-primary)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '0.825rem',
-                      fontWeight: selectedSchool?.id === school.id ? 700 : 500,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                      <span>{school.logo}</span>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {school.name}
-                      </span>
-                    </div>
-                    {selectedSchool?.id === school.id && <Check size={14} />}
-                  </button>
-                ))}
-              </div>
-            )}
+            </div>
+            <span className="header-school-grade-sub" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              (Nursery – Class 10)
+            </span>
           </div>
         )}
       </div>
@@ -273,6 +208,7 @@ export default function Header({ onMobileMenuClick }) {
 
           {isNotificationsOpen && (
             <div
+              className="header-dropdown-menu"
               style={{
                 position: 'absolute',
                 top: '115%',
@@ -346,7 +282,7 @@ export default function Header({ onMobileMenuClick }) {
           )}
         </div>
 
-        {/* User Profile Dropdown */}
+        {/* User Profile Dropdown — Clean, Teacher-Specific / Role-Specific, No "Switch Role Demo" */}
         <div style={{ position: 'relative' }} ref={profileRef}>
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -385,11 +321,12 @@ export default function Header({ onMobileMenuClick }) {
 
           {isProfileOpen && (
             <div
+              className="header-dropdown-menu header-profile-dropdown"
               style={{
                 position: 'absolute',
                 top: '115%',
                 right: 0,
-                width: '240px',
+                width: '230px',
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-lg)',
@@ -398,125 +335,47 @@ export default function Header({ onMobileMenuClick }) {
                 zIndex: 999,
               }}
             >
-              <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-color)' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{currentUser?.name}</div>
-                <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>{currentUser?.email}</div>
+              {/* User details: Name and Email */}
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  {currentUser?.name}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  {currentUser?.email}
+                </div>
+                {currentUser?.department && (
+                  <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, marginTop: '4px' }}>
+                    {currentUser?.department}
+                  </div>
+                )}
               </div>
 
-              {/* Quick Persona Switchers */}
-              <div style={{ padding: '6px 10px', fontSize: '0.675rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>
-                SWITCH ROLE (DEMO)
+              {/* ONLY Logout option (NO Role Switcher) */}
+              <div style={{ padding: '4px 0 0' }}>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--danger)',
+                    fontSize: '0.825rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <LogOut size={15} />
+                  <span>Logout</span>
+                </button>
               </div>
-
-              <button
-                onClick={() => handleRoleSwitch('school-admin')}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: role === 'school-admin' ? 'var(--primary-light)' : 'transparent',
-                  color: role === 'school-admin' ? 'var(--primary)' : 'var(--text-primary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <Building2 size={14} />
-                <span>Principal / Admin</span>
-              </button>
-
-              <button
-                onClick={() => handleRoleSwitch('teacher')}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: role === 'teacher' ? 'var(--primary-light)' : 'transparent',
-                  color: role === 'teacher' ? 'var(--primary)' : 'var(--text-primary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <GraduationCap size={14} />
-                <span>Teacher</span>
-              </button>
-
-              <button
-                onClick={() => handleRoleSwitch('student')}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: role === 'student' ? 'var(--primary-light)' : 'transparent',
-                  color: role === 'student' ? 'var(--primary)' : 'var(--text-primary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <BookOpen size={14} />
-                <span>Student</span>
-              </button>
-
-              <button
-                onClick={() => handleRoleSwitch('super-admin')}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: role === 'super-admin' ? 'var(--primary-light)' : 'transparent',
-                  color: role === 'super-admin' ? 'var(--primary)' : 'var(--text-primary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <Shield size={14} />
-                <span>Super Admin</span>
-              </button>
-
-              <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '6px 0' }} />
-
-              <button
-                onClick={() => {
-                  logout();
-                  navigate('/login');
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--danger)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <LogOut size={14} />
-                <span>Log Out</span>
-              </button>
             </div>
           )}
         </div>
