@@ -3,19 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { schoolDataService } from '../../services/schoolDataService';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/common/Modal';
-import { FormInput, Select } from '../../components/common/FormInput';
-import { Layers, Plus, Users, BookOpen, Clock, MapPin, CheckCircle2 } from 'lucide-react';
+import { FormInput } from '../../components/common/FormInput';
+import { Layers, Plus, Users, Clock } from 'lucide-react';
 
 export default function ClassesPage() {
   const navigate = useNavigate();
   const { success } = useToast();
-  const [classes, setClasses] = useState(() => schoolDataService.getClasses());
+  const [classes, setClasses] = useState(() => schoolDataService.getClasses('SCH-001'));
+  const [teachers] = useState(() => schoolDataService.getTeachers('SCH-001'));
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false);
   const [targetClass, setTargetClass] = useState(null);
 
   const [newSection, setNewSection] = useState({
-    name: 'Section D',
-    classTeacher: 'Elena Rostova',
+    name: 'Section C',
+    classTeacher: 'Rahul Sharma',
     studentCount: 30,
     room: 'Room 208',
   });
@@ -47,23 +48,23 @@ export default function ClassesPage() {
         <div>
           <h1 className="page-title">
             <Layers size={26} color="var(--primary)" />
-            Class & Section Management
+            Class & Section Management (Nursery – Class 10)
           </h1>
           <p className="page-subtitle">
-            Configure grades, divisions, assigned class educators and subject curriculum
+            Configure grades, divisions, assigned educators and 7-period subject curriculum
           </p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {classes.map((cls) => (
           <div key={cls.id} className="card">
             <div className="card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div
                   style={{
-                    width: '42px',
-                    height: '42px',
+                    width: '46px',
+                    height: '46px',
                     borderRadius: 'var(--radius-md)',
                     backgroundColor: 'var(--primary-light)',
                     color: 'var(--primary)',
@@ -71,7 +72,7 @@ export default function ClassesPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 800,
-                    fontSize: '1.2rem',
+                    fontSize: '1rem',
                   }}
                 >
                   {cls.numericGrade}
@@ -90,7 +91,7 @@ export default function ClassesPage() {
                   onClick={() => navigate('/school-admin/timetable')}
                 >
                   <Clock size={14} />
-                  <span>Timetable</span>
+                  <span>7-Period Timetable</span>
                 </button>
                 <button
                   className="btn btn-primary btn-sm"
@@ -170,15 +171,24 @@ export default function ClassesPage() {
             required
             value={newSection.name}
             onChange={(e) => setNewSection({ ...newSection, name: e.target.value })}
-            placeholder="e.g. Section D or Arts"
+            placeholder="e.g. Section C"
           />
-          <FormInput
-            label="Class Teacher Name"
-            required
-            value={newSection.classTeacher}
-            onChange={(e) => setNewSection({ ...newSection, classTeacher: e.target.value })}
-            placeholder="e.g. Elena Rostova"
-          />
+
+          <div className="form-group">
+            <label className="form-label">Class Teacher</label>
+            <select
+              className="form-select"
+              value={newSection.classTeacher}
+              onChange={(e) => setNewSection({ ...newSection, classTeacher: e.target.value })}
+            >
+              {teachers.map((t) => (
+                <option key={t.id} value={t.name}>
+                  {t.name} ({t.subject})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid-2">
             <FormInput
               label="Student Capacity"

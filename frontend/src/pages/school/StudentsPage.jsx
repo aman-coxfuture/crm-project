@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { schoolDataService } from '../../services/schoolDataService';
+import { schoolDataService, SCHOOL_CLASSES } from '../../services/schoolDataService';
 import { useToast } from '../../context/ToastContext';
 import DataTable from '../../components/common/DataTable';
 import Modal from '../../components/common/Modal';
@@ -32,7 +32,7 @@ import {
 
 export default function StudentsPage() {
   const { success, error, info } = useToast();
-  const [students, setStudents] = useState(() => schoolDataService.getStudents());
+  const [students, setStudents] = useState(() => schoolDataService.getStudents('SCH-001'));
 
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -45,9 +45,9 @@ export default function StudentsPage() {
     name: '',
     rollNumber: '',
     email: '',
-    dob: '2009-05-15',
+    dob: '2014-05-15',
     gender: 'Male',
-    class: '10',
+    class: 'Class 5',
     section: 'A',
     parentName: '',
     parentPhone: '',
@@ -251,7 +251,7 @@ export default function StudentsPage() {
         data={students}
         searchKeys={['name', 'rollNumber', 'id', 'email', 'parentName', 'parentPhone']}
         filterOptions={[
-          { label: 'Class', key: 'class', options: ['8', '9', '10', '11', '12'] },
+          { label: 'Class', key: 'class', options: SCHOOL_CLASSES },
           { label: 'Gender', key: 'gender', options: ['Male', 'Female'] },
           { label: 'Fee Status', key: 'feeStatus', options: ['Paid', 'Pending', 'Overdue'] },
           { label: 'Status', key: 'status', options: ['Active', 'Inactive'] },
@@ -630,13 +630,13 @@ export default function StudentsPage() {
               label="Class / Grade"
               value={newStudent.class}
               onChange={(e) => setNewStudent({ ...newStudent, class: e.target.value })}
-              options={['8', '9', '10', '11', '12']}
+              options={SCHOOL_CLASSES}
             />
             <Select
               label="Section"
               value={newStudent.section}
               onChange={(e) => setNewStudent({ ...newStudent, section: e.target.value })}
-              options={['A', 'B', 'C', 'Science', 'Commerce', 'Arts']}
+              options={['A', 'B', 'C', 'D']}
             />
             <Select
               label="Gender"

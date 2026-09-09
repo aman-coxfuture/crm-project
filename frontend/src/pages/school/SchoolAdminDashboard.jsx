@@ -11,39 +11,54 @@ import {
   Briefcase,
   Bus,
   Layers,
-  BookOpen,
   CalendarCheck,
   DollarSign,
   Award,
-  AlertCircle,
   Plus,
-  ArrowRight,
-  TrendingUp,
   Clock,
   Bell,
   CheckCircle2,
+  Wallet,
 } from 'lucide-react';
 
 export default function SchoolAdminDashboard() {
   const navigate = useNavigate();
-  const { selectedSchool } = useAuth();
+  const { selectedSchool, currentUser } = useAuth();
+  const schoolId = currentUser?.schoolId || selectedSchool?.id || 'SCH-001';
 
-  const students = schoolDataService.getStudents();
-  const teachers = schoolDataService.getTeachers();
-  const staff = schoolDataService.getStaff();
-  const drivers = schoolDataService.getDrivers();
-  const classes = schoolDataService.getClasses();
-  const exams = schoolDataService.getExams();
-  const notices = schoolDataService.getNotices();
-  const leaves = schoolDataService.getLeaves();
-  const feeTransactions = schoolDataService.getFeeTransactions();
+  // Scoped strictly to current school
+  const students = schoolDataService.getStudents(schoolId);
+  const teachers = schoolDataService.getTeachers(schoolId);
+  const staff = schoolDataService.getStaff(schoolId);
+  const drivers = schoolDataService.getDrivers(schoolId);
+  const classes = schoolDataService.getClasses(schoolId);
+  const exams = schoolDataService.getExams(schoolId);
+  const notices = schoolDataService.getNotices(schoolId);
+  const leaves = schoolDataService.getLeaves(schoolId);
+  const feeTransactions = schoolDataService.getFeeTransactions(schoolId);
+  const staffFeeLedgers = schoolDataService.getStaffFeeLedgers(schoolId);
+
+  // Staff Fee Metrics (Current Month: September 2026)
+  const staffPaidCount = staffFeeLedgers.filter((s) => s.status === 'Paid').length;
+  const staffPendingCount = staffFeeLedgers.filter((s) => s.status === 'Pending').length;
+  const staffPartialCount = staffFeeLedgers.filter((s) => s.status === 'Partially Paid').length;
+  const staffOutstandingAmount = staffFeeLedgers.reduce((sum, s) => sum + (Number(s.pendingAmount) || 0), 0);
+
+  // Teacher Attendance (Scoped to current school)
+  const todayDate = '2026-09-09';
+  const teacherAttendanceList = schoolDataService.getTeacherAttendance(schoolId, todayDate);
+  const presentTeachers = teacherAttendanceList.filter((t) => t.status === 'present');
+  const absentTeachers = teacherAttendanceList.filter((t) => t.status === 'absent');
+  const teacherAttendanceRate =
+    teachers.length > 0
+      ? ((presentTeachers.length / teachers.length) * 100).toFixed(1)
+      : '0.0';
 
   // Metrics
   const totalStudents = students.length;
   const totalTeachers = teachers.length;
   const totalStaff = staff.length;
   const totalDrivers = drivers.length;
-  const totalClasses = classes.length;
 
   const presentCount = students.filter((s) => s.attendance >= 85).length;
   const absentCount = totalStudents - presentCount;
@@ -61,22 +76,23 @@ export default function SchoolAdminDashboard() {
   ];
 
   const genderData = [
-    { label: 'Boys', value: students.filter((s) => s.gender === 'Male').length, color: '#4f46e5' },
-    { label: 'Girls', value: students.filter((s) => s.gender === 'Female').length, color: '#ec4899' },
+    { label: 'Boys', value: students.filter((s) => s.gender === 'Male').length || 4, color: '#4f46e5' },
+    { label: 'Girls', value: students.filter((s) => s.gender === 'Female').length || 4, color: '#ec4899' },
   ];
 
   const feeStatusData = [
-    { label: 'Fully Paid', value: students.filter((s) => s.feeStatus === 'Paid').length, color: '#10b981' },
-    { label: 'Pending Dues', value: students.filter((s) => s.feeStatus === 'Pending').length, color: '#f59e0b' },
-    { label: 'Overdue', value: students.filter((s) => s.feeStatus === 'Overdue').length, color: '#ef4444' },
+    { label: 'Fully Paid', value: students.filter((s) => s.feeStatus === 'Paid').length || 5, color: '#10b981' },
+    { label: 'Pending Dues', value: students.filter((s) => s.feeStatus === 'Pending').length || 2, color: '#f59e0b' },
+    { label: 'Overdue', value: students.filter((s) => s.feeStatus === 'Overdue').length || 1, color: '#ef4444' },
   ];
 
   const classWiseStudents = [
-    { label: 'Class 8', value: 58, color: '#6366f1' },
-    { label: 'Class 9', value: 68, color: '#6366f1' },
-    { label: 'Class 10', value: 102, color: '#4f46e5' },
-    { label: 'Class 11', value: 98, color: '#4338ca' },
-    { label: 'Class 12', value: 75, color: '#3730a3' },
+    { label: 'Nursery', value: 38, color: '#6366f1' },
+    { label: 'KG', value: 66, color: '#6366f1' },
+    { label: 'Class 1-3', value: 146, color: '#4f46e5' },
+    { label: 'Class 4-5', value: 100, color: '#4338ca' },
+    { label: 'Class 6-8', value: 132, color: '#3730a3' },
+    { label: 'Class 9-10', value: 170, color: '#312e81' },
   ];
 
   const feeMonthlyTrend = [
@@ -94,17 +110,17 @@ export default function SchoolAdminDashboard() {
         <div>
           <h1 className="page-title">
             <span>{selectedSchool?.logo || '🏫'}</span>
-            <span>{selectedSchool?.name || 'School Executive Dashboard'}</span>
+            <span>{selectedSchool?.name || 'Greenwood Public School'}</span>
           </h1>
           <p className="page-subtitle">
-            Academic Year {selectedSchool?.academicSession || '2025-2026'} • Affiliated with {selectedSchool?.affiliation || 'CBSE Board'}
+            Principal Control Center • Academic Session {selectedSchool?.academicSession || '2025-2026'} • Affiliated with {selectedSchool?.affiliation || 'CBSE Board'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-secondary" onClick={() => navigate('/school-admin/attendance')}>
-            <CalendarCheck size={16} />
-            <span>Mark Attendance</span>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => navigate('/school-admin/teachers')}>
+            <GraduationCap size={16} />
+            <span>Assign Teachers</span>
           </button>
           <button className="btn btn-primary" onClick={() => navigate('/school-admin/students')}>
             <Plus size={16} />
@@ -113,7 +129,62 @@ export default function SchoolAdminDashboard() {
         </div>
       </div>
 
-      {/* Primary Top Metric Cards */}
+      {/* PART 15: TEACHER ATTENDANCE ALERT (Visible to School Admin / Principal ONLY) */}
+      {absentTeachers.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 20px',
+            backgroundColor: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid #ef4444',
+            borderRadius: 'var(--radius-lg)',
+            marginBottom: '20px',
+            color: '#b91c1c',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.1rem',
+                flexShrink: 0,
+              }}
+            >
+              ⚠️
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Teacher Attendance Alert</span>
+                <span className="badge badge-danger" style={{ fontSize: '0.7rem' }}>Action Notice</span>
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#dc2626', marginTop: '3px' }}>
+                🔴 <strong>{absentTeachers.map((t) => t.teacherName).join(', ')}</strong> {absentTeachers.length === 1 ? 'is' : 'are'} absent today.
+                <span style={{ marginLeft: '8px', opacity: 0.85, fontWeight: 500 }}>(Date: 09 September 2026)</span>
+              </div>
+            </div>
+          </div>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ borderColor: '#ef4444', color: '#b91c1c' }}
+            onClick={() => navigate('/school-admin/attendance')}
+          >
+            View Faculty Attendance
+          </button>
+        </div>
+      )}
+
+      {/* Primary Top Metric Cards (Scoped to this school only) */}
       <div className="grid-4" style={{ marginBottom: '20px' }}>
         <StatCard
           title="Total Students"
@@ -129,7 +200,7 @@ export default function SchoolAdminDashboard() {
           value={totalTeachers}
           icon={GraduationCap}
           color="sky"
-          subtitle="Across 6 departments"
+          subtitle="Nursery to Class 10"
           onClick={() => navigate('/school-admin/teachers')}
         />
         <StatCard
@@ -166,7 +237,7 @@ export default function SchoolAdminDashboard() {
           value={`${absentCount} Students`}
           icon={Clock}
           color="rose"
-          subtitle="5 Medical leaves"
+          subtitle="Medical & Casual leaves"
           onClick={() => navigate('/school-admin/attendance')}
         />
         <StatCard
@@ -194,19 +265,75 @@ export default function SchoolAdminDashboard() {
           <div className="card-header">
             <div>
               <h3 className="card-title">Daily Student Attendance Breakdown</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Class 10-A Present (Green) vs Absent (Red)</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Class 5-A Present (Green) vs Absent (Red)</p>
             </div>
             <span className="badge badge-success">This Week</span>
           </div>
           <ComparisonBarChart data={attendanceWeekly} height={200} />
         </div>
 
-        {/* Student Demographics */}
+        {/* PART 16: Today's Teacher Attendance Widget */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Gender Distribution</h3>
+            <div>
+              <h3 className="card-title">Today's Teacher Attendance</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                Date: 09 September 2026 • Faculty Roster
+              </p>
+            </div>
+            <span className="badge badge-primary">{teacherAttendanceRate}% Present</span>
           </div>
-          <DonutChart data={genderData} size={145} />
+
+          <div className="grid-3" style={{ marginBottom: '14px' }}>
+            <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.675rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>Total Teachers</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>{totalTeachers}</div>
+            </div>
+            <div style={{ padding: '8px 10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.675rem', color: '#10b981', textTransform: 'uppercase', fontWeight: 700 }}>🟢 Present</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>{presentTeachers.length}</div>
+            </div>
+            <div style={{ padding: '8px 10px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.675rem', color: '#ef4444', textTransform: 'uppercase', fontWeight: 700 }}>🔴 Absent</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>{absentTeachers.length}</div>
+            </div>
+          </div>
+
+          {absentTeachers.length > 0 ? (
+            <div>
+              <div style={{ fontSize: '0.725rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '6px' }}>
+                Absent Today:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {absentTeachers.map((t) => (
+                  <div
+                    key={t.id || t.teacherId}
+                    onClick={() => navigate('/school-admin/attendance')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, fontSize: '0.8rem', color: '#dc2626' }}>
+                      🔴 {t.teacherName}
+                    </span>
+                    <span style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>
+                      {t.department || 'Faculty'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '8px 12px', backgroundColor: 'rgba(16, 185, 129, 0.08)', borderRadius: 'var(--radius-md)', color: '#10b981', fontSize: '0.775rem', fontWeight: 700, textAlign: 'center' }}>
+              ✓ 100% Faculty Attendance Recorded Today
+            </div>
+          )}
         </div>
       </div>
 
@@ -215,7 +342,7 @@ export default function SchoolAdminDashboard() {
         {/* Class-wise enrollment */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Class-Wise Student Count</h3>
+            <h3 className="card-title">Grade-Wise Student Count</h3>
           </div>
           <BarChart data={classWiseStudents} height={190} />
         </div>
@@ -239,7 +366,7 @@ export default function SchoolAdminDashboard() {
       </div>
 
       {/* Quick Action & Bulletin Feeds */}
-      <div className="grid-2">
+      <div className="grid-3">
         {/* Pending Leave Requests */}
         <div className="card">
           <div className="card-header">
@@ -315,6 +442,88 @@ export default function SchoolAdminDashboard() {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Staff Payments Summary (Section 18) */}
+        <div className="card">
+          <div className="card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--primary)',
+                }}
+              >
+                <Wallet size={16} />
+              </div>
+              <h3 className="card-title">Staff Payments</h3>
+            </div>
+            <span className="badge badge-primary">Sep 2026</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+              <div
+                style={{
+                  padding: '10px 12px',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Employees
+                </div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {staffFeeLedgers.length}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: '10px 12px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <div style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Outstanding
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
+                  ₹{staffOutstandingAmount.toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 12px',
+                backgroundColor: 'var(--bg-tertiary)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8rem',
+              }}
+            >
+              <span>Paid: <strong style={{ color: '#10b981' }}>{staffPaidCount}</strong></span>
+              <span>Pending: <strong style={{ color: '#ef4444' }}>{staffPendingCount}</strong></span>
+              <span>Partial: <strong style={{ color: '#f59e0b' }}>{staffPartialCount}</strong></span>
+            </div>
+
+            <button
+              className="btn btn-primary btn-sm"
+              style={{ width: '100%', marginTop: '4px', justifyContent: 'center' }}
+              onClick={() => navigate('/school-admin/staff-fees')}
+            >
+              <Wallet size={14} />
+              <span>View Staff Payments</span>
+            </button>
           </div>
         </div>
       </div>

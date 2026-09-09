@@ -27,6 +27,7 @@ import TimetablePage from './pages/school/TimetablePage';
 import ExaminationsPage from './pages/school/ExaminationsPage';
 import AssignmentsPage from './pages/school/AssignmentsPage';
 import FeesPage from './pages/school/FeesPage';
+import StaffFeesPage from './pages/school/StaffFeesPage';
 import TransportPage from './pages/school/TransportPage';
 import LibraryPage from './pages/school/LibraryPage';
 import EventsCalendarPage from './pages/school/EventsCalendarPage';
@@ -130,6 +131,7 @@ export default function App() {
                 <Route path="exams" element={<ExaminationsPage />} />
                 <Route path="assignments" element={<AssignmentsPage />} />
                 <Route path="fees" element={<FeesPage />} />
+                <Route path="staff-fees" element={<StaffFeesPage />} />
                 <Route path="transport" element={<TransportPage />} />
                 <Route path="library" element={<LibraryPage />} />
                 <Route path="events" element={<EventsCalendarPage />} />
@@ -150,7 +152,6 @@ export default function App() {
               >
                 <Route index element={<Navigate to="/teacher/dashboard" replace />} />
                 <Route path="dashboard" element={<TeacherDashboard />} />
-                <Route path="students" element={<TeacherStudentsPage />} />
                 <Route path="attendance" element={<TeacherAttendancePage />} />
                 <Route path="assignments" element={<TeacherAssignmentsPage />} />
                 <Route path="marks" element={<TeacherMarksPage />} />

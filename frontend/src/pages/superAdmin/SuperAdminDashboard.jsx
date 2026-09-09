@@ -4,10 +4,11 @@ import { schoolDataService } from '../../services/schoolDataService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StatCard from '../../components/common/StatCard';
-import { BarChart, DonutChart, TrendLineChart } from '../../components/common/Charts';
+import { BarChart, DonutChart } from '../../components/common/Charts';
 import DataTable from '../../components/common/DataTable';
 import Modal from '../../components/common/Modal';
 import { FormInput, Select, Textarea } from '../../components/common/FormInput';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import {
   Building2,
   Users,
@@ -17,9 +18,12 @@ import {
   ExternalLink,
   Power,
   ShieldCheck,
-  TrendingUp,
-  Activity,
-  CheckCircle2,
+  Eye,
+  Bus,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -29,6 +33,8 @@ export default function SuperAdminDashboard() {
 
   const [schools, setSchools] = useState(() => schoolDataService.getSchools());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedSchoolDetails, setSelectedSchoolDetails] = useState(null);
+
   const [newSchool, setNewSchool] = useState({
     name: '',
     schoolCode: '',
@@ -36,11 +42,11 @@ export default function SuperAdminDashboard() {
     email: '',
     phone: '',
     address: '',
-    affiliation: 'CBSE / State Board',
+    affiliation: 'CBSE Board',
     establishedYear: '2020',
   });
 
-  // Aggregated platform stats
+  // Aggregated platform stats across all registered schools
   const totalSchools = schools.length;
   const activeSchools = schools.filter((s) => s.status === 'Active').length;
   const inactiveSchools = totalSchools - activeSchools;
@@ -74,10 +80,10 @@ export default function SuperAdminDashboard() {
       email: '',
       phone: '',
       address: '',
-      affiliation: 'CBSE / State Board',
+      affiliation: 'CBSE Board',
       establishedYear: '2020',
     });
-    success(`School "${created.name}" created successfully!`);
+    success(`School "${created.name}" registered successfully!`);
   };
 
   const schoolChartData = schools.map((s) => ({
@@ -88,20 +94,12 @@ export default function SuperAdminDashboard() {
 
   const statusDonutData = [
     { label: 'Active Schools', value: activeSchools, color: '#10b981' },
-    { label: 'Inactive / Suspended', value: inactiveSchools, color: '#ef4444' },
-  ];
-
-  const growthTrend = [
-    { label: '2021', value: 2 },
-    { label: '2022', value: 5 },
-    { label: '2023', value: 9 },
-    { label: '2024', value: 16 },
-    { label: '2025', value: 24 },
+    { label: 'Inactive Schools', value: inactiveSchools, color: '#ef4444' },
   ];
 
   const columns = [
     {
-      header: 'School Name & Code',
+      header: 'School Name & ID',
       accessor: 'name',
       sortable: true,
       render: (val, row) => (
@@ -109,7 +107,9 @@ export default function SuperAdminDashboard() {
           <span style={{ fontSize: '1.4rem' }}>{row.logo || '🏫'}</span>
           <div>
             <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{val}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{row.schoolCode} • Est. {row.establishedYear}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+              {row.id} • Code: {row.schoolCode} • Est. {row.establishedYear}
+            </div>
           </div>
         </div>
       ),
@@ -126,13 +126,15 @@ export default function SuperAdminDashboard() {
       ),
     },
     {
-      header: 'Enrollment',
+      header: 'Enrollment & Staff',
       accessor: 'studentsCount',
       sortable: true,
       render: (val, row) => (
         <div style={{ fontSize: '0.85rem' }}>
           <strong>{val?.toLocaleString()}</strong> students
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>{row.teachersCount} teachers</div>
+          <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>
+            {row.teachersCount} teachers • {row.staffCount || 15} staff
+          </div>
         </div>
       ),
     },
@@ -146,11 +148,19 @@ export default function SuperAdminDashboard() {
       header: 'Actions',
       accessor: 'id',
       render: (id, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setSelectedSchoolDetails(row)}
+            title="View School Details"
+          >
+            <Eye size={13} />
+            <span>Details</span>
+          </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => handleOpenSchool(row)}
-            title="Open School Admin Dashboard"
+            title="Launch School Admin Dashboard"
           >
             <ExternalLink size={13} />
             <span>Launch</span>
@@ -177,27 +187,27 @@ export default function SuperAdminDashboard() {
             Super Admin Control Center
           </h1>
           <p className="page-subtitle">
-            Global multi-school monitoring, institution onboarding and system statistics
+            Global multi-school monitoring, institution directory, platform statistics and school launching
           </p>
         </div>
 
         <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
           <Plus size={16} />
-          <span>Add New School</span>
+          <span>Register New School</span>
         </button>
       </div>
 
       {/* Top Aggregated Metric Cards */}
       <div className="grid-4" style={{ marginBottom: '24px' }}>
         <StatCard
-          title="Total Schools Managed"
+          title="Total Schools"
           value={totalSchools}
           icon={Building2}
           color="indigo"
           subtitle={`${activeSchools} Active • ${inactiveSchools} Inactive`}
         />
         <StatCard
-          title="Total Students (Global)"
+          title="Total Students (Platform)"
           value={totalStudents.toLocaleString()}
           icon={Users}
           color="emerald"
@@ -205,7 +215,7 @@ export default function SuperAdminDashboard() {
           trendPositive={true}
         />
         <StatCard
-          title="Total Teachers (Global)"
+          title="Total Teachers (Platform)"
           value={totalTeachers.toLocaleString()}
           icon={GraduationCap}
           color="sky"
@@ -225,8 +235,8 @@ export default function SuperAdminDashboard() {
       <div className="grid-3" style={{ marginBottom: '24px' }}>
         <div className="card" style={{ gridColumn: 'span 2' }}>
           <div className="card-header">
-            <h3 className="card-title">School Student Capacity & Enrollment</h3>
-            <span className="badge badge-primary">Current Term</span>
+            <h3 className="card-title">School Enrollment Comparison</h3>
+            <span className="badge badge-primary">Current Session</span>
           </div>
           <BarChart data={schoolChartData} height={200} color="#6366f1" />
         </div>
@@ -241,20 +251,119 @@ export default function SuperAdminDashboard() {
 
       {/* Schools DataTable */}
       <DataTable
-        title="Managed Schools Directory"
-        subtitle="List of all registered educational campuses on the platform"
+        title="Registered Schools Directory"
+        subtitle="Manage and inspect individual schools across the multi-tenant platform"
         columns={columns}
         data={schools}
-        searchKeys={['name', 'schoolCode', 'principal', 'email']}
-        pageSize={5}
+        searchKeys={['name', 'id', 'schoolCode', 'principal', 'email']}
+        pageSize={6}
       />
+
+      {/* VIEW SCHOOL DETAILS MODAL (Requirement #11) */}
+      <Modal
+        isOpen={!!selectedSchoolDetails}
+        onClose={() => setSelectedSchoolDetails(null)}
+        title={selectedSchoolDetails ? `${selectedSchoolDetails.name} — School Details` : 'School Details'}
+        subtitle={`School ID: ${selectedSchoolDetails?.id} • Affiliation: ${selectedSchoolDetails?.affiliation || 'CBSE Board'}`}
+        size="lg"
+      >
+        {selectedSchoolDetails && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '2.5rem' }}>{selectedSchoolDetails.logo || '🏫'}</span>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{selectedSchoolDetails.name}</h3>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                    Established {selectedSchoolDetails.establishedYear || '2005'} • Session: {selectedSchoolDetails.academicSession || '2025-2026'}
+                  </div>
+                </div>
+              </div>
+
+              <StatusBadge status={selectedSchoolDetails.status} />
+            </div>
+
+            {/* School Attributes Grid */}
+            <div className="grid-3" style={{ gap: '12px', marginBottom: '20px' }}>
+              <div className="card" style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>SCHOOL ID</div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', marginTop: '2px', color: 'var(--primary)' }}>
+                  {selectedSchoolDetails.id}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>PRINCIPAL / HEAD</div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', marginTop: '2px' }}>
+                  {selectedSchoolDetails.principal}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>CONTACT EMAIL</div>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '2px' }}>
+                  {selectedSchoolDetails.email}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>TOTAL STUDENTS</div>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '2px', color: '#10b981' }}>
+                  {selectedSchoolDetails.studentsCount} Students
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>TEACHERS</div>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '2px', color: '#06b6d4' }}>
+                  {selectedSchoolDetails.teachersCount} Teachers
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>STAFF & DRIVERS</div>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '2px', color: '#8b5cf6' }}>
+                  {selectedSchoolDetails.staffCount || 22} Staff Personnel
+                </div>
+              </div>
+            </div>
+
+            {/* Address & Contact */}
+            <div className="card" style={{ padding: '14px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '6px' }}>
+                CAMPUS ADDRESS & PHONE
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                <div>📍 {selectedSchoolDetails.address || '452 Elmwood Avenue, North District'}</div>
+                <div>📞 {selectedSchoolDetails.phone || '+1 (555) 234-5678'}</div>
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px', display: 'flex', justifyContent: 'space-between' }}>
+              <button className="btn btn-secondary" onClick={() => setSelectedSchoolDetails(null)}>
+                Close
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  handleOpenSchool(selectedSchoolDetails);
+                  setSelectedSchoolDetails(null);
+                }}
+              >
+                <ExternalLink size={15} />
+                <span>Launch School Admin Dashboard</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Add School Modal */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Register New School"
-        subtitle="Onboard a new educational campus into the CRM platform"
+        subtitle="Onboard a new educational campus into the platform"
         size="lg"
       >
         <form onSubmit={handleAddSchoolSubmit}>
@@ -264,13 +373,13 @@ export default function SuperAdminDashboard() {
               required
               value={newSchool.name}
               onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
-              placeholder="e.g. Cambridge International School"
+              placeholder="e.g. Cambridge High School"
             />
             <FormInput
               label="Unique School ID / Code"
               value={newSchool.schoolCode}
               onChange={(e) => setNewSchool({ ...newSchool, schoolCode: e.target.value })}
-              placeholder="e.g. CIS-505"
+              placeholder="e.g. CHS-505"
             />
           </div>
 
@@ -302,7 +411,7 @@ export default function SuperAdminDashboard() {
               label="Board / Affiliation"
               value={newSchool.affiliation}
               onChange={(e) => setNewSchool({ ...newSchool, affiliation: e.target.value })}
-              options={['CBSE / State Board', 'ICSE / Cambridge', 'IB World School', 'Other State Board']}
+              options={['CBSE Board', 'ICSE Board', 'State Board', 'Cambridge / IB']}
             />
           </div>
 

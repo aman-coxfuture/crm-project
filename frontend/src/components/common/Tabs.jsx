@@ -4,6 +4,7 @@ export default function Tabs({ tabs, activeTab, onChange, variant = 'underline' 
   if (variant === 'pills') {
     return (
       <div
+        className="nav-tabs-scroll"
         style={{
           display: 'flex',
           gap: '8px',
@@ -11,7 +12,9 @@ export default function Tabs({ tabs, activeTab, onChange, variant = 'underline' 
           backgroundColor: 'var(--bg-tertiary)',
           borderRadius: 'var(--radius-lg)',
           width: 'fit-content',
-          flexWrap: 'wrap',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
           marginBottom: '20px',
         }}
       >
@@ -62,12 +65,14 @@ export default function Tabs({ tabs, activeTab, onChange, variant = 'underline' 
 
   return (
     <div
+      className="nav-tabs-scroll"
       style={{
         display: 'flex',
         gap: '24px',
         borderBottom: '1px solid var(--border-color)',
         marginBottom: '24px',
         overflowX: 'auto',
+        maxWidth: '100%',
       }}
     >
       {tabs.map((tab) => {
