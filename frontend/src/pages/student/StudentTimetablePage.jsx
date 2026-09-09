@@ -1,10 +1,12 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { schoolDataService } from '../../services/schoolDataService';
 import { Clock, Printer } from 'lucide-react';
 
 export default function StudentTimetablePage() {
-  const timetable = schoolDataService.getTimetable();
-  const scheduleRows = timetable['10-A'] || [];
+  const { currentUser } = useAuth();
+  const studentClass = currentUser?.class ? `${currentUser.class}-${currentUser.section || 'A'}` : 'Class 10-A';
+  const scheduleRows = schoolDataService.getTimetableForClass(studentClass);
 
   return (
     <div>
@@ -12,10 +14,10 @@ export default function StudentTimetablePage() {
         <div>
           <h1 className="page-title">
             <Clock size={26} color="var(--primary)" />
-            My Class Weekly Timetable
+            Class Timetable ({studentClass})
           </h1>
           <p className="page-subtitle">
-            Class 10-A standard schedule for lectures, science laboratories and library sessions
+            7-Period Schedule: 4 Periods before lunch • 30-Minute Lunch Break • 3 Periods after lunch
           </p>
         </div>
 
@@ -30,7 +32,7 @@ export default function StudentTimetablePage() {
           <table className="custom-table" style={{ textAlign: 'center' }}>
             <thead>
               <tr>
-                <th style={{ width: '120px', textAlign: 'left' }}>Period / Time</th>
+                <th style={{ width: '130px', textAlign: 'left' }}>Period / Time</th>
                 <th>Monday</th>
                 <th>Tuesday</th>
                 <th>Wednesday</th>
@@ -40,24 +42,26 @@ export default function StudentTimetablePage() {
             </thead>
             <tbody>
               {scheduleRows.map((row, idx) => {
-                const isBreak = typeof row.period === 'string' && (row.period.includes('Break') || row.period.includes('Lunch'));
+                const isBreak = row.isBreak || row.period === 'Lunch';
 
                 if (isBreak) {
                   return (
                     <tr
                       key={idx}
                       style={{
-                        backgroundColor: 'var(--bg-tertiary)',
-                        fontWeight: 700,
-                        color: 'var(--text-secondary)',
+                        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                        fontWeight: 800,
+                        color: '#d97706',
+                        borderTop: '2px dashed #f59e0b',
+                        borderBottom: '2px dashed #f59e0b',
                       }}
                     >
-                      <td style={{ textAlign: 'left' }}>
-                        <div>{row.period}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{row.time}</div>
+                      <td style={{ textAlign: 'left', fontWeight: 800 }}>
+                        <div>🍱 Lunch Break</div>
+                        <div style={{ fontSize: '0.7rem', color: '#b45309' }}>{row.time}</div>
                       </td>
-                      <td colSpan={5} style={{ letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                        {row.monday}
+                      <td colSpan={5} style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+                        🍱 30-MINUTE SCHOOL LUNCH BREAK 🍱
                       </td>
                     </tr>
                   );
@@ -70,27 +74,27 @@ export default function StudentTimetablePage() {
                       <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>{row.time}</div>
                     </td>
                     <td>
-                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
+                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary-text)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
                         {row.monday}
                       </div>
                     </td>
                     <td>
-                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
+                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary-text)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
                         {row.tuesday}
                       </div>
                     </td>
                     <td>
-                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
+                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary-text)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
                         {row.wednesday}
                       </div>
                     </td>
                     <td>
-                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
+                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary-text)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
                         {row.thursday}
                       </div>
                     </td>
                     <td>
-                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
+                      <div style={{ padding: '8px 10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary-text)', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.8rem' }}>
                         {row.friday}
                       </div>
                     </td>

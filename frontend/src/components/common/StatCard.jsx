@@ -35,10 +35,10 @@ export default function StatCard({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
         <div>
-          <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
             {title}
           </span>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px', letterSpacing: '-0.02em' }}>
             {value}
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function StatCard({
       </div>
 
       {(trend !== undefined || subtitle) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.775rem', marginTop: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.825rem', marginTop: '6px' }}>
           {trend !== undefined && (
             <span
               style={{
