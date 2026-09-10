@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Student = require("../models/Student");
 const Tenant = require("../models/Tenant");
+const SchoolClass = require("../models/SchoolClass");
 
 const createStudent = async (req, res) => {
   try {
@@ -15,6 +16,7 @@ const createStudent = async (req, res) => {
       gender,
       phone,
       address,
+      classId,
       className,
       section,
     } = req.body;
@@ -43,6 +45,33 @@ const createStudent = async (req, res) => {
         success: false,
         message: "School not found",
       });
+    }
+
+    let schoolClass = null;
+
+    if (classId) {
+      schoolClass = await SchoolClass.findOne({
+        _id: classId,
+        tenantId: req.user.tenantId,
+        isActive: true,
+      });
+
+      if (!schoolClass) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or inactive class",
+        });
+      }
+
+      if (
+        section &&
+        !schoolClass.sections.includes(section.trim().toUpperCase())
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Section does not belong to the selected class",
+        });
+      }
     }
 
     // Check duplicate email globally
@@ -91,8 +120,9 @@ const createStudent = async (req, res) => {
       gender: gender || null,
       phone: phone?.trim() || null,
       address: address?.trim() || null,
-      className: className?.trim() || null,
-      section: section?.trim() || null,
+      classId: schoolClass ? schoolClass._id : null,
+      className: schoolClass ? schoolClass.name : null,
+      section: section ? section.trim().toUpperCase() : null,
       tenantId: req.user.tenantId,
       isActive: true,
     });
@@ -140,6 +170,7 @@ const getAllStudents = async (req, res) => {
       tenantId: req.user.tenantId,
     })
       .populate("userId", "name email role isActive")
+      .populate("classId", "name sections isActive")
       .sort({ createdAt: -1 })
       .select("-__v");
 
@@ -207,7 +238,7 @@ const updateStudent = async (req, res) => {
       gender,
       phone,
       address,
-      className,
+      classId,
       section,
       isActive,
     } = req.body;
@@ -217,6 +248,33 @@ const updateStudent = async (req, res) => {
         success: false,
         message: "You are not associated with any school",
       });
+    }
+
+    let schoolClass = null;
+
+    if (classId) {
+      schoolClass = await SchoolClass.findOne({
+        _id: classId,
+        tenantId: req.user.tenantId,
+        isActive: true,
+      });
+
+      if (!schoolClass) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or inactive class",
+        });
+      }
+
+      if (
+        section &&
+        !schoolClass.sections.includes(section.trim().toUpperCase())
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Section does not belong to the selected class",
+        });
+      }
     }
 
     // Find student belonging to logged-in admin's school
@@ -309,12 +367,18 @@ const updateStudent = async (req, res) => {
       student.address = address?.trim() || null;
     }
 
-    if (className !== undefined) {
-      student.className = className?.trim() || null;
+    if (classId !== undefined) {
+      if (!classId) {
+        student.classId = null;
+        student.className = null;
+      } else {
+        student.classId = schoolClass._id;
+        student.className = schoolClass.name;
+      }
     }
 
     if (section !== undefined) {
-      student.section = section?.trim() || null;
+      student.section = section ? section.trim().toUpperCase() : null;
     }
 
     if (isActive !== undefined) {

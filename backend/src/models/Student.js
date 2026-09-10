@@ -38,6 +38,12 @@ const studentSchema = new mongoose.Schema(
       default: null,
     },
 
+    classId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SchoolClass",
+      default: null,
+    },
+
     className: {
       type: String,
       trim: true,
