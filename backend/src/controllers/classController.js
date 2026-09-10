@@ -227,9 +227,87 @@ const updateClass = async (req, res) => {
   }
 };
 
+const deactivateClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.user.tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not associated with any school",
+      });
+    }
+
+    const schoolClass = await SchoolClass.findOne({
+      _id: id,
+      tenantId: req.user.tenantId,
+    });
+
+    if (!schoolClass) {
+      return res.status(404).json({
+        success: false,
+        message: "Class not found",
+      });
+    }
+
+    schoolClass.isActive = false;
+
+    await schoolClass.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Class deactivated successfully",
+    });
+  } catch (error) {
+    console.error("Deactivate class error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const reactivateClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.user.tenantId;
+
+    const schoolClass = await SchoolClass.findOne({
+      _id: id,
+      tenantId,
+    });
+
+    if (!schoolClass) {
+      return res.status(404).json({
+        success: false,
+        message: "Class not found",
+      });
+    }
+
+    schoolClass.isActive = true;
+    await schoolClass.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Class reactivated successfully",
+      class: schoolClass,
+    });
+  } catch (error) {
+    console.error("Reactivate class error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   createClass,
   getAllClasses,
   getClassById,
   updateClass,
+  deactivateClass,
+  reactivateClass,
 };
