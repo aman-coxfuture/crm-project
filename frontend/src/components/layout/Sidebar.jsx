@@ -16,7 +16,6 @@ import {
   Library,
   Calendar,
   Bell,
-  FileText,
   BarChart3,
   Settings,
   Building2,
@@ -27,9 +26,8 @@ import {
   X,
   ClipboardList,
   UserCheck,
-  CheckSquare,
-  ShieldCheck,
   Wallet,
+  Landmark,
 } from 'lucide-react';
 
 export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed }) {
@@ -39,21 +37,33 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, se
   const [expandedMenus, setExpandedMenus] = useState({ fees: false, 'staff-fees': false });
 
   const handleLogout = () => {
+    const isSuperAdmin = role === 'super_admin' || role === 'super-admin';
     logout();
-    navigate('/login');
+    navigate(isSuperAdmin ? '/super-admin/login' : '/login');
   };
 
   // Build role-specific navigation menus
   const getNavSections = () => {
-    if (role === 'super-admin') {
+    if (role === 'super_admin' || role === 'super-admin') {
       return [
         {
           title: 'SUPER ADMIN',
           items: [
             { label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
+          ],
+        },
+        {
+          title: 'INSTITUTIONS',
+          items: [
             { label: 'All Schools', path: '/super-admin/schools', icon: Building2 },
-            { label: 'Platform Analytics', path: '/super-admin/analytics', icon: BarChart3 },
-            { label: 'System Settings', path: '/super-admin/settings', icon: Settings },
+            { label: 'All Colleges', path: '#colleges', icon: GraduationCap, disabled: true, badge: 'Coming Soon' },
+            { label: 'All Universities', path: '#universities', icon: Landmark, disabled: true, badge: 'Coming Soon' },
+          ],
+        },
+        {
+          title: 'SETTINGS',
+          items: [
+            { label: 'Settings', path: '/super-admin/settings', icon: Settings },
           ],
         },
       ];
@@ -120,7 +130,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, se
         title: 'OPERATIONS',
         items: [
           {
-            label: 'Fee Management',
+            label: 'Student Fee Management',
             path: '/school-admin/fees',
             icon: DollarSign,
             id: 'fees',
@@ -239,7 +249,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, se
                     overflow: 'hidden',
                   }}
                 >
-                  {role === 'super-admin'
+                  {role === 'super_admin' || role === 'super-admin'
                     ? 'Super Admin CRM'
                     : selectedSchool?.name?.split(' ')[0] + ' School' || 'School CRM'}
                 </div>
@@ -252,7 +262,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, se
                     textTransform: 'uppercase',
                   }}
                 >
-                  {role.replace('-', ' ')}
+                  {(role || '').replace('_', ' ').replace('-', ' ')}
                 </div>
               </div>
             )}
@@ -374,6 +384,51 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, isCollapsed, se
                               );
                             })}
                           </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (item.disabled) {
+                    return (
+                      <div
+                        key={item.label}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: isCollapsed ? 'center' : 'space-between',
+                          gap: '12px',
+                          padding: isCollapsed ? '12px 0' : '10px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: '0.925rem',
+                          fontWeight: 500,
+                          color: 'var(--text-tertiary)',
+                          opacity: 0.6,
+                          cursor: 'not-allowed',
+                          userSelect: 'none',
+                        }}
+                        title={isCollapsed ? `${item.label} (Coming Soon)` : undefined}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <Icon size={18} style={{ flexShrink: 0 }} />
+                          {!isCollapsed && <span>{item.label}</span>}
+                        </div>
+                        {!isCollapsed && item.badge && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                              color: '#d97706',
+                              padding: '2px 6px',
+                              borderRadius: 'var(--radius-sm)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {item.badge}
+                          </span>
                         )}
                       </div>
                     );

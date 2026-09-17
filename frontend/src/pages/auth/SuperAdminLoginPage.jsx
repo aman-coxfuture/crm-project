@@ -3,30 +3,26 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
-import { getDashboardRoute } from '../../config/roles';
 import { authService } from '../../services/authService';
 import Modal from '../../components/common/Modal';
 import {
-  GraduationCap,
+  Shield,
+  Building2,
+  BarChart3,
+  Users,
+  Settings,
   ArrowRight,
   Sparkles,
   Lock,
   Mail,
-  Hash,
   Moon,
   Sun,
   Eye,
   EyeOff,
-  Clock,
-  Layers,
-  Shield,
-  HelpCircle,
   School,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
-export default function LoginPage() {
+export default function SuperAdminLoginPage() {
   const { login } = useAuth();
   const { success, error, info } = useToast();
   const { theme, toggleTheme } = useTheme();
@@ -35,8 +31,6 @@ export default function LoginPage() {
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rollNumber, setRollNumber] = useState('');
-  const [isStudentMode, setIsStudentMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,41 +47,38 @@ export default function LoginPage() {
 
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
-    const cleanRoll = rollNumber.trim();
 
     if (!cleanEmail) {
-      setFormError('Please enter your registered email address.');
+      setFormError('Please enter your Super Admin email address.');
       return;
     }
     if (!cleanPassword) {
       setFormError('Please enter your password.');
       return;
     }
-    if (isStudentMode && !cleanRoll) {
-      setFormError('Please enter your Student Roll Number (e.g. STU001).');
-      return;
-    }
 
     setIsLoading(true);
 
     try {
-      // Simulate rapid server validation
       await new Promise((res) => setTimeout(res, 250));
 
       const user = await login(
         {
           email: cleanEmail,
           password: cleanPassword,
-          rollNumber: cleanRoll || undefined,
         },
         rememberMe
       );
 
+      // Verify that this is indeed a Super Admin account
+      if (user.role !== 'super_admin' && user.role !== 'super-admin') {
+        throw new Error('This account does not have Super Admin platform permissions. Please use School Login.');
+      }
+
       success(`Welcome back, ${user.name}!`);
-      const targetDashboard = getDashboardRoute(user.role);
-      navigate(targetDashboard, { replace: true });
+      navigate('/super-admin/dashboard', { replace: true });
     } catch (err) {
-      const errorMsg = err.message || 'Authentication failed. Please check your credentials.';
+      const errorMsg = err.message || 'Authentication failed. Please verify Super Admin credentials.';
       setFormError(errorMsg);
       error(errorMsg);
     } finally {
@@ -95,28 +86,11 @@ export default function LoginPage() {
     }
   };
 
-  // 1-Click Fast Fill for Evaluator / Demo testing (fills credentials into inputs)
-  const handleQuickFill = (roleType) => {
+  const handleQuickFill = () => {
+    setEmail('admin@crm.com');
+    setPassword('admin123');
     setFormError('');
-    if (roleType === 'principal') {
-      setEmail('principal@school.com');
-      setPassword('principal123');
-      setRollNumber('');
-      setIsStudentMode(false);
-      info('Loaded demo credentials for Principal');
-    } else if (roleType === 'teacher') {
-      setEmail('rahul@example.com');
-      setPassword('teacher123');
-      setRollNumber('');
-      setIsStudentMode(false);
-      info('Loaded demo credentials for Teacher (Rahul)');
-    } else if (roleType === 'student') {
-      setEmail('student@example.com');
-      setRollNumber('STU001');
-      setPassword('student123');
-      setIsStudentMode(true);
-      info('Loaded demo credentials for Student (Alex)');
-    }
+    info('Loaded demo credentials for Super Admin');
   };
 
   const handleForgotPasswordSubmit = async (e) => {
@@ -159,7 +133,7 @@ export default function LoginPage() {
         </button>
       </div>
 
-      {/* LEFT SIDE: Visual Showcase (Enterprise Education Branding) */}
+      {/* LEFT SIDE: Visual Showcase (Super Admin Enterprise Control) */}
       <div
         style={{
           flex: 1,
@@ -174,7 +148,7 @@ export default function LoginPage() {
         }}
         className="login-showcase-panel"
       >
-        {/* Background Glow */}
+        {/* Glow */}
         <div
           style={{
             position: 'absolute',
@@ -183,12 +157,12 @@ export default function LoginPage() {
             width: '450px',
             height: '450px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, rgba(6, 182, 212, 0) 70%)',
+            background: 'radial-gradient(circle, rgba(147, 51, 234, 0.35) 0%, rgba(79, 70, 229, 0) 70%)',
             pointerEvents: 'none',
           }}
         />
 
-        {/* Top Brand */}
+        {/* Brand */}
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
             <div
@@ -196,24 +170,24 @@ export default function LoginPage() {
                 width: '46px',
                 height: '46px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
+                background: 'linear-gradient(135deg, #9333ea 0%, #4f46e5 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#ffffff',
                 fontWeight: 900,
                 fontSize: '1.4rem',
-                boxShadow: '0 8px 24px rgba(79, 70, 229, 0.45)',
+                boxShadow: '0 8px 24px rgba(147, 51, 234, 0.45)',
               }}
             >
-              🏫
+              🛡️
             </div>
             <div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#ffffff' }}>
-                EduPulse CRM
+                EduPulse Platform
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.04em' }}>
-                NEXT-GEN SCHOOL MANAGEMENT PLATFORM
+              <div style={{ fontSize: '0.75rem', color: '#c084fc', fontWeight: 700, letterSpacing: '0.05em' }}>
+                SUPER ADMINISTRATOR WORKSPACE
               </div>
             </div>
           </div>
@@ -225,25 +199,25 @@ export default function LoginPage() {
               gap: '6px',
               padding: '6px 12px',
               borderRadius: '999px',
-              backgroundColor: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              color: '#818cf8',
+              backgroundColor: 'rgba(147, 51, 234, 0.18)',
+              border: '1px solid rgba(147, 51, 234, 0.35)',
+              color: '#d8b4fe',
               fontSize: '0.75rem',
               fontWeight: 700,
             }}
           >
             <Sparkles size={13} />
-            <span>Multi-Tenant School Operations • Unified Access Portal</span>
+            <span>Global Multi-Tenant Supervision • Platform Controls</span>
           </div>
         </div>
 
-        {/* Center Key Value Proposition */}
+        {/* Center Content */}
         <div style={{ position: 'relative', zIndex: 2, padding: '30px 0' }}>
           <h2 style={{ fontSize: '2.1rem', fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.02em', color: '#f8fafc', marginBottom: '16px' }}>
-            Empowering Modern Schools with Real-Time Academic Intelligence.
+            Manage Your Entire Education CRM From One Secure Workspace.
           </h2>
           <p style={{ fontSize: '0.95rem', color: '#94a3b8', lineHeight: 1.6, maxWidth: '480px', marginBottom: '32px' }}>
-            Seamlessly coordinate teacher timetables, student academic records, exam evaluations, and multi-tenant school administration from one unified portal.
+            Comprehensive visibility and centralized governance across all affiliated schools, institutions, platform metrics, and administrative operators.
           </p>
 
           {/* Feature Highlights Grid */}
@@ -257,30 +231,12 @@ export default function LoginPage() {
                 backdropFilter: 'blur(8px)',
               }}
             >
-              <div style={{ color: '#818cf8', marginBottom: '8px' }}>
-                <Clock size={20} />
+              <div style={{ color: '#c084fc', marginBottom: '8px' }}>
+                <Building2 size={20} />
               </div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>7-Period Structure</div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Multi-School Control</div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                4 periods before lunch, lunch break, 3 periods after lunch.
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(8px)',
-              }}
-            >
-              <div style={{ color: '#34d399', marginBottom: '8px' }}>
-                <Layers size={20} />
-              </div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Nursery – Class 10</div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                Canonical K-10 grade progression and sections.
+                Provision and monitor school branches and principal assignments.
               </div>
             </div>
 
@@ -294,11 +250,29 @@ export default function LoginPage() {
               }}
             >
               <div style={{ color: '#38bdf8', marginBottom: '8px' }}>
-                <GraduationCap size={20} />
+                <BarChart3 size={20} />
               </div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Role Scoped UI</div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Global Analytics</div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                Principals, Teachers, and Students access their tailored workspace.
+                Aggregated student enrollments, fee collections, and school performance.
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '16px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              <div style={{ color: '#34d399', marginBottom: '8px' }}>
+                <Users size={20} />
+              </div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>User Governance</div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                Enforce role-based access control and tenant isolation.
               </div>
             </div>
 
@@ -312,11 +286,11 @@ export default function LoginPage() {
               }}
             >
               <div style={{ color: '#fbbf24', marginBottom: '8px' }}>
-                <Shield size={20} />
+                <Settings size={20} />
               </div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Tenant Isolation</div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>System Settings</div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                Multi-tenant scoping: School users view only their school.
+                Platform configuration, database health, and security policies.
               </div>
             </div>
           </div>
@@ -325,15 +299,15 @@ export default function LoginPage() {
         {/* Bottom Proof */}
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '18px' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-            Trusted by 50+ Primary & Secondary Institutions
+            Multi-Tenant CRM Architecture v2.4
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>● 99.9% Uptime</span>
+            <span style={{ fontSize: '0.75rem', color: '#a855f7', fontWeight: 600 }}>● Tier-1 Security</span>
           </div>
         </div>
       </div>
 
-      {/* RIGHT SIDE: School Portal Login Form */}
+      {/* RIGHT SIDE: Super Admin Form */}
       <div
         className="login-form-panel"
         style={{
@@ -350,15 +324,15 @@ export default function LoginPage() {
         <div style={{ maxWidth: '440px', width: '100%', margin: '0 auto' }}>
           {/* Header */}
           <div style={{ marginBottom: '28px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-              <School size={16} />
-              <span>School Portal</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#9333ea', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <Shield size={16} />
+              <span>Super Admin Portal</span>
             </div>
             <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Sign In to Your Account
+              Platform Master Login
             </h1>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Enter your official credentials to access your school dashboard
+              Authenticate with your root administrator credentials
             </p>
           </div>
 
@@ -383,12 +357,12 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Main Auth Form */}
+          {/* Form */}
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {/* Email Field */}
             <div className="form-group">
-              <label className="form-label" htmlFor="school-email">
-                Official Email Address
+              <label className="form-label" htmlFor="sa-email">
+                Super Admin Email
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail
@@ -402,7 +376,7 @@ export default function LoginPage() {
                   }}
                 />
                 <input
-                  id="school-email"
+                  id="sa-email"
                   type="email"
                   className="form-input"
                   value={email}
@@ -410,7 +384,7 @@ export default function LoginPage() {
                     setEmail(e.target.value);
                     if (formError) setFormError('');
                   }}
-                  placeholder="name@school.com"
+                  placeholder="admin@crm.com"
                   autoComplete="username email"
                   style={{ paddingLeft: '42px', height: '44px', fontSize: '0.9rem' }}
                   required
@@ -421,8 +395,8 @@ export default function LoginPage() {
             {/* Password Field */}
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label className="form-label" htmlFor="school-password">
-                  Password
+                <label className="form-label" htmlFor="sa-password">
+                  Master Password
                 </label>
                 <button
                   type="button"
@@ -433,7 +407,7 @@ export default function LoginPage() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--primary)',
+                    color: '#9333ea',
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -454,7 +428,7 @@ export default function LoginPage() {
                   }}
                 />
                 <input
-                  id="school-password"
+                  id="sa-password"
                   type={showPassword ? 'text' : 'password'}
                   className="form-input"
                   value={password}
@@ -462,7 +436,7 @@ export default function LoginPage() {
                     setPassword(e.target.value);
                     if (formError) setFormError('');
                   }}
-                  placeholder="Enter your password"
+                  placeholder="Enter master password"
                   autoComplete="current-password"
                   style={{ paddingLeft: '42px', paddingRight: '42px', height: '44px', fontSize: '0.9rem' }}
                   required
@@ -488,72 +462,16 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Student Roll Number Expandable Toggle */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setIsStudentMode(!isStudentMode)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '2px 0',
-                  color: isStudentMode ? 'var(--primary)' : 'var(--text-secondary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <span>🎓 {isStudentMode ? 'Student mode enabled' : 'Logging in as a Student?'}</span>
-                {isStudentMode ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-
-              {isStudentMode && (
-                <div className="form-group" style={{ marginTop: '10px' }}>
-                  <label className="form-label" htmlFor="student-roll">
-                    Student Roll Number <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>(Required for students)</span>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Hash
-                      size={17}
-                      style={{
-                        position: 'absolute',
-                        left: '14px',
-                        top: '50%',
-                        transform: 'translateY(-50)',
-                        color: 'var(--text-tertiary)',
-                      }}
-                    />
-                    <input
-                      id="student-roll"
-                      type="text"
-                      className="form-input"
-                      value={rollNumber}
-                      onChange={(e) => {
-                        setRollNumber(e.target.value);
-                        if (formError) setFormError('');
-                      }}
-                      placeholder="e.g. STU001"
-                      style={{ paddingLeft: '42px', height: '44px', fontSize: '0.9rem' }}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Remember Me Option */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
               <input
                 type="checkbox"
-                id="rememberMe"
+                id="saRememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                style={{ width: '16px', height: '16px', accentColor: '#9333ea', cursor: 'pointer' }}
               />
-              <label htmlFor="rememberMe" style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <label htmlFor="saRememberMe" style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 Keep me signed in on this device
               </label>
             </div>
@@ -569,6 +487,8 @@ export default function LoginPage() {
                 fontSize: '0.95rem',
                 fontWeight: 800,
                 marginTop: '4px',
+                background: 'linear-gradient(135deg, #9333ea 0%, #4f46e5 100%)',
+                borderColor: '#9333ea',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -576,29 +496,17 @@ export default function LoginPage() {
               }}
             >
               {isLoading ? (
-                <span>Signing In...</span>
+                <span>Authenticating...</span>
               ) : (
                 <>
-                  <span>Sign In to School Portal</span>
+                  <span>Sign In as Super Admin</span>
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
 
-          {/* Account Assistance Information (Replacing Public Signup) */}
-          <div
-            style={{
-              marginTop: '20px',
-              textAlign: 'center',
-              fontSize: '0.825rem',
-              color: 'var(--text-tertiary)',
-            }}
-          >
-            Need access? <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Contact your school administrator.</span>
-          </div>
-
-          {/* Instant 1-Click Demo Fill Selector for Evaluators */}
+          {/* Quick Demo Fill */}
           <div
             style={{
               marginTop: '28px',
@@ -620,41 +528,20 @@ export default function LoginPage() {
               Quick Demo Account Fill
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('principal')}
-                className="btn btn-secondary btn-sm"
-                style={{ justifyContent: 'center', padding: '8px 6px', fontSize: '0.78rem' }}
-                title="Fill Principal credentials (principal@school.com)"
-              >
-                <span>🏫 Principal</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('teacher')}
-                className="btn btn-secondary btn-sm"
-                style={{ justifyContent: 'center', padding: '8px 6px', fontSize: '0.78rem' }}
-                title="Fill Teacher credentials (rahul@example.com)"
-              >
-                <span>👩‍🏫 Teacher</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('student')}
-                className="btn btn-secondary btn-sm"
-                style={{ justifyContent: 'center', padding: '8px 6px', fontSize: '0.78rem' }}
-                title="Fill Student credentials (student@example.com / STU001)"
-              >
-                <span>🎒 Student</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleQuickFill}
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', justifyContent: 'center', padding: '9px 12px', fontSize: '0.825rem' }}
+            >
+              <span>🛡️ Super Admin Demo (admin@crm.com / admin123)</span>
+            </button>
           </div>
 
-          {/* Subtle link to Super Admin Portal */}
+          {/* Return to School Login */}
           <div style={{ marginTop: '24px', textAlign: 'center' }}>
             <Link
-              to="/super-admin/login"
+              to="/login"
               style={{
                 color: 'var(--text-tertiary)',
                 fontSize: '0.8rem',
@@ -668,8 +555,8 @@ export default function LoginPage() {
               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--primary)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
             >
-              <Shield size={14} />
-              <span>Super Admin Portal &rarr;</span>
+              <School size={14} />
+              <span>&larr; Return to School Login</span>
             </Link>
           </div>
         </div>
@@ -679,20 +566,20 @@ export default function LoginPage() {
       <Modal
         isOpen={isForgotModalOpen}
         onClose={() => setIsForgotModalOpen(false)}
-        title="Reset Account Password"
-        subtitle="We'll send password recovery instructions to your registered email"
+        title="Reset Super Admin Password"
+        subtitle="Password recovery instructions will be dispatched to root email"
       >
         <form onSubmit={handleForgotPasswordSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="forgot-email">Registered Email Address</label>
+            <label className="form-label" htmlFor="sa-forgot-email">Registered Master Email</label>
             <input
-              id="forgot-email"
+              id="sa-forgot-email"
               type="email"
               required
               className="form-input"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
-              placeholder="user@school.com"
+              placeholder="admin@crm.com"
               autoComplete="email"
             />
           </div>

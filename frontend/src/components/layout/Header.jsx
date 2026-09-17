@@ -53,8 +53,9 @@ export default function Header({ onMobileMenuClick }) {
   }, []);
 
   const handleLogout = () => {
+    const isSuperAdmin = role === 'super_admin' || role === 'super-admin';
     logout();
-    navigate('/login');
+    navigate(isSuperAdmin ? '/super-admin/login' : '/login');
   };
 
   return (
@@ -85,7 +86,7 @@ export default function Header({ onMobileMenuClick }) {
           <Menu size={20} />
         </button>
 
-        {role === 'super-admin' ? (
+        {(role === 'super_admin' || role === 'super-admin') ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
             <span
               style={{
@@ -147,7 +148,7 @@ export default function Header({ onMobileMenuClick }) {
           className="badge"
           style={{
             backgroundColor:
-              role === 'super-admin'
+              (role === 'super_admin' || role === 'super-admin')
                 ? 'var(--purple-light)'
                 : role === 'teacher'
                 ? 'var(--info-light)'
@@ -155,7 +156,7 @@ export default function Header({ onMobileMenuClick }) {
                 ? 'var(--success-light)'
                 : 'var(--primary-light)',
             color:
-              role === 'super-admin'
+              (role === 'super_admin' || role === 'super-admin')
                 ? 'var(--purple-text)'
                 : role === 'teacher'
                 ? 'var(--info-text)'
@@ -168,7 +169,7 @@ export default function Header({ onMobileMenuClick }) {
             padding: '4px 10px',
           }}
         >
-          {role.replace('-', ' ')}
+          {(role || '').replace('_', ' ').replace('-', ' ')}
         </span>
 
         {/* Theme Toggle */}
