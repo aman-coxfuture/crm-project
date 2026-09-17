@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { schoolDataService } from '../../services/schoolDataService';
 import { FormInput } from '../../components/common/FormInput';
-import TeacherPunchCard from '../../components/teacher/TeacherPunchCard';
 import { UserCheck, Clock, Save, Building2, BookOpen, Award, Calendar, Phone, Mail, Hash } from 'lucide-react';
 
 export default function TeacherProfilePage() {
@@ -60,11 +59,6 @@ export default function TeacherProfilePage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* PART 9, 10, 11, 13: TEACHER OWN ATTENDANCE & PUNCH IN/OUT WITH HISTORY */}
-      <div style={{ marginBottom: '24px' }}>
-        <TeacherPunchCard showHistory={true} />
       </div>
 
       {/* Profile Form */}

@@ -6,18 +6,13 @@ import StatCard from '../../components/common/StatCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import TeacherPunchCard from '../../components/teacher/TeacherPunchCard';
 import {
-  CalendarCheck,
   BookOpen,
   Award,
   Clock,
-  Bell,
-  CheckCircle2,
-  ArrowRight,
   Plus,
   ClipboardList,
   Layers,
   Calendar,
-  AlertCircle,
 } from 'lucide-react';
 
 export default function TeacherDashboard() {
@@ -29,7 +24,6 @@ export default function TeacherDashboard() {
   const assignments = schoolDataService.getAssignments('SCH-001');
   const notices = schoolDataService.getNotices('SCH-001');
   const leaves = schoolDataService.getLeaves('SCH-001');
-  const exams = schoolDataService.getExams('SCH-001');
 
   // Teacher-specific data filters
   const myAssignments = assignments.filter((a) =>
@@ -48,7 +42,7 @@ export default function TeacherDashboard() {
   return (
     <div>
       {/* Teacher Dashboard Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ alignItems: 'center' }}>
         <div>
           <h1 className="page-title">
             <span>Welcome, {teacherName}! 👨‍🏫</span>
@@ -58,24 +52,20 @@ export default function TeacherDashboard() {
           </p>
         </div>
 
-        {/* Quick Action Buttons (Mark Attendance, View Timetable, Create Assignment, View Exams, Apply Leave) */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={() => navigate('/teacher/attendance')}>
-            <CalendarCheck size={15} />
-            <span>Mark Attendance</span>
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/teacher/timetable')}>
-            <Clock size={15} />
-            <span>View Timetable</span>
-          </button>
+        {/* Top Action Area: Teacher Punch In / Punch Out + Create Assignment */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Teacher Own Dynamic Punch In / Punch Out Button */}
+          <TeacherPunchCard compact={true} />
+
+          {/* Kept Create Assignment button exactly as existing */}
           <button className="btn btn-primary" onClick={() => navigate('/teacher/assignments')}>
-            <Plus size={15} />
+            <Plus size={16} />
             <span>Create Assignment</span>
           </button>
         </div>
       </div>
 
-      {/* TOP METRIC CARDS — Focused on Teacher's Responsibilities (NO 'My Students') */}
+      {/* TOP METRIC CARDS */}
       <div className="grid-4" style={{ marginBottom: '24px' }}>
         <StatCard
           title="Today's Teaching Schedule"
@@ -127,12 +117,6 @@ export default function TeacherDashboard() {
         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           Quick Actions:
         </div>
-        <button className="btn btn-sm btn-secondary" onClick={() => navigate('/teacher/attendance')}>
-          <CalendarCheck size={14} /> Mark Attendance
-        </button>
-        <button className="btn btn-sm btn-secondary" onClick={() => navigate('/teacher/timetable')}>
-          <Clock size={14} /> View 7-Period Timetable
-        </button>
         <button className="btn btn-sm btn-secondary" onClick={() => navigate('/teacher/assignments')}>
           <BookOpen size={14} /> Create Assignment
         </button>
@@ -258,8 +242,11 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Assigned Classes, Subjects, Notices, Leave */}
+        {/* RIGHT COLUMN: Teacher Own Attendance Punch Card, Classes & Notices */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Teacher Own Attendance (Punch In / Punch Out Card) */}
+          <TeacherPunchCard compact={false} />
+
           {/* Assigned Classes & Subjects Card */}
           <div className="card">
             <div className="card-header">
@@ -291,9 +278,6 @@ export default function TeacherDashboard() {
               </div>
             </div>
           </div>
-
-          {/* Teacher Own Attendance (Punch In / Punch Out Card) */}
-          <TeacherPunchCard showHistory={false} />
 
           {/* School Notices */}
           <div className="card">

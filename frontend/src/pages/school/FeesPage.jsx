@@ -406,10 +406,10 @@ export default function FeesPage() {
             </div>
             <div>
               <h1 className="page-title" style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>
-                School Fee Management System
+                Student Fee Management
               </h1>
               <p className="page-subtitle" style={{ margin: 0, fontSize: '0.925rem' }}>
-                Class-wise, section-wise fee ledgers, automated late fines, collection receipts & audits
+                Manage student fee payments, pending amounts, and payment status.
               </p>
             </div>
           </div>
@@ -869,8 +869,45 @@ export default function FeesPage() {
       {/* 2. STUDENT FEES TAB (Main Ledger & Filters) */}
       {/* ========================================================================= */}
       {activeTab === 'students' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Filter Bar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Summary Cards */}
+          <div className="grid-4" style={{ gap: '16px' }}>
+            <div className="card" style={{ padding: '18px', borderLeft: '4px solid #6366f1' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>TOTAL STUDENTS</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '4px' }}>{metrics.totalStudents.toLocaleString()}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Enrolled students</div>
+            </div>
+
+            <div className="card" style={{ padding: '18px', borderLeft: '4px solid #3b82f6' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>TOTAL FEE</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '4px', color: 'var(--primary)' }}>
+                {formatCurrency(metrics.totalFees)}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Academic Session {selectedSession}</div>
+            </div>
+
+            <div className="card" style={{ padding: '18px', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>PAID AMOUNT</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '4px', color: '#10b981' }}>
+                {formatCurrency(metrics.collected)}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, marginTop: '4px' }}>
+                {metrics.totalFees ? Math.round((metrics.collected / metrics.totalFees) * 100) : 0}% Realized
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '18px', borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>PENDING AMOUNT</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '4px', color: '#f59e0b' }}>
+                {formatCurrency(metrics.pending)}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600, marginTop: '4px' }}>
+                {metrics.counts.pending + metrics.counts.partial} Students with balance
+              </div>
+            </div>
+          </div>
+
+          {/* Search / Filters Bar */}
           <div
             className="card"
             style={{
@@ -951,8 +988,21 @@ export default function FeesPage() {
                 </select>
               </div>
 
+              {/* Academic Year Filter */}
+              <div style={{ width: '130px' }}>
+                <select
+                  className="form-control"
+                  value={selectedSession}
+                  onChange={(e) => setSelectedSession(e.target.value)}
+                  style={{ height: '40px' }}
+                >
+                  <option value="2026-27">2026-27</option>
+                  <option value="2025-26">2025-26</option>
+                </select>
+              </div>
+
               {/* Reset Filter */}
-              {(searchQuery || selectedClass !== 'All' || selectedSection !== 'All' || selectedStatus !== 'All') && (
+              {(searchQuery || selectedClass !== 'All' || selectedSection !== 'All' || selectedStatus !== 'All' || selectedSession !== '2026-27') && (
                 <button
                   className="btn btn-outline"
                   onClick={() => {
@@ -960,6 +1010,7 @@ export default function FeesPage() {
                     setSelectedClass('All');
                     setSelectedSection('All');
                     setSelectedStatus('All');
+                    setSelectedSession('2026-27');
                   }}
                   style={{ height: '40px', padding: '0 14px' }}
                 >
@@ -977,27 +1028,36 @@ export default function FeesPage() {
             </div>
           </div>
 
-          {/* Student Fees Table */}
+          {/* Student Fee Section & Table */}
           <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Student Fee</h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-tertiary)', margin: '2px 0 0 0' }}>
+                  Student fee records, payment balances, and current payment status
+                </p>
+              </div>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Showing <strong>{filteredLedgers.length}</strong> of {studentLedgers.length} records
+              </span>
+            </div>
             <div className="table-container" style={{ border: 'none', borderRadius: '0' }}>
-              <table className="custom-table">
+              <table className="custom-table" style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>Student Name & ID</th>
-                    <th>Roll No</th>
-                    <th>Class & Sec</th>
+                    <th style={{ textAlign: 'left' }}>Student</th>
+                    <th style={{ textAlign: 'left' }}>Class</th>
+                    <th style={{ textAlign: 'left' }}>Roll Number</th>
                     <th style={{ textAlign: 'right' }}>Total Fee</th>
-                    <th style={{ textAlign: 'right' }}>Paid</th>
-                    <th style={{ textAlign: 'right' }}>Pending</th>
-                    <th style={{ textAlign: 'right' }}>Late Fine</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+                    <th style={{ textAlign: 'right' }}>Paid Amount</th>
+                    <th style={{ textAlign: 'right' }}>Pending Amount</th>
+                    <th style={{ textAlign: 'center' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLedgers.map((item) => (
                     <tr key={item.id}>
-                      <td>
+                      <td style={{ textAlign: 'left' }}>
                         <div>
                           <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.studentName}</div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
@@ -1005,58 +1065,26 @@ export default function FeesPage() {
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{item.rollNumber}</span>
-                      </td>
-                      <td>
+                      <td style={{ textAlign: 'left' }}>
                         <span className="badge badge-primary">
                           {item.class} - Sec {item.section}
                         </span>
+                      </td>
+                      <td style={{ textAlign: 'left' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{item.rollNumber}</span>
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(item.totalFee)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{formatCurrency(item.paidAmount)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: item.pendingAmount > 0 ? '#f59e0b' : 'var(--text-tertiary)' }}>
                         {formatCurrency(item.pendingAmount)}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: item.fineAmount > 0 ? '#ef4444' : 'var(--text-tertiary)' }}>
-                        {item.fineAmount > 0 ? (
-                          <span>
-                            {formatCurrency(item.fineAmount)}
-                            <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>({item.lateDays}d late)</div>
-                          </span>
-                        ) : (
-                          '₹0'
-                        )}
-                      </td>
-                      <td>{renderStatusBadge(item.status)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                          <button
-                            className="btn btn-outline"
-                            onClick={() => setSelectedStudentForView(item)}
-                            title="View Fee Profile & Breakdown"
-                            style={{ padding: '6px 10px', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Eye size={14} />
-                            <span>View</span>
-                          </button>
-                          <button
-                            className="btn btn-primary"
-                            onClick={() => setPaymentModalData(item)}
-                            title="Record Payment"
-                            style={{ padding: '6px 10px', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <CreditCard size={14} />
-                            <span>Pay</span>
-                          </button>
-                        </div>
-                      </td>
+                      <td style={{ textAlign: 'center' }}>{renderStatusBadge(item.status)}</td>
                     </tr>
                   ))}
 
                   {filteredLedgers.length === 0 && (
                     <tr>
-                      <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-tertiary)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-tertiary)' }}>
                         No student fee records found matching your active search/filter criteria.
                       </td>
                     </tr>

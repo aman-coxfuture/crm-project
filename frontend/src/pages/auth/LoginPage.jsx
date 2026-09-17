@@ -1,15 +1,13 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { useToast } from "../../context/ToastContext";
-import { useTheme } from "../../context/ThemeContext";
-import Modal from "../../components/common/Modal";
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { useTheme } from '../../context/ThemeContext';
+import { getDashboardRoute } from '../../config/roles';
+import { authService } from '../../services/authService';
+import Modal from '../../components/common/Modal';
 import {
-  School,
   GraduationCap,
-  Building,
-  Shield,
-  BookOpen,
   ArrowRight,
   Sparkles,
   Lock,
@@ -18,13 +16,14 @@ import {
   Sun,
   Eye,
   EyeOff,
-  CheckCircle2,
-  Calendar,
-  Layers,
-  Award,
   Clock,
+  Layers,
+  Shield,
   HelpCircle,
-} from "lucide-react";
+  School,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -32,13 +31,11 @@ export default function LoginPage() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  // Role Selection: 'school-admin' (Principal), 'teacher', 'student', 'super-admin'
-  const [selectedRole, setSelectedRole] = useState("school-admin");
-
   // Form Fields
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
+  const [isStudentMode, setIsStudentMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,77 +43,95 @@ export default function LoginPage() {
 
   // Forgot Password Modal
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-
-  // When role changes, set standard mock credentials
-  const handleRoleSelect = (roleKey) => {
-    setSelectedRole(roleKey);
-    setFormError("");
-    setEmail("");
-    setPassword("");
-  };
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
+    setFormError('');
 
-    setFormError("");
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+    const cleanRoll = rollNumber.trim();
+
+    if (!cleanEmail) {
+      setFormError('Please enter your registered email address.');
+      return;
+    }
+    if (!cleanPassword) {
+      setFormError('Please enter your password.');
+      return;
+    }
+    if (isStudentMode && !cleanRoll) {
+      setFormError('Please enter your Student Roll Number (e.g. STU001).');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      if (!email.trim()) {
-        setFormError("Please enter your registered email address");
-        setIsLoading(false);
-        return;
-      }
+      // Simulate rapid server validation
+      await new Promise((res) => setTimeout(res, 250));
 
-      if (!password) {
-        setFormError("Please enter your password");
-        setIsLoading(false);
-        return;
-      }
-
-      const roleMap = {
-        "school-admin": "ADMIN",
-        teacher: "FACULTY",
-        student: "STUDENT",
-        "super-admin": "SUPER_ADMIN",
-      };
-
-      const user = await login({
-        email: email.trim(),
-        password,
-        role: roleMap[selectedRole],
-      });
-
-      success(`Welcome back, ${user.name}!`);
-
-      // Backend returned role is the source of truth
-      if (user.role === "super-admin") {
-        navigate("/super-admin/dashboard");
-      } else if (user.role === "teacher") {
-        navigate("/teacher/dashboard");
-      } else if (user.role === "student") {
-        navigate("/student/dashboard");
-      } else {
-        navigate("/school-admin/dashboard");
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-
-      setFormError(
-        err.message || "Authentication failed. Please check your credentials.",
+      const user = await login(
+        {
+          email: cleanEmail,
+          password: cleanPassword,
+          rollNumber: cleanRoll || undefined,
+        },
+        rememberMe
       );
 
-      error(err.message || "Login failed. Please verify your credentials.");
+      success(`Welcome back, ${user.name}!`);
+      const targetDashboard = getDashboardRoute(user.role);
+      navigate(targetDashboard, { replace: true });
+    } catch (err) {
+      const errorMsg = err.message || 'Authentication failed. Please check your credentials.';
+      setFormError(errorMsg);
+      error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleForgotPasswordSubmit = (e) => {
+  // 1-Click Fast Fill for Evaluator / Demo testing (fills credentials into inputs)
+  const handleQuickFill = (roleType) => {
+    setFormError('');
+    if (roleType === 'principal') {
+      setEmail('principal@school.com');
+      setPassword('principal123');
+      setRollNumber('');
+      setIsStudentMode(false);
+      info('Loaded demo credentials for Principal');
+    } else if (roleType === 'teacher') {
+      setEmail('rahul@example.com');
+      setPassword('teacher123');
+      setRollNumber('');
+      setIsStudentMode(false);
+      info('Loaded demo credentials for Teacher (Rahul)');
+    } else if (roleType === 'student') {
+      setEmail('student@example.com');
+      setRollNumber('STU001');
+      setPassword('student123');
+      setIsStudentMode(true);
+      info('Loaded demo credentials for Student (Alex)');
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e) => {
     e.preventDefault();
-    setIsForgotModalOpen(false);
-    success(`Password reset link sent to ${forgotEmail || email}`);
+    if (!forgotEmail) return;
+    setIsForgotLoading(true);
+    try {
+      const response = await authService.forgotPassword(forgotEmail);
+      setIsForgotModalOpen(false);
+      setForgotEmail('');
+      success(response.message);
+    } catch {
+      error('Unable to process password reset request.');
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
 
   return (
@@ -137,11 +152,9 @@ export default function LoginPage() {
         <button
           onClick={toggleTheme}
           className="btn btn-icon"
-          title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
-          style={{
-            backgroundColor: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-          }}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          aria-label="Toggle theme"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -163,7 +176,7 @@ export default function LoginPage() {
         }}
         className="login-showcase-panel"
       >
-        {/* Subtle Background Glow */}
+        {/* Background Glow */}
         <div
           style={{
             position: "absolute",
@@ -244,29 +257,13 @@ export default function LoginPage() {
             }}
           >
             <Sparkles size={13} />
-            <span>Nursery to Class 10 Curriculum • 7-Period Engine</span>
+            <span>Multi-Tenant School Operations • Unified Access Portal</span>
           </div>
         </div>
 
         {/* Center Key Value Proposition */}
-        <div
-          style={{
-            position: "relative",
-            zIndex: 2,
-            my: "auto",
-            padding: "30px 0",
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "2.1rem",
-              fontWeight: 800,
-              lineHeight: 1.25,
-              letterSpacing: "-0.02em",
-              color: "#f8fafc",
-              marginBottom: "16px",
-            }}
-          >
+        <div style={{ position: 'relative', zIndex: 2, padding: '30px 0' }}>
+          <h2 style={{ fontSize: '2.1rem', fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.02em', color: '#f8fafc', marginBottom: '16px' }}>
             Empowering Modern Schools with Real-Time Academic Intelligence.
           </h2>
           <p
@@ -367,23 +364,9 @@ export default function LoginPage() {
               <div style={{ color: "#38bdf8", marginBottom: "8px" }}>
                 <GraduationCap size={20} />
               </div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  color: "#ffffff",
-                }}
-              >
-                Teacher Allocations
-              </div>
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#94a3b8",
-                  marginTop: "2px",
-                }}
-              >
-                Principal-to-teacher class and subject assignments.
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Role Scoped UI</div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                Principals, Teachers, and Students access their tailored workspace.
               </div>
             </div>
 
@@ -399,23 +382,9 @@ export default function LoginPage() {
               <div style={{ color: "#fbbf24", marginBottom: "8px" }}>
                 <Shield size={20} />
               </div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  color: "#ffffff",
-                }}
-              >
-                Data Isolation
-              </div>
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#94a3b8",
-                  marginTop: "2px",
-                }}
-              >
-                Multi-tenant scoping: School Admins view only their school.
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Tenant Isolation</div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                Multi-tenant scoping: School users view only their school.
               </div>
             </div>
           </div>
@@ -446,7 +415,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* RIGHT SIDE: SaaS Login Form Panel */}
+      {/* RIGHT SIDE: School Portal Login Form */}
       <div
         className="login-form-panel"
         style={{
@@ -462,109 +431,37 @@ export default function LoginPage() {
       >
         <div style={{ maxWidth: "440px", width: "100%", margin: "0 auto" }}>
           {/* Header */}
-          <div style={{ marginBottom: "28px" }}>
-            <h1
-              style={{
-                fontSize: "1.85rem",
-                fontWeight: 800,
-                color: "var(--text-primary)",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Sign In to Your Portal
-            </h1>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--text-secondary)",
-                marginTop: "4px",
-              }}
-            >
-              Select your role and authenticate with your school credentials
-            </p>
-          </div>
-
-          {/* Role Tab Selector */}
-          <div style={{ marginBottom: "24px" }}>
-            <label
-              style={{
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                color: "var(--text-tertiary)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                display: "block",
-                marginBottom: "8px",
-              }}
-            >
-              Select Portal Persona
-            </label>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "6px",
-                backgroundColor: "var(--bg-tertiary)",
-                padding: "5px",
-                borderRadius: "var(--radius-lg)",
-                border: "1px solid var(--border-color)",
-              }}
-            >
-              {[
-                { key: "school-admin", label: "Principal", icon: Building },
-                { key: "teacher", label: "Teacher", icon: GraduationCap },
-                { key: "student", label: "Student", icon: BookOpen },
-                { key: "super-admin", label: "Super Admin", icon: Shield },
-              ].map((r) => {
-                const Icon = r.icon;
-                const isSelected = selectedRole === r.key;
-                return (
-                  <button
-                    key={r.key}
-                    type="button"
-                    onClick={() => handleRoleSelect(r.key)}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "4px",
-                      padding: "10px 4px",
-                      borderRadius: "var(--radius-md)",
-                      border: "none",
-                      cursor: "pointer",
-                      backgroundColor: isSelected
-                        ? "var(--primary)"
-                        : "transparent",
-                      color: isSelected ? "#ffffff" : "var(--text-secondary)",
-                      fontWeight: isSelected ? 800 : 600,
-                      fontSize: "0.75rem",
-                      boxShadow: isSelected ? "var(--shadow-sm)" : "none",
-                      transition: "all var(--transition-fast)",
-                    }}
-                  >
-                    <Icon size={16} />
-                    <span>{r.label}</span>
-                  </button>
-                );
-              })}
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <School size={16} />
+              <span>School Portal</span>
             </div>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Sign In to Your Account
+            </h1>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Enter your official credentials to access your school dashboard
+            </p>
           </div>
 
           {/* Error Banner */}
           {formError && (
             <div
               style={{
-                padding: "10px 14px",
-                borderRadius: "var(--radius-md)",
-                backgroundColor: "rgba(239, 68, 68, 0.1)",
-                border: "1px solid rgba(239, 68, 68, 0.25)",
-                color: "var(--danger)",
-                fontSize: "0.825rem",
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: 'var(--danger)',
+                fontSize: '0.825rem',
                 fontWeight: 600,
-                marginBottom: "18px",
+                marginBottom: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
-              {formError}
+              <span>{formError}</span>
             </div>
           )}
 
@@ -575,10 +472,8 @@ export default function LoginPage() {
           >
             {/* Email Field */}
             <div className="form-group">
-              <label className="form-label" htmlFor="login-email">
-                {selectedRole === "student"
-                  ? "Student Email Address"
-                  : "Official Email Address"}
+              <label className="form-label" htmlFor="school-email">
+                Official Email Address
               </label>
               <div style={{ position: "relative" }}>
                 <Mail
@@ -592,25 +487,17 @@ export default function LoginPage() {
                   }}
                 />
                 <input
-                  id="login-email"
-                  type="text"
+                  id="school-email"
+                  type="email"
                   className="form-input"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={
-                    selectedRole === "super-admin"
-                      ? "admin@crm.com"
-                      : selectedRole === "teacher"
-                        ? "rahul@example.com"
-                        : selectedRole === "student"
-                          ? "student@example.com"
-                          : "principal@school.com"
-                  }
-                  style={{
-                    paddingLeft: "42px",
-                    height: "44px",
-                    fontSize: "0.9rem",
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (formError) setFormError('');
                   }}
+                  placeholder="name@school.com"
+                  autoComplete="username email"
+                  style={{ paddingLeft: '42px', height: '44px', fontSize: '0.9rem' }}
                   required
                 />
               </div>
@@ -618,17 +505,10 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="form-group">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <label className="form-label" htmlFor="login-password">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label" htmlFor="school-password">
                   Password
                 </label>
-
                 <button
                   type="button"
                   onClick={() => {
@@ -636,68 +516,121 @@ export default function LoginPage() {
                     setIsForgotModalOpen(true);
                   }}
                   style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--primary)",
-                    fontSize: "0.75rem",
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: 'pointer',
                   }}
                 >
                   Forgot password?
                 </button>
               </div>
-
-              <div style={{ position: "relative" }}>
+              <div style={{ position: 'relative' }}>
                 <Lock
                   size={17}
                   style={{
-                    position: "absolute",
-                    left: "14px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--text-tertiary)",
+                    position: 'absolute',
+                    left: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-tertiary)',
                   }}
                 />
-
                 <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
+                  id="school-password"
+                  type={showPassword ? 'text' : 'password'}
                   className="form-input"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  style={{
-                    paddingLeft: "42px",
-                    paddingRight: "42px",
-                    height: "44px",
-                    fontSize: "0.9rem",
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (formError) setFormError('');
                   }}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  style={{ paddingLeft: '42px', paddingRight: '42px', height: '44px', fontSize: '0.9rem' }}
                   required
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    position: "absolute",
-                    right: "12px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    color: "var(--text-tertiary)",
-                    cursor: "pointer",
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-tertiary)',
+                    cursor: 'pointer',
                   }}
-                  title={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Remember me option */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Student Roll Number Expandable Toggle */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsStudentMode(!isStudentMode)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '2px 0',
+                  color: isStudentMode ? 'var(--primary)' : 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>🎓 {isStudentMode ? 'Student mode enabled' : 'Logging in as a Student?'}</span>
+                {isStudentMode ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+
+              {isStudentMode && (
+                <div className="form-group" style={{ marginTop: '10px' }}>
+                  <label className="form-label" htmlFor="student-roll">
+                    Student Roll Number <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>(Required for students)</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Hash
+                      size={17}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50)',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    />
+                    <input
+                      id="student-roll"
+                      type="text"
+                      className="form-input"
+                      value={rollNumber}
+                      onChange={(e) => {
+                        setRollNumber(e.target.value);
+                        if (formError) setFormError('');
+                      }}
+                      placeholder="e.g. STU001"
+                      style={{ paddingLeft: '42px', height: '44px', fontSize: '0.9rem' }}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Remember Me Option */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
               <input
                 type="checkbox"
                 id="rememberMe"
@@ -743,18 +676,99 @@ export default function LoginPage() {
                 <span>Signing In...</span>
               ) : (
                 <>
-                  <span>
-                    Enter{" "}
-                    {selectedRole === "school-admin"
-                      ? "Principal"
-                      : selectedRole.replace("-", " ")}{" "}
-                    Portal
-                  </span>
+                  <span>Sign In to School Portal</span>
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
+
+          {/* Account Assistance Information (Replacing Public Signup) */}
+          <div
+            style={{
+              marginTop: '20px',
+              textAlign: 'center',
+              fontSize: '0.825rem',
+              color: 'var(--text-tertiary)',
+            }}
+          >
+            Need access? <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Contact your school administrator.</span>
+          </div>
+
+          {/* Instant 1-Click Demo Fill Selector for Evaluators */}
+          <div
+            style={{
+              marginTop: '28px',
+              paddingTop: '20px',
+              borderTop: '1px solid var(--border-color)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                color: 'var(--text-tertiary)',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                marginBottom: '10px',
+              }}
+            >
+              Quick Demo Account Fill
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('principal')}
+                className="btn btn-secondary btn-sm"
+                style={{ justifyContent: 'center', padding: '8px 6px', fontSize: '0.78rem' }}
+                title="Fill Principal credentials (principal@school.com)"
+              >
+                <span>🏫 Principal</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('teacher')}
+                className="btn btn-secondary btn-sm"
+                style={{ justifyContent: 'center', padding: '8px 6px', fontSize: '0.78rem' }}
+                title="Fill Teacher credentials (rahul@example.com)"
+              >
+                <span>👩‍🏫 Teacher</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('student')}
+                className="btn btn-secondary btn-sm"
+                style={{ justifyContent: 'center', padding: '8px 6px', fontSize: '0.78rem' }}
+                title="Fill Student credentials (student@example.com / STU001)"
+              >
+                <span>🎒 Student</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Subtle link to Super Admin Portal */}
+          <div style={{ marginTop: '24px', textAlign: 'center' }}>
+            <Link
+              to="/super-admin/login"
+              style={{
+                color: 'var(--text-tertiary)',
+                fontSize: '0.8rem',
+                textDecoration: 'none',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'color var(--transition-fast)',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+            >
+              <Shield size={14} />
+              <span>Super Admin Portal &rarr;</span>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -767,14 +781,16 @@ export default function LoginPage() {
       >
         <form onSubmit={handleForgotPasswordSubmit}>
           <div className="form-group">
-            <label className="form-label">Registered Email Address</label>
+            <label className="form-label" htmlFor="forgot-email">Registered Email Address</label>
             <input
+              id="forgot-email"
               type="email"
               required
               className="form-input"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
               placeholder="user@school.com"
+              autoComplete="email"
             />
           </div>
 
@@ -789,8 +805,8 @@ export default function LoginPage() {
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Send Reset Link
+            <button type="submit" className="btn btn-primary" disabled={isForgotLoading}>
+              {isForgotLoading ? 'Sending...' : 'Send Reset Link'}
             </button>
           </div>
         </form>
