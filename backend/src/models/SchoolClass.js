@@ -31,8 +31,6 @@ const schoolClassSchema = new mongoose.Schema(
   },
 );
 
-// Same class name can exist in different schools,
-// but not twice in the same school.
 schoolClassSchema.index({ tenantId: 1, name: 1 }, { unique: true });
 
 const SchoolClass = mongoose.model("SchoolClass", schoolClassSchema);

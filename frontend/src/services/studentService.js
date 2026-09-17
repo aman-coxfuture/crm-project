@@ -1,5 +1,9 @@
-import api from './api';
-import { mockSchoolStudents, mockCollegeStudents, mockUniversityStudents } from '../mock/mockStudents';
+import api from "./api";
+import {
+  mockSchoolStudents,
+  mockCollegeStudents,
+  mockUniversityStudents,
+} from "../mock/mockStudents";
 
 let localSchoolStudents = [...mockSchoolStudents];
 let localCollegeStudents = [...mockCollegeStudents];
@@ -7,48 +11,24 @@ let localUniversityStudents = [...mockUniversityStudents];
 
 export const studentService = {
   // --- SCHOOL STUDENTS ---
-  async getSchoolStudents(params = {}) {
-    try {
-      // return await api.get('/school/students', { params });
-      return [...localSchoolStudents];
-    } catch (error) {
-      return [...localSchoolStudents];
-    }
+  async getSchoolStudents() {
+    return await api.get("/students");
   },
 
   async createSchoolStudent(data) {
-    try {
-      // return await api.post('/school/students', data);
-      const newStu = {
-        ...data,
-        id: `SCH-STU-00${localSchoolStudents.length + 1}`,
-        admissionDate: data.admissionDate || new Date().toISOString().split('T')[0],
-      };
-      localSchoolStudents = [newStu, ...localSchoolStudents];
-      return newStu;
-    } catch (error) {
-      throw error;
-    }
+    return await api.post("/students", data);
   },
 
   async updateSchoolStudent(id, data) {
-    try {
-      // return await api.put(`/school/students/${id}`, data);
-      localSchoolStudents = localSchoolStudents.map((s) => (s.id === id ? { ...s, ...data } : s));
-      return localSchoolStudents.find((s) => s.id === id);
-    } catch (error) {
-      throw error;
-    }
+    return await api.put(`/students/${id}`, data);
   },
 
   async deleteSchoolStudent(id) {
-    try {
-      // return await api.delete(`/school/students/${id}`);
-      localSchoolStudents = localSchoolStudents.filter((s) => s.id !== id);
-      return { success: true, id };
-    } catch (error) {
-      throw error;
-    }
+    return await api.patch(`/students/${id}/deactivate`);
+  },
+
+  async reactivateSchoolStudent(id) {
+    return await api.patch(`/students/${id}/reactivate`);
   },
 
   // --- COLLEGE STUDENTS ---
@@ -78,7 +58,9 @@ export const studentService = {
   async updateCollegeStudent(id, data) {
     try {
       // return await api.put(`/college/students/${id}`, data);
-      localCollegeStudents = localCollegeStudents.map((s) => (s.id === id ? { ...s, ...data } : s));
+      localCollegeStudents = localCollegeStudents.map((s) =>
+        s.id === id ? { ...s, ...data } : s,
+      );
       return localCollegeStudents.find((s) => s.id === id);
     } catch (error) {
       throw error;
@@ -122,7 +104,9 @@ export const studentService = {
   async updateUniversityStudent(id, data) {
     try {
       // return await api.put(`/university/students/${id}`, data);
-      localUniversityStudents = localUniversityStudents.map((s) => (s.id === id ? { ...s, ...data } : s));
+      localUniversityStudents = localUniversityStudents.map((s) =>
+        s.id === id ? { ...s, ...data } : s,
+      );
       return localUniversityStudents.find((s) => s.id === id);
     } catch (error) {
       throw error;
@@ -132,7 +116,9 @@ export const studentService = {
   async deleteUniversityStudent(id) {
     try {
       // return await api.delete(`/university/students/${id}`);
-      localUniversityStudents = localUniversityStudents.filter((s) => s.id !== id);
+      localUniversityStudents = localUniversityStudents.filter(
+        (s) => s.id !== id,
+      );
       return { success: true, id };
     } catch (error) {
       throw error;

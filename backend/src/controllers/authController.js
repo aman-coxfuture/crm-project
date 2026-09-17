@@ -2,25 +2,48 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
+const Faculty = require("../models/Faculty");
+const Student = require("../models/Student");
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     // Validate input
-    if (!email || !password) {
+    if (!email || !password || !role) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: "Email, password and role are required",
       });
     }
 
-    // Find user
-    const user = await User.findOne({
-      email: email.toLowerCase().trim(),
-    });
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (!user) {
+    let account = null;
+
+    // Find account according to selected role
+    if (role === "SUPER_ADMIN" || role === "ADMIN") {
+      account = await User.findOne({
+        email: normalizedEmail,
+        role,
+      });
+    } else if (role === "FACULTY") {
+      account = await Faculty.findOne({
+        email: normalizedEmail,
+      });
+    } else if (role === "STUDENT") {
+      account = await Student.findOne({
+        email: normalizedEmail,
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role",
+      });
+    }
+
+    // Account not found
+    if (!account) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
@@ -28,7 +51,7 @@ const login = async (req, res) => {
     }
 
     // Check account status
-    if (!user.isActive) {
+    if (!account.isActive) {
       return res.status(403).json({
         success: false,
         message: "Your account is inactive",
@@ -36,7 +59,7 @@ const login = async (req, res) => {
     }
 
     // Compare password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, account.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -48,9 +71,9 @@ const login = async (req, res) => {
     // Create JWT
     const token = jwt.sign(
       {
-        userId: user._id,
-        role: user.role,
-        tenantId: user.tenantId,
+        userId: account._id,
+        role,
+        tenantId: account.tenantId,
       },
       process.env.JWT_SECRET,
       {
@@ -63,11 +86,11 @@ const login = async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        tenantId: user.tenantId,
+        id: account._id,
+        name: account.name,
+        email: account.email,
+        role,
+        tenantId: account.tenantId,
       },
     });
   } catch (error) {

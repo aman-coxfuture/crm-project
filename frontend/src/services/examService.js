@@ -1,77 +1,27 @@
-import api from './api';
-import { mockSchoolExams, mockCollegeExams } from '../mock/mockExams';
+import api from "./api";
 
-let localSchoolExams = [...mockSchoolExams];
-let localCollegeExams = [...mockCollegeExams];
+const examService = {
+  // =====================================================
+  // SCHOOL EXAMS
+  // =====================================================
 
-export const examService = {
-  // --- SCHOOL EXAMS ---
-  async getSchoolExams(params = {}) {
-    try {
-      // return await api.get('/school/exams', { params });
-      return [...localSchoolExams];
-    } catch (error) {
-      return [...localSchoolExams];
-    }
-  },
+  getSchoolExams: (params = {}) => api.get("/exams", { params }),
 
-  async createSchoolExam(data) {
-    try {
-      // return await api.post('/school/exams', data);
-      const newExam = {
-        id: `EX-0${localSchoolExams.length + 1}`,
-        ...data,
-      };
-      localSchoolExams = [...localSchoolExams, newExam];
-      return newExam;
-    } catch (error) {
-      throw error;
-    }
-  },
+  getSchoolExamById: (id) => api.get(`/exams/${id}`),
 
-  async deleteSchoolExam(id) {
-    try {
-      // return await api.delete(`/school/exams/${id}`);
-      localSchoolExams = localSchoolExams.filter((e) => e.id !== id);
-      return { success: true, id };
-    } catch (error) {
-      throw error;
-    }
-  },
+  createSchoolExam: (data) => api.post("/exams", data),
 
-  // --- COLLEGE EXAMS ---
-  async getCollegeExams(params = {}) {
-    try {
-      // return await api.get('/college/exams', { params });
-      return [...localCollegeExams];
-    } catch (error) {
-      return [...localCollegeExams];
-    }
-  },
+  updateSchoolExam: (id, data) => api.put(`/exams/${id}`, data),
 
-  async createCollegeExam(data) {
-    try {
-      // return await api.post('/college/exams', data);
-      const newExam = {
-        id: `EX-COL-0${localCollegeExams.length + 1}`,
-        ...data,
-      };
-      localCollegeExams = [...localCollegeExams, newExam];
-      return newExam;
-    } catch (error) {
-      throw error;
-    }
-  },
+  deleteSchoolExam: (id) => api.patch(`/exams/${id}/deactivate`),
 
-  async deleteCollegeExam(id) {
-    try {
-      // return await api.delete(`/college/exams/${id}`);
-      localCollegeExams = localCollegeExams.filter((e) => e.id !== id);
-      return { success: true, id };
-    } catch (error) {
-      throw error;
-    }
-  },
+  reactivateSchoolExam: (id) => api.patch(`/exams/${id}/reactivate`),
+
+  // =====================================================
+  // COLLEGE EXAMS
+  // =====================================================
+  // College backend abhi nahi banaya hai.
+  // Isliye in methods ko filhaal remove/use nahi karna.
 };
 
 export default examService;

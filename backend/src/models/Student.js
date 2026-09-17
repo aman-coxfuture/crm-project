@@ -2,11 +2,24 @@ const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "User ID is required"],
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      required: [true, "Email is required"],
       unique: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
     },
 
     admissionNumber: {
@@ -27,6 +40,30 @@ const studentSchema = new mongoose.Schema(
     },
 
     phone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    parentName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    parentPhone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    emergencyContact: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    bloodGroup: {
       type: String,
       trim: true,
       default: null,

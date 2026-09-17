@@ -1,8 +1,8 @@
-import { API_CONFIG } from '../config/apiConfig';
+import { API_CONFIG } from "../config/apiConfig";
 
 /**
  * Generic HTTP client wrapper for API requests.
- * 
+ *
  * Supports JWT authentication header injection, consistent error formatting,
  * and seamless fallback handling for future backend connection.
  */
@@ -14,12 +14,28 @@ class ApiClient {
   }
 
   getAuthHeader() {
-    const token = localStorage.getItem('educrm_token');
+    const token = localStorage.getItem("educrm_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    let url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+    if (options.params) {
+      const queryParams = new URLSearchParams();
+
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          queryParams.append(key, value);
+        }
+      });
+
+      const queryString = queryParams.toString();
+
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+    }
     const headers = {
       ...this.defaultHeaders,
       ...this.getAuthHeader(),
@@ -27,14 +43,19 @@ class ApiClient {
     };
 
     try {
+      const { params, ...fetchOptions } = options;
+
       const response = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         headers,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(
+          errorData.message ||
+            `HTTP ${response.status}: ${response.statusText}`,
+        );
       }
 
       return await response.json();
@@ -45,12 +66,12 @@ class ApiClient {
   }
 
   get(endpoint, options = {}) {
-    return this.request(endpoint, { method: 'GET', ...options });
+    return this.request(endpoint, { method: "GET", ...options });
   }
 
   post(endpoint, data, options = {}) {
     return this.request(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
       ...options,
     });
@@ -58,7 +79,7 @@ class ApiClient {
 
   put(endpoint, data, options = {}) {
     return this.request(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
       ...options,
     });
@@ -66,14 +87,14 @@ class ApiClient {
 
   patch(endpoint, data, options = {}) {
     return this.request(endpoint, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
       ...options,
     });
   }
 
   delete(endpoint, options = {}) {
-    return this.request(endpoint, { method: 'DELETE', ...options });
+    return this.request(endpoint, { method: "DELETE", ...options });
   }
 }
 
