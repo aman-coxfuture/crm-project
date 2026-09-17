@@ -4,8 +4,8 @@ import { normalizeRole, ROLES } from '../config/roles.js';
 
 export { mockUsers, mockUsersList };
 
-const CURRENT_USER_KEY = 'school_crm_current_user';
-const SELECTED_SCHOOL_KEY = 'school_crm_selected_school';
+const CURRENT_USER_KEY = "school_crm_current_user";
+const SELECTED_SCHOOL_KEY = "school_crm_selected_school";
 
 export const authService = {
   /**

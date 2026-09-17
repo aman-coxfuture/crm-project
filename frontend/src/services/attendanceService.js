@@ -1,55 +1,30 @@
-import api from './api';
-import { mockSchoolStudents, mockCollegeStudents } from '../mock/mockStudents';
+import api from "./api";
 
-export const attendanceService = {
-  // --- SCHOOL ATTENDANCE ---
-  async getSchoolDailyAttendance(classId, section, date) {
-    try {
-      // return await api.get('/school/attendance', { params: { classId, section, date } });
-      const map = {};
-      mockSchoolStudents.forEach((stu) => {
-        map[stu.id] = 'Present';
-      });
-      if (mockSchoolStudents[2]) map[mockSchoolStudents[2].id] = 'Absent';
-      return map;
-    } catch (error) {
-      const map = {};
-      mockSchoolStudents.forEach((stu) => { map[stu.id] = 'Present'; });
-      return map;
-    }
-  },
+const attendanceService = {
+  // Student Attendance
+  getAttendance: (params = {}) => api.get("/attendance", { params }),
 
-  async saveSchoolAttendance(classId, section, date, attendanceMap) {
-    try {
-      // return await api.post('/school/attendance', { classId, section, date, attendance: attendanceMap });
-      return { success: true, count: Object.keys(attendanceMap).length, date };
-    } catch (error) {
-      return { success: true, count: Object.keys(attendanceMap).length, date };
-    }
-  },
+  markAttendance: (data) => api.post("/attendance", data),
 
-  // --- COLLEGE ATTENDANCE ---
-  async getCollegeLectureAttendance(dept, semester, subject, date) {
-    try {
-      // return await api.get('/college/attendance', { params: { dept, semester, subject, date } });
-      const map = {};
-      mockCollegeStudents.forEach((s) => (map[s.id] = 'Present'));
-      return map;
-    } catch (error) {
-      const map = {};
-      mockCollegeStudents.forEach((s) => (map[s.id] = 'Present'));
-      return map;
-    }
-  },
+  updateAttendance: (id, data) => api.put(`/attendance/${id}`, data),
 
-  async saveCollegeLectureAttendance(dept, semester, subject, date, attendanceMap) {
-    try {
-      // return await api.post('/college/attendance', { dept, semester, subject, date, attendance: attendanceMap });
-      return { success: true, count: Object.keys(attendanceMap).length, date };
-    } catch (error) {
-      return { success: true, count: Object.keys(attendanceMap).length, date };
-    }
-  },
+  getStudentAttendanceSummary: (studentId) =>
+    api.get(`/attendance/student/${studentId}`),
+
+  // Faculty Attendance
+  getFacultyAttendance: (params = {}) =>
+    api.get("/faculty-attendance", { params }),
+
+  markFacultyAttendance: (data) => api.post("/faculty-attendance", data),
+
+  updateFacultyAttendance: (id, data) =>
+    api.put(`/faculty-attendance/${id}`, data),
+
+  getStaffAttendance: (params = {}) => api.get("/staff-attendance", { params }),
+
+  markStaffAttendance: (data) => api.post("/staff-attendance", data),
+
+  updateStaffAttendance: (id, data) => api.put(`/staff-attendance/${id}`, data),
 };
 
 export default attendanceService;

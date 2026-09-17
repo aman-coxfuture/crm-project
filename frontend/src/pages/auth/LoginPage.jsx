@@ -12,7 +12,6 @@ import {
   Sparkles,
   Lock,
   Mail,
-  Hash,
   Moon,
   Sun,
   Eye,
@@ -28,7 +27,7 @@ import {
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const { success, error, info } = useToast();
+  const { success, error } = useToast();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -40,7 +39,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [formError, setFormError] = useState("");
 
   // Forgot Password Modal
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -138,16 +137,18 @@ export default function LoginPage() {
   return (
     <div
       style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-primary)',
-        display: 'flex',
-        alignItems: 'stretch',
-        position: 'relative',
-        overflow: 'hidden',
+        minHeight: "100vh",
+        backgroundColor: "var(--bg-primary)",
+        display: "flex",
+        alignItems: "stretch",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
       {/* Top right theme toggle */}
-      <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 50 }}>
+      <div
+        style={{ position: "absolute", top: "20px", right: "20px", zIndex: 50 }}
+      >
         <button
           onClick={toggleTheme}
           className="btn btn-icon"
@@ -155,7 +156,7 @@ export default function LoginPage() {
           aria-label="Toggle theme"
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
         >
-          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
 
@@ -163,56 +164,79 @@ export default function LoginPage() {
       <div
         style={{
           flex: 1,
-          background: 'linear-gradient(145deg, #1e1b4b 0%, #0f172a 50%, #030712 100%)',
-          color: '#ffffff',
-          padding: '60px 48px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          position: 'relative',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          background:
+            "linear-gradient(145deg, #1e1b4b 0%, #0f172a 50%, #030712 100%)",
+          color: "#ffffff",
+          padding: "60px 48px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          position: "relative",
+          borderRight: "1px solid rgba(255, 255, 255, 0.08)",
         }}
         className="login-showcase-panel"
       >
         {/* Background Glow */}
         <div
           style={{
-            position: 'absolute',
-            top: '-10%',
-            left: '-10%',
-            width: '450px',
-            height: '450px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, rgba(6, 182, 212, 0) 70%)',
-            pointerEvents: 'none',
+            position: "absolute",
+            top: "-10%",
+            left: "-10%",
+            width: "450px",
+            height: "450px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, rgba(6, 182, 212, 0) 70%)",
+            pointerEvents: "none",
           }}
         />
 
         {/* Top Brand */}
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+              marginBottom: "24px",
+            }}
+          >
             <div
               style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
+                width: "46px",
+                height: "46px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
                 fontWeight: 900,
-                fontSize: '1.4rem',
-                boxShadow: '0 8px 24px rgba(79, 70, 229, 0.45)',
+                fontSize: "1.4rem",
+                boxShadow: "0 8px 24px rgba(79, 70, 229, 0.45)",
               }}
             >
               🏫
             </div>
             <div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#ffffff' }}>
+              <div
+                style={{
+                  fontSize: "1.35rem",
+                  fontWeight: 900,
+                  letterSpacing: "-0.02em",
+                  color: "#ffffff",
+                }}
+              >
                 EduPulse CRM
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.04em' }}>
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#94a3b8",
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                }}
+              >
                 NEXT-GEN SCHOOL MANAGEMENT PLATFORM
               </div>
             </div>
@@ -220,15 +244,15 @@ export default function LoginPage() {
 
           <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '999px',
-              backgroundColor: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              color: '#818cf8',
-              fontSize: '0.75rem',
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(99, 102, 241, 0.15)",
+              border: "1px solid rgba(99, 102, 241, 0.3)",
+              color: "#818cf8",
+              fontSize: "0.75rem",
               fontWeight: 700,
             }}
           >
@@ -242,58 +266,102 @@ export default function LoginPage() {
           <h2 style={{ fontSize: '2.1rem', fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.02em', color: '#f8fafc', marginBottom: '16px' }}>
             Empowering Modern Schools with Real-Time Academic Intelligence.
           </h2>
-          <p style={{ fontSize: '0.95rem', color: '#94a3b8', lineHeight: 1.6, maxWidth: '480px', marginBottom: '32px' }}>
-            Seamlessly coordinate teacher timetables, student academic records, exam evaluations, and multi-tenant school administration from one unified portal.
+          <p
+            style={{
+              fontSize: "0.95rem",
+              color: "#94a3b8",
+              lineHeight: 1.6,
+              maxWidth: "480px",
+              marginBottom: "32px",
+            }}
+          >
+            Seamlessly coordinate teacher timetables, student academic records,
+            exam evaluations, and multi-tenant school administration from one
+            unified portal.
           </p>
 
           {/* Feature Highlights Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gap: "16px",
+            }}
+          >
             <div
               style={{
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(8px)',
+                padding: "16px",
+                borderRadius: "12px",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(8px)",
               }}
             >
-              <div style={{ color: '#818cf8', marginBottom: '8px' }}>
+              <div style={{ color: "#818cf8", marginBottom: "8px" }}>
                 <Clock size={20} />
               </div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>7-Period Structure</div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  color: "#ffffff",
+                }}
+              >
+                7-Period Structure
+              </div>
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#94a3b8",
+                  marginTop: "2px",
+                }}
+              >
                 4 periods before lunch, lunch break, 3 periods after lunch.
               </div>
             </div>
 
             <div
               style={{
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(8px)',
+                padding: "16px",
+                borderRadius: "12px",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(8px)",
               }}
             >
-              <div style={{ color: '#34d399', marginBottom: '8px' }}>
+              <div style={{ color: "#34d399", marginBottom: "8px" }}>
                 <Layers size={20} />
               </div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Nursery – Class 10</div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  color: "#ffffff",
+                }}
+              >
+                Nursery – Class 10
+              </div>
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#94a3b8",
+                  marginTop: "2px",
+                }}
+              >
                 Canonical K-10 grade progression and sections.
               </div>
             </div>
 
             <div
               style={{
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(8px)',
+                padding: "16px",
+                borderRadius: "12px",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(8px)",
               }}
             >
-              <div style={{ color: '#38bdf8', marginBottom: '8px' }}>
+              <div style={{ color: "#38bdf8", marginBottom: "8px" }}>
                 <GraduationCap size={20} />
               </div>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Role Scoped UI</div>
@@ -304,14 +372,14 @@ export default function LoginPage() {
 
             <div
               style={{
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(8px)',
+                padding: "16px",
+                borderRadius: "12px",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(8px)",
               }}
             >
-              <div style={{ color: '#fbbf24', marginBottom: '8px' }}>
+              <div style={{ color: "#fbbf24", marginBottom: "8px" }}>
                 <Shield size={20} />
               </div>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Tenant Isolation</div>
@@ -323,12 +391,26 @@ export default function LoginPage() {
         </div>
 
         {/* Bottom Proof */}
-        <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '18px' }}>
-          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+        <div
+          style={{
+            position: "relative",
+            zIndex: 2,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            paddingTop: "18px",
+          }}
+        >
+          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
             Trusted by 50+ Primary & Secondary Institutions
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>● 99.9% Uptime</span>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <span
+              style={{ fontSize: "0.75rem", color: "#34d399", fontWeight: 600 }}
+            >
+              ● 99.9% Uptime
+            </span>
           </div>
         </div>
       </div>
@@ -337,17 +419,17 @@ export default function LoginPage() {
       <div
         className="login-form-panel"
         style={{
-          width: '100%',
-          maxWidth: '560px',
-          padding: '48px 40px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          backgroundColor: 'var(--bg-secondary)',
-          overflowY: 'auto',
+          width: "100%",
+          maxWidth: "560px",
+          padding: "48px 40px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          backgroundColor: "var(--bg-secondary)",
+          overflowY: "auto",
         }}
       >
-        <div style={{ maxWidth: '440px', width: '100%', margin: '0 auto' }}>
+        <div style={{ maxWidth: "440px", width: "100%", margin: "0 auto" }}>
           {/* Header */}
           <div style={{ marginBottom: '28px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
@@ -384,21 +466,24 @@ export default function LoginPage() {
           )}
 
           {/* Main Auth Form */}
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <form
+            onSubmit={handleLogin}
+            style={{ display: "flex", flexDirection: "column", gap: "18px" }}
+          >
             {/* Email Field */}
             <div className="form-group">
               <label className="form-label" htmlFor="school-email">
                 Official Email Address
               </label>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: "relative" }}>
                 <Mail
                   size={17}
                   style={{
-                    position: 'absolute',
-                    left: '14px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-tertiary)',
+                    position: "absolute",
+                    left: "14px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--text-tertiary)",
                   }}
                 />
                 <input
@@ -551,9 +636,21 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  accentColor: "var(--primary)",
+                  cursor: "pointer",
+                }}
               />
-              <label htmlFor="rememberMe" style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <label
+                htmlFor="rememberMe"
+                style={{
+                  fontSize: "0.825rem",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
                 Keep me signed in on this device
               </label>
             </div>
@@ -564,15 +661,15 @@ export default function LoginPage() {
               className="btn btn-primary btn-lg"
               disabled={isLoading}
               style={{
-                width: '100%',
-                height: '46px',
-                fontSize: '0.95rem',
+                width: "100%",
+                height: "46px",
+                fontSize: "0.95rem",
                 fontWeight: 800,
-                marginTop: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
+                marginTop: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
               }}
             >
               {isLoading ? (
@@ -697,8 +794,15 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsForgotModalOpen(false)}>
+          <div
+            className="modal-footer"
+            style={{ margin: "20px -24px -24px", padding: "16px 24px" }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsForgotModalOpen(false)}
+            >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isForgotLoading}>

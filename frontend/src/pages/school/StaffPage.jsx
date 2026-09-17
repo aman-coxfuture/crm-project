@@ -48,6 +48,29 @@ export default function StaffPage() {
   // Modals State
   const [selectedStaffForSalary, setSelectedStaffForSalary] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [staffToDelete, setStaffToDelete] = useState(null);
+
+  const [newStaff, setNewStaff] = useState(initialStaff);
+  const [editStaff, setEditStaff] = useState(initialStaff);
+
+  const departments = [
+    "Finance & Accounts",
+    "Front Office",
+    "Library",
+    "Laboratories",
+    "Security & Campus",
+    "Administration",
+  ];
+
+  // -------------------------
+  // LOAD STAFF
+  // -------------------------
+  const loadStaff = async () => {
+    try {
+      setLoading(true);
 
   // Edit Leave Form State inside Modal
   const [editWorkingDays, setEditWorkingDays] = useState(30);
@@ -1008,11 +1031,17 @@ export default function StaffPage() {
               onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
               placeholder="ramesh@school.edu"
             />
+
             <FormInput
               label="Phone Number"
               value={newStaff.phone}
-              onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
-              placeholder="+1 (555) 234-5678"
+              onChange={(e) =>
+                setNewStaff({
+                  ...newStaff,
+                  phone: e.target.value,
+                })
+              }
+              placeholder="9876543210"
             />
           </div>
 
@@ -1023,6 +1052,7 @@ export default function StaffPage() {
               onChange={(e) => setNewStaff({ ...newStaff, department: e.target.value })}
               options={['Mathematics & Computing', 'Languages & Arts', 'Science', 'Sports & Wellness', 'Transport', 'Finance & Accounts', 'Front Office', 'Library', 'Laboratories', 'Administration']}
             />
+
             <FormInput
               label="Monthly Base Salary (₹)"
               type="number"
@@ -1037,12 +1067,24 @@ export default function StaffPage() {
             <button type="button" className="btn btn-secondary" onClick={() => setIsAddModalOpen(false)}>
               Cancel
             </button>
+
             <button type="submit" className="btn btn-primary">
-              Register Personnel
+              Save Changes
             </button>
           </div>
         </form>
       </Modal>
+
+      {/* DEACTIVATE CONFIRMATION */}
+      <ConfirmDialog
+        isOpen={!!staffToDelete}
+        onClose={() => setStaffToDelete(null)}
+        onConfirm={handleDeactivate}
+        title="Deactivate Staff Member"
+        message={`Are you sure you want to deactivate ${staffToDelete?.name}? The staff record will remain in the system.`}
+        confirmText="Deactivate Staff"
+        isDangerous={true}
+      />
     </div>
   );
 }
