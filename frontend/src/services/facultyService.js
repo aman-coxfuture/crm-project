@@ -1,10 +1,31 @@
-import api from './api';
-import { mockCollegeFaculty, mockUniversityFaculty } from '../mock/mockFaculty';
+import api from "./api";
+import { mockCollegeFaculty, mockUniversityFaculty } from "../mock/mockFaculty";
 
 let localCollegeFaculty = [...mockCollegeFaculty];
 let localUniversityFaculty = [...mockUniversityFaculty];
 
 export const facultyService = {
+  // --- SCHOOL FACULTY ---
+  async getSchoolFaculty() {
+    return await api.get("/faculty");
+  },
+
+  async createSchoolFaculty(data) {
+    return await api.post("/faculty", data);
+  },
+
+  async updateSchoolFaculty(id, data) {
+    return await api.put(`/faculty/${id}`, data);
+  },
+
+  async deleteSchoolFaculty(id) {
+    return await api.patch(`/faculty/${id}/deactivate`);
+  },
+
+  async reactivateSchoolFaculty(id) {
+    return await api.patch(`/faculty/${id}/reactivate`);
+  },
+
   // --- COLLEGE FACULTY ---
   async getCollegeFaculty(params = {}) {
     try {
@@ -32,7 +53,9 @@ export const facultyService = {
   async updateCollegeFaculty(id, data) {
     try {
       // return await api.put(`/college/faculty/${id}`, data);
-      localCollegeFaculty = localCollegeFaculty.map((f) => (f.id === id ? { ...f, ...data } : f));
+      localCollegeFaculty = localCollegeFaculty.map((f) =>
+        f.id === id ? { ...f, ...data } : f,
+      );
       return localCollegeFaculty.find((f) => f.id === id);
     } catch (error) {
       throw error;
@@ -76,7 +99,9 @@ export const facultyService = {
   async updateUniversityFaculty(id, data) {
     try {
       // return await api.put(`/university/faculty/${id}`, data);
-      localUniversityFaculty = localUniversityFaculty.map((f) => (f.id === id ? { ...f, ...data } : f));
+      localUniversityFaculty = localUniversityFaculty.map((f) =>
+        f.id === id ? { ...f, ...data } : f,
+      );
       return localUniversityFaculty.find((f) => f.id === id);
     } catch (error) {
       throw error;
@@ -86,7 +111,9 @@ export const facultyService = {
   async deleteUniversityFaculty(id) {
     try {
       // return await api.delete(`/university/faculty/${id}`);
-      localUniversityFaculty = localUniversityFaculty.filter((f) => f.id !== id);
+      localUniversityFaculty = localUniversityFaculty.filter(
+        (f) => f.id !== id,
+      );
       return { success: true, id };
     } catch (error) {
       throw error;

@@ -6,7 +6,6 @@ const createSchoolAdmin = async (req, res) => {
   try {
     const { name, email, password, tenantId } = req.body;
 
-    // Validate required fields
     if (!name || !email || !password || !tenantId) {
       return res.status(400).json({
         success: false,
@@ -14,31 +13,19 @@ const createSchoolAdmin = async (req, res) => {
       });
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters",
-      });
-    }
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Check school exists and is active
-    const school = await Tenant.findOne({
-      _id: tenantId,
-      type: "SCHOOL",
-      status: "ACTIVE",
-    });
+    const tenant = await Tenant.findById(tenantId);
 
-    if (!school) {
+    if (!tenant) {
       return res.status(404).json({
         success: false,
-        message: "Active school not found",
+        message: "Tenant not found",
       });
     }
 
-    // Check email already exists
     const existingUser = await User.findOne({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
     });
 
     if (existingUser) {
@@ -48,38 +35,36 @@ const createSchoolAdmin = async (req, res) => {
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create School Admin
     const admin = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name,
+      email: normalizedEmail,
       password: hashedPassword,
       role: "ADMIN",
-      tenantId: school._id,
+      tenantId,
       isActive: true,
     });
 
     return res.status(201).json({
       success: true,
       message: "School Admin created successfully",
-      user: {
+      admin: {
         id: admin._id,
         name: admin.name,
         email: admin.email,
         role: admin.role,
         tenantId: admin.tenantId,
         isActive: admin.isActive,
-        createdAt: admin.createdAt,
       },
     });
   } catch (error) {
-    console.error("Create school admin error:", error);
+    console.error("Create School Admin Error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "Failed to create school admin",
+      error: error.message,
     });
   }
 };

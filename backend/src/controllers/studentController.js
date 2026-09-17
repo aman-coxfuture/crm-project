@@ -1,6 +1,5 @@
 const bcrypt = require("bcryptjs");
 
-const User = require("../models/User");
 const Student = require("../models/Student");
 const Tenant = require("../models/Tenant");
 const SchoolClass = require("../models/SchoolClass");
@@ -15,9 +14,12 @@ const createStudent = async (req, res) => {
       dateOfBirth,
       gender,
       phone,
+      parentName,
+      parentPhone,
+      emergencyContact,
+      bloodGroup,
       address,
       classId,
-      className,
       section,
     } = req.body;
 
@@ -49,6 +51,7 @@ const createStudent = async (req, res) => {
 
     let schoolClass = null;
 
+    // Validate class and section
     if (classId) {
       schoolClass = await SchoolClass.findOne({
         _id: classId,
@@ -75,24 +78,24 @@ const createStudent = async (req, res) => {
     }
 
     // Check duplicate email globally
-    const existingUser = await User.findOne({
+    const existingStudent = await Student.findOne({
       email: email.toLowerCase().trim(),
     });
 
-    if (existingUser) {
+    if (existingStudent) {
       return res.status(409).json({
         success: false,
         message: "Email already registered",
       });
     }
 
-    // Check duplicate admission number in this school
-    const existingStudent = await Student.findOne({
+    // Check duplicate admission number inside this school
+    const existingAdmission = await Student.findOne({
       tenantId: req.user.tenantId,
       admissionNumber: admissionNumber.trim(),
     });
 
-    if (existingStudent) {
+    if (existingAdmission) {
       return res.status(409).json({
         success: false,
         message: "Admission number already exists in this school",
@@ -102,23 +105,19 @@ const createStudent = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create User account
-    const user = await User.create({
+    // Create Student directly
+    const student = await Student.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password: hashedPassword,
-      role: "STUDENT",
-      tenantId: req.user.tenantId,
-      isActive: true,
-    });
-
-    // Create Student profile
-    const student = await Student.create({
-      userId: user._id,
       admissionNumber: admissionNumber.trim(),
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
       phone: phone?.trim() || null,
+      parentName: parentName?.trim() || null,
+      parentPhone: parentPhone?.trim() || null,
+      emergencyContact: emergencyContact?.trim() || null,
+      bloodGroup: bloodGroup?.trim() || null,
       address: address?.trim() || null,
       classId: schoolClass ? schoolClass._id : null,
       className: schoolClass ? schoolClass.name : null,
@@ -132,13 +131,16 @@ const createStudent = async (req, res) => {
       message: "Student created successfully",
       student: {
         id: student._id,
-        userId: user._id,
-        name: user.name,
-        email: user.email,
+        name: student.name,
+        email: student.email,
         admissionNumber: student.admissionNumber,
         dateOfBirth: student.dateOfBirth,
         gender: student.gender,
         phone: student.phone,
+        parentName: student.parentName,
+        parentPhone: student.parentPhone,
+        emergencyContact: student.emergencyContact,
+        bloodGroup: student.bloodGroup,
         address: student.address,
         className: student.className,
         section: student.section,
@@ -169,10 +171,9 @@ const getAllStudents = async (req, res) => {
     const students = await Student.find({
       tenantId: req.user.tenantId,
     })
-      .populate("userId", "name email role isActive")
+      .select("-password -__v")
       .populate("classId", "name sections isActive")
-      .sort({ createdAt: -1 })
-      .select("-__v");
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -203,7 +204,9 @@ const getStudentById = async (req, res) => {
     const student = await Student.findOne({
       _id: id,
       tenantId: req.user.tenantId,
-    }).populate("userId", "name email role isActive");
+    })
+      .select("-password -__v")
+      .populate("classId", "name sections isActive");
 
     if (!student) {
       return res.status(404).json({
@@ -233,10 +236,15 @@ const updateStudent = async (req, res) => {
     const {
       name,
       email,
+      password,
       admissionNumber,
       dateOfBirth,
       gender,
       phone,
+      parentName,
+      parentPhone,
+      emergencyContact,
+      bloodGroup,
       address,
       classId,
       section,
@@ -250,8 +258,21 @@ const updateStudent = async (req, res) => {
       });
     }
 
+    const student = await Student.findOne({
+      _id: id,
+      tenantId: req.user.tenantId,
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
     let schoolClass = null;
 
+    // Validate class and section
     if (classId) {
       schoolClass = await SchoolClass.findOne({
         _id: classId,
@@ -277,43 +298,16 @@ const updateStudent = async (req, res) => {
       }
     }
 
-    // Find student belonging to logged-in admin's school
-    const student = await Student.findOne({
-      _id: id,
-      tenantId: req.user.tenantId,
-    });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    // Find associated user
-    const user = await User.findOne({
-      _id: student.userId,
-      tenantId: req.user.tenantId,
-      role: "STUDENT",
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Student user account not found",
-      });
-    }
-
     // Update name
     if (name) {
-      user.name = name.trim();
+      student.name = name.trim();
     }
 
     // Update email
-    if (email && email.toLowerCase().trim() !== user.email) {
-      const existingEmail = await User.findOne({
+    if (email && email.toLowerCase().trim() !== student.email) {
+      const existingEmail = await Student.findOne({
         email: email.toLowerCase().trim(),
-        _id: { $ne: user._id },
+        _id: { $ne: student._id },
       });
 
       if (existingEmail) {
@@ -323,17 +317,15 @@ const updateStudent = async (req, res) => {
         });
       }
 
-      user.email = email.toLowerCase().trim();
+      student.email = email.toLowerCase().trim();
     }
 
-    // Update User status
-    if (isActive !== undefined) {
-      user.isActive = isActive;
+    // Update password
+    if (password) {
+      student.password = await bcrypt.hash(password, 10);
     }
 
-    await user.save();
-
-    // Update Student profile
+    // Update admission number
     if (admissionNumber) {
       const existingAdmission = await Student.findOne({
         tenantId: req.user.tenantId,
@@ -363,6 +355,22 @@ const updateStudent = async (req, res) => {
       student.phone = phone?.trim() || null;
     }
 
+    if (parentName !== undefined) {
+      student.parentName = parentName?.trim() || null;
+    }
+
+    if (parentPhone !== undefined) {
+      student.parentPhone = parentPhone?.trim() || null;
+    }
+
+    if (emergencyContact !== undefined) {
+      student.emergencyContact = emergencyContact?.trim() || null;
+    }
+
+    if (bloodGroup !== undefined) {
+      student.bloodGroup = bloodGroup?.trim() || null;
+    }
+
     if (address !== undefined) {
       student.address = address?.trim() || null;
     }
@@ -371,6 +379,7 @@ const updateStudent = async (req, res) => {
       if (!classId) {
         student.classId = null;
         student.className = null;
+        student.section = null;
       } else {
         student.classId = schoolClass._id;
         student.className = schoolClass.name;
@@ -392,13 +401,16 @@ const updateStudent = async (req, res) => {
       message: "Student updated successfully",
       student: {
         id: student._id,
-        userId: user._id,
-        name: user.name,
-        email: user.email,
+        name: student.name,
+        email: student.email,
         admissionNumber: student.admissionNumber,
         dateOfBirth: student.dateOfBirth,
         gender: student.gender,
         phone: student.phone,
+        parentName: student.parentName,
+        parentPhone: student.parentPhone,
+        emergencyContact: student.emergencyContact,
+        bloodGroup: student.bloodGroup,
         address: student.address,
         className: student.className,
         section: student.section,
@@ -440,24 +452,9 @@ const deactivateStudent = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
-      _id: student.userId,
-      tenantId: req.user.tenantId,
-      role: "STUDENT",
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Student user account not found",
-      });
-    }
-
     student.isActive = false;
-    user.isActive = false;
 
     await student.save();
-    await user.save();
 
     return res.status(200).json({
       success: true,
@@ -496,24 +493,9 @@ const reactivateStudent = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
-      _id: student.userId,
-      tenantId: req.user.tenantId,
-      role: "STUDENT",
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Student user account not found",
-      });
-    }
-
     student.isActive = true;
-    user.isActive = true;
 
     await student.save();
-    await user.save();
 
     return res.status(200).json({
       success: true,
