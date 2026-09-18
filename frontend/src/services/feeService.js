@@ -1,5 +1,9 @@
-import api from './api';
-import { mockSchoolFees, mockCollegeFees, mockUniversityFees } from '../mock/mockFees';
+import api from "./api";
+import {
+  mockSchoolFees,
+  mockCollegeFees,
+  mockUniversityFees,
+} from "../mock/mockFees";
 
 let localSchoolFees = [...mockSchoolFees];
 let localCollegeFees = [...mockCollegeFees];
@@ -8,38 +12,38 @@ let localUniversityFees = [...mockUniversityFees];
 export const feeService = {
   // --- SCHOOL FEES ---
   async getSchoolFees(params = {}) {
-    try {
-      // return await api.get('/school/fees', { params });
-      return [...localSchoolFees];
-    } catch (error) {
-      return [...localSchoolFees];
-    }
+    return await api.get("/fees", { params });
   },
 
   async createSchoolFee(data) {
-    try {
-      // return await api.post('/school/fees', data);
-      const newInvoice = {
-        id: `INV-2026-0${localSchoolFees.length + 1}`,
-        ...data,
-      };
-      localSchoolFees = [newInvoice, ...localSchoolFees];
-      return newInvoice;
-    } catch (error) {
-      throw error;
-    }
+    return await api.post("/fees", data);
   },
 
-  async markSchoolFeePaid(id) {
-    try {
-      // return await api.patch(`/school/fees/${id}/pay`);
-      localSchoolFees = localSchoolFees.map((f) =>
-        f.id === id ? { ...f, status: 'Paid', method: 'UPI / NetBanking' } : f
-      );
-      return localSchoolFees.find((f) => f.id === id);
-    } catch (error) {
-      throw error;
-    }
+  async createPayment(data) {
+    return await api.post("/fee-payments", data);
+  },
+
+  async markSchoolFeePaid(id, data) {
+    return await api.post("/fee-payments", {
+      feeId: id,
+      ...data,
+    });
+  },
+
+  async getSchoolFeeById(id) {
+    return await api.get(`/fees/${id}`);
+  },
+
+  async getStudentFees(studentId) {
+    return await api.get(`/fees/student/${studentId}`);
+  },
+
+  async getSchoolPayments(params = {}) {
+    return await api.get("/fee-payments", { params });
+  },
+
+  async getStudentPayments(studentId) {
+    return await api.get(`/fee-payments/student/${studentId}`);
   },
 
   // --- COLLEGE FEES ---
@@ -69,7 +73,9 @@ export const feeService = {
   async markCollegeFeePaid(id) {
     try {
       // return await api.patch(`/college/fees/${id}/pay`);
-      localCollegeFees = localCollegeFees.map((f) => (f.id === id ? { ...f, status: 'Paid' } : f));
+      localCollegeFees = localCollegeFees.map((f) =>
+        f.id === id ? { ...f, status: "Paid" } : f,
+      );
       return localCollegeFees.find((f) => f.id === id);
     } catch (error) {
       throw error;
@@ -103,7 +109,9 @@ export const feeService = {
   async markUniversityFeePaid(id) {
     try {
       // return await api.patch(`/university/fees/${id}/pay`);
-      localUniversityFees = localUniversityFees.map((a) => (a.id === id ? { ...a, status: 'Paid' } : a));
+      localUniversityFees = localUniversityFees.map((a) =>
+        a.id === id ? { ...a, status: "Paid" } : a,
+      );
       return localUniversityFees.find((a) => a.id === id);
     } catch (error) {
       throw error;
