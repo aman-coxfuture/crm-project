@@ -27,9 +27,16 @@ export default function ExaminationsPage() {
   const [selectedReportCard, setSelectedReportCard] = useState(null);
   const [selectedExam, setSelectedExam] = useState(null);
   const [isExamDetailsModalOpen, setIsExamDetailsModalOpen] = useState(false);
+  const [editingExamId, setEditingExamId] = useState(null);
   const [classes, setClasses] = useState([]);
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [examSchedule, setExamSchedule] = useState([]);
+  const [resultExamId, setResultExamId] = useState("");
+  const [resultStudentId, setResultStudentId] = useState("");
+  const [studentResult, setStudentResult] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [resultClassId, setResultClassId] = useState("");
+  const [resultSection, setResultSection] = useState("");
 
   // New Exam Form
   const [newExam, setNewExam] = useState({
@@ -43,6 +50,27 @@ export default function ExaminationsPage() {
 
   const sampleMarksList = [];
 
+  const handleGetStudentResult = async () => {
+    if (!resultExamId || !resultStudentId) {
+      alert("Please select exam and student");
+      return;
+    }
+
+    try {
+      const response = await examService.getStudentResult(
+        resultExamId,
+        resultStudentId,
+      );
+
+      if (response?.success) {
+        setStudentResult(response);
+      }
+    } catch (error) {
+      console.error("Failed to fetch student result:", error);
+      alert(error?.message || "Failed to fetch student result");
+    }
+  };
+
   const loadClasses = async () => {
     try {
       const response = await api.get("/classes");
@@ -54,9 +82,20 @@ export default function ExaminationsPage() {
       info(error.message || "Failed to load classes");
     }
   };
+
+  const loadStudents = async () => {
+    try {
+      const response = await api.get("/students");
+      setStudents(response.students || []);
+    } catch (error) {
+      console.error("Failed to load students:", error);
+      info(error.message || "Failed to load students");
+    }
+  };
   useEffect(() => {
     loadClasses();
     loadExams();
+    loadStudents();
   }, []);
 
   const toggleClass = (classId) => {
@@ -146,13 +185,54 @@ export default function ExaminationsPage() {
     }
   };
 
+  const handleEditExam = (exam) => {
+    setEditingExamId(exam._id);
+
+    setNewExam({
+      name: exam.name || "",
+      term: exam.term || "",
+      academicYear: exam.academicYear || "",
+      startDate: exam.startDate
+        ? new Date(exam.startDate).toISOString().split("T")[0]
+        : "",
+      endDate: exam.endDate
+        ? new Date(exam.endDate).toISOString().split("T")[0]
+        : "",
+      classesIncluded: [],
+    });
+
+    setSelectedClasses(
+      (exam.classesIncluded || []).map((item) => ({
+        classId:
+          typeof item.classId === "object" ? item.classId._id : item.classId,
+        sections: item.sections || [],
+      })),
+    );
+
+    setExamSchedule(
+      (exam.schedule || []).map((item) => ({
+        date: item.date ? new Date(item.date).toISOString().split("T")[0] : "",
+        subject: item.subject || "",
+        startTime: item.startTime || "",
+        endTime: item.endTime || "",
+        maxMarks: item.maxMarks ?? 100,
+        passMarks: item.passMarks ?? 40,
+        room: item.room || "",
+      })),
+    );
+
+    setIsExamDetailsModalOpen(false);
+    setSelectedExam(null);
+    setIsCreateModalOpen(true);
+  };
+
   const handleCreateExam = async (e) => {
     e.preventDefault();
 
     try {
       setLoading(true);
 
-      const created = await examService.createSchoolExam({
+      const payload = {
         name: newExam.name,
         term: newExam.term,
         academicYear: newExam.academicYear,
@@ -161,17 +241,50 @@ export default function ExaminationsPage() {
         classesIncluded: selectedClasses,
         schedule: examSchedule,
         status: "DRAFT",
-      });
+      };
 
-      setExams((prev) => [created.exam, ...prev]);
+      if (editingExamId) {
+        // UPDATE EXISTING EXAM
+        const updated = await examService.updateSchoolExam(
+          editingExamId,
+          payload,
+        );
 
+        setExams((prev) =>
+          prev.map((exam) =>
+            exam._id === editingExamId ? updated.exam : exam,
+          ),
+        );
+
+        success(`Examination "${updated.exam.name}" updated successfully!`);
+      } else {
+        // CREATE NEW EXAM
+        const created = await examService.createSchoolExam(payload);
+
+        setExams((prev) => [created.exam, ...prev]);
+
+        success(`Examination "${created.exam.name}" created successfully!`);
+      }
+
+      // Reset after save
       setIsCreateModalOpen(false);
-
-      success(`Examination "${created.exam.name}" created successfully!`);
+      setEditingExamId(null);
+      setSelectedClasses([]);
+      setExamSchedule([]);
     } catch (error) {
-      console.error("Failed to create examination:", error);
+      console.error(
+        editingExamId
+          ? "Failed to update examination:"
+          : "Failed to create examination:",
+        error,
+      );
 
-      info(error.message || "Failed to create examination");
+      info(
+        error.message ||
+          (editingExamId
+            ? "Failed to update examination"
+            : "Failed to create examination"),
+      );
     } finally {
       setLoading(false);
     }
@@ -294,16 +407,75 @@ export default function ExaminationsPage() {
       header: "Action",
       accessor: "_id",
       render: (val, row) => (
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={() => {
-            setSelectedExam(row);
-            setIsExamDetailsModalOpen(true);
-          }}
-        >
-          <Eye size={14} />
-          <span>View Details</span>
-        </button>
+        <details style={{ position: "relative" }}>
+          <summary
+            style={{
+              listStyle: "none",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "36px",
+              height: "36px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "var(--radius-md)",
+              backgroundColor: "var(--bg-primary)",
+              fontSize: "20px",
+              fontWeight: 700,
+            }}
+          >
+            ⋮
+          </summary>
+
+          <div
+            style={{
+              position: "absolute",
+              right: 0,
+              top: "42px",
+              zIndex: 50,
+              minWidth: "170px",
+              backgroundColor: "var(--bg-primary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "var(--radius-md)",
+              boxShadow: "var(--shadow-lg)",
+              padding: "6px",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{
+                width: "100%",
+                justifyContent: "flex-start",
+                marginBottom: "4px",
+              }}
+              onClick={(e) => {
+                e.currentTarget.closest("details").open = false;
+                setSelectedExam(row);
+                setIsExamDetailsModalOpen(true);
+              }}
+            >
+              <Eye size={14} />
+              View Details
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{
+                width: "100%",
+                justifyContent: "flex-start",
+              }}
+              onClick={(e) => {
+                e.currentTarget.closest("details").open = false;
+                handleEditExam(row);
+              }}
+            >
+              <FileText size={14} />
+              Edit Examination
+            </button>
+          </div>
+        </details>
       ),
     },
   ];
@@ -358,138 +530,233 @@ export default function ExaminationsPage() {
             data={exams}
             searchKeys={["name", "term", "academicYear", "status"]}
           />
-
-          {/* Exam Schedule Preview Card */}
-          <div className="card" style={{ marginTop: "24px" }}>
-            <div className="card-header">
-              <div>
-                <h3 className="card-title">
-                  Mid-Term Examination Schedule Matrix (Class 10-A)
-                </h3>
-                <p
-                  style={{ fontSize: "0.75rem", color: "var(--text-tertiary)" }}
-                >
-                  Official hall allocation and timing
-                </p>
-              </div>
-              <span className="badge badge-success">Approved Timetable</span>
-            </div>
-
-            <div className="table-container">
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Subject</th>
-                    <th>Time Slot</th>
-                    <th>Max Marks</th>
-                    <th>Pass Marks</th>
-                    <th>Exam Hall</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {exams[0]?.schedule?.map((item, i) => (
-                    <tr key={i}>
-                      <td>
-                        <strong>{item.date}</strong>
-                      </td>
-                      <td>
-                        <span className="badge badge-primary">
-                          {item.subject}
-                        </span>
-                      </td>
-                      <td>
-                        {item.startTime} – {item.endTime}
-                      </td>
-                      <td>{item.maxMarks}</td>
-                      <td>{item.passMarks}</td>
-                      <td>
-                        <strong>{item.room}</strong>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       )}
 
       {activeTab === "results" && (
-        <div className="card" style={{ padding: "0", overflow: "hidden" }}>
-          <div
-            className="table-container"
-            style={{ border: "none", borderRadius: "0" }}
-          >
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Student Name</th>
-                  <th>Roll No</th>
-                  <th>Class</th>
-                  <th>Total Scored</th>
-                  <th>Percentage</th>
-                  <th>Grade</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sampleMarksList.map((m, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <div
+        <div>
+          <div style={{ marginBottom: "20px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "2fr 1.8fr 1.2fr 2fr auto",
+                gap: "12px",
+                alignItems: "end",
+              }}
+            >
+              <Select
+                label="Select Examination"
+                value={resultExamId}
+                onChange={(e) => {
+                  setResultExamId(e.target.value);
+                  setStudentResult(null);
+                }}
+                options={[
+                  { value: "", label: "Select Examination" },
+                  ...exams.map((exam) => ({
+                    value: exam._id,
+                    label: `${exam.name} • ${exam.academicYear}`,
+                  })),
+                ]}
+              />
+              <Select
+                label="Select Class"
+                value={resultClassId}
+                onChange={(e) => {
+                  setResultClassId(e.target.value);
+                  setResultSection("");
+                  setResultStudentId("");
+                  setStudentResult(null);
+                }}
+                options={[
+                  { value: "", label: "Select Class" },
+                  ...classes.map((cls) => ({
+                    value: cls._id,
+                    label: `Class ${cls.name}`,
+                  })),
+                ]}
+              />
+              <Select
+                label="Select Section"
+                value={resultSection}
+                onChange={(e) => {
+                  setResultSection(e.target.value);
+                  setResultStudentId("");
+                  setStudentResult(null);
+                }}
+                options={[
+                  { value: "", label: "Select Section" },
+                  ...(
+                    classes.find((cls) => cls._id === resultClassId)
+                      ?.sections || []
+                  ).map((section) => ({
+                    value: section,
+                    label: `Section ${section}`,
+                  })),
+                ]}
+              />
+              <Select
+                label="Select Roll No"
+                value={resultStudentId}
+                onChange={(e) => {
+                  setResultStudentId(e.target.value);
+                  setStudentResult(null);
+                }}
+                options={[
+                  { value: "", label: "Select Roll No" },
+                  ...students
+                    .filter(
+                      (student) =>
+                        student.classId?._id === resultClassId &&
+                        student.section === resultSection,
+                    )
+                    .map((student) => ({
+                      value: student._id,
+                      label: `${student.admissionNumber} • ${student.name}`,
+                    })),
+                ]}
+              />
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleGetStudentResult}
+                style={{
+                  height: "40px",
+                  alignSelf: "end",
+                  marginBottom: "17px",
+                }}
+              >
+                Get Result
+              </button>
+            </div>
+          </div>
+          <div className="card" style={{ padding: "0", overflow: "hidden" }}>
+            <div
+              className="table-container"
+              style={{ border: "none", borderRadius: "0" }}
+            >
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Roll No</th>
+                    <th>Class</th>
+                    <th>Total Scored</th>
+                    <th>Percentage</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentResult ? (
+                    <tr>
+                      <td>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {studentResult.student.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--text-tertiary)",
+                          }}
+                        >
+                          {studentResult.exam.name}
+                        </div>
+                      </td>
+
+                      <td>
+                        <strong>{studentResult.student.admissionNumber}</strong>
+                      </td>
+
+                      <td>
+                        <span className="badge badge-primary">
+                          Class {studentResult.student.className} -{" "}
+                          {studentResult.student.section}
+                        </span>
+                      </td>
+
+                      <td>
+                        <strong>{studentResult.totalMarks}</strong> /{" "}
+                        {studentResult.totalMaxMarks}
+                      </td>
+
+                      <td>
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            color: "var(--primary)",
+                          }}
+                        >
+                          {studentResult.percentage}%
+                        </span>
+                      </td>
+
+                      <td>
+                        <span className="badge badge-success">
+                          {studentResult.grade}
+                        </span>
+                      </td>
+
+                      <td>
+                        <span className="badge badge-success">
+                          {studentResult.result}
+                        </span>
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() =>
+                            setSelectedReportCard({
+                              studentName: studentResult.student.name,
+                              roll: studentResult.student.admissionNumber,
+                              class: `${studentResult.student.className}-${studentResult.student.section}`,
+                              rank: "-",
+                              examName: studentResult.exam.name,
+                              subjects: studentResult.subjects.map((sub) => ({
+                                name: sub.subject,
+                                maxMarks: sub.maxMarks,
+                                obtained: sub.marksObtained,
+                                grade: sub.grade,
+                                remarks: sub.remarks,
+                              })),
+                              totalMax: studentResult.totalMaxMarks,
+                              totalObtained: studentResult.totalMarks,
+                              grade: studentResult.grade,
+                              percentage: studentResult.percentage,
+                            })
+                          }
+                        >
+                          <Eye size={13} />
+                          <span>View Report Card</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="8"
                         style={{
-                          fontWeight: 700,
-                          color: "var(--text-primary)",
-                        }}
-                      >
-                        {m.studentName}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
+                          textAlign: "center",
+                          padding: "40px",
                           color: "var(--text-tertiary)",
                         }}
                       >
-                        {m.examName}
-                      </div>
-                    </td>
-                    <td>
-                      <strong>{m.roll}</strong>
-                    </td>
-                    <td>
-                      <span className="badge badge-primary">{m.class}</span>
-                    </td>
-                    <td>
-                      <strong>{m.totalObtained}</strong> / {m.totalMax}
-                    </td>
-                    <td>
-                      <span
-                        style={{ fontWeight: 800, color: "var(--primary)" }}
-                      >
-                        {m.percentage}%
-                      </span>
-                    </td>
-                    <td>
-                      <span className="badge badge-success">{m.grade}</span>
-                    </td>
-                    <td>
-                      <span className="badge badge-success">{m.result}</span>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => setSelectedReportCard(m)}
-                      >
-                        <Eye size={13} />
-                        <span>View Report Card</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        Select an examination and student to view the result.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -780,7 +1047,7 @@ export default function ExaminationsPage() {
                   color: "var(--primary)",
                 }}
               >
-                Greenwood International Public School
+                Greenwood Public School
               </div>
               <div
                 style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
@@ -919,8 +1186,12 @@ export default function ExaminationsPage() {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Schedule New Examination"
-        subtitle="Set term details and participating classes"
+        title={editingExamId ? "Edit Examination" : "Schedule New Examination"}
+        subtitle={
+          editingExamId
+            ? "Update examination details and schedule"
+            : "Set term details and participating classes"
+        }
       >
         <form onSubmit={handleCreateExam}>
           <FormInput
@@ -1358,20 +1629,28 @@ export default function ExaminationsPage() {
             )}
           </div>
 
+          {/* FOOTER */}
           <div
             className="modal-footer"
-            style={{ margin: "20px -24px -24px", padding: "16px 24px" }}
+            style={{
+              margin: "20px -24px -24px",
+              padding: "16px 24px",
+            }}
           >
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setEditingExamId(null);
+              }}
             >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
               Schedule Exam
             </button>
+            .
           </div>
         </form>
       </Modal>

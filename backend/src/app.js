@@ -18,6 +18,9 @@ const facultyAttendanceRoutes = require("./routes/facultyAttendanceRoutes");
 const staffAttendanceRoutes = require("./routes/staffAttendanceRoutes");
 const timetableRoutes = require("./routes/timetableRoutes");
 const examRoutes = require("./routes/examRoutes");
+const examMarkRoutes = require("./routes/examMarkRoutes");
+const feeRoutes = require("./routes/feeRoutes");
+const feePaymentRoutes = require("./routes/feePaymentRoutes");
 const app = express();
 
 app.use(helmet());
@@ -48,4 +51,7 @@ app.use("/api/faculty-attendance", facultyAttendanceRoutes);
 app.use("/api/staff-attendance", staffAttendanceRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/exams", examRoutes);
+app.use("/api/exam-marks", examMarkRoutes);
+app.use("/api/fees", feeRoutes);
+app.use("/api/fee-payments", feePaymentRoutes);
 module.exports = app;
