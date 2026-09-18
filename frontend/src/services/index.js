@@ -1,22 +1,45 @@
+
 export { api } from './api';
+
 export { authService } from './authService';
-export { institutionService } from './institutionService';
-export { userService } from './userService';
-export { studentService } from './studentService';
-export { teacherService } from './teacherService';
-export { facultyService } from './facultyService';
-export { classService } from './classService';
-export { departmentService } from './departmentService';
-export { courseService } from './courseService';
-export { attendanceService } from './attendanceService';
-export { examService } from './examService';
-export { feeService } from './feeService';
-export { admissionService } from './admissionService';
-export { researchService } from './researchService';
-export { parentService } from './parentService';
-export { noticeService } from './noticeService';
-export { eventService } from './eventService';
-export { reportService } from './reportService';
-export { analyticsService } from './analyticsService';
-export { settingsService } from './settingsService';
-export { messageService } from './messageService';
+
+export { default as institutionService } from './institutionService';
+
+export { default as userService } from './userService';
+
+export { default as studentService } from './studentService';
+
+export { default as teacherService } from './teacherService';
+
+export { default as facultyService } from './facultyService';
+
+export { default as classService } from './classService';
+
+export { default as departmentService } from './departmentService';
+
+export { default as courseService } from './courseService';
+
+export { default as attendanceService } from './attendanceService';
+
+export { default as examService } from './examService';
+
+export { default as feeService } from './feeService';
+
+export { default as admissionService } from './admissionService';
+
+export { default as researchService } from './researchService';
+
+export { default as parentService } from './parentService';
+
+export { default as noticeService } from './noticeService';
+
+export { default as eventService } from './eventService';
+
+export { default as reportService } from './reportService';
+
+export { default as analyticsService } from './analyticsService';
+
+export { default as settingsService } from './settingsService';
+
+export { default as messageService } from './messageService';
+
