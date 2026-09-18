@@ -1856,6 +1856,19 @@ export default function FeesPage() {
                 </select>
               </div>
 
+              {/* Academic Year Filter */}
+              <div style={{ width: '130px' }}>
+                <select
+                  className="form-control"
+                  value={selectedSession}
+                  onChange={(e) => setSelectedSession(e.target.value)}
+                  style={{ height: '40px' }}
+                >
+                  <option value="2026-27">2026-27</option>
+                  <option value="2025-26">2025-26</option>
+                </select>
+              </div>
+
               {/* Reset Filter */}
               {(searchQuery ||
                 selectedClass !== "All" ||
@@ -1918,7 +1931,7 @@ export default function FeesPage() {
                 <tbody>
                   {filteredLedgers.map((item) => (
                     <tr key={item.id}>
-                      <td>
+                      <td style={{ textAlign: 'left' }}>
                         <div>
                           <div
                             style={{

@@ -3,18 +3,26 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
+import { getDashboardRoute, ROLES } from './config/roles';
+
+// Auth Guards
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import PublicRoute from './components/auth/PublicRoute';
 
 // Layout
 import DashboardLayout from './components/layout/DashboardLayout';
 
-// Auth Page
+// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
+import SuperAdminLoginPage from './pages/auth/SuperAdminLoginPage';
 
 // Super Admin Pages
 import SuperAdminDashboard from './pages/superAdmin/SuperAdminDashboard';
 import SchoolsManagementPage from './pages/superAdmin/SchoolsManagementPage';
 import SuperAdminAnalyticsPage from './pages/superAdmin/SuperAdminAnalyticsPage';
 import SuperAdminSettingsPage from './pages/superAdmin/SuperAdminSettingsPage';
+import GlobalReportsPage from './pages/superAdmin/GlobalReportsPage';
+import UsersPage from './pages/superAdmin/UsersPage';
 
 // School Admin / Principal Pages
 import SchoolAdminDashboard from './pages/school/SchoolAdminDashboard';
@@ -57,31 +65,13 @@ import StudentFeesPage from './pages/student/StudentFeesPage';
 import StudentNoticesPage from './pages/student/StudentNoticesPage';
 import StudentLeavePage from './pages/student/StudentLeavePage';
 
-// Frontend Role Guard
-function RoleGuard({ allowedRoles, children }) {
-  const { role, isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  if (!allowedRoles.includes(role)) {
-    // Redirect to user's assigned dashboard
-    if (role === 'super-admin') return <Navigate to="/super-admin/dashboard" replace />;
-    if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
-    if (role === 'student') return <Navigate to="/student/dashboard" replace />;
-    return <Navigate to="/school-admin/dashboard" replace />;
-  }
-  return children;
-}
-
 function RootRedirect() {
   const { role, isAuthenticated } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  if (role === 'super-admin') return <Navigate to="/super-admin/dashboard" replace />;
-  if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
-  if (role === 'student') return <Navigate to="/student/dashboard" replace />;
-  return <Navigate to="/school-admin/dashboard" replace />;
+  const targetDashboard = getDashboardRoute(role);
+  return <Navigate to={targetDashboard} replace />;
 }
 
 export default function App() {
@@ -91,22 +81,42 @@ export default function App() {
         <ThemeProvider>
           <ToastProvider>
             <Routes>
-              {/* Public Login */}
-              <Route path="/login" element={<LoginPage />} />
+              {/* Public Authentication Portals */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/super-admin/login"
+                element={
+                  <PublicRoute>
+                    <SuperAdminLoginPage />
+                  </PublicRoute>
+                }
+              />
               <Route path="/" element={<RootRedirect />} />
 
               {/* SUPER ADMIN PORTAL */}
               <Route
                 path="/super-admin"
                 element={
-                  <RoleGuard allowedRoles={['super-admin']}>
+                  <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, 'super-admin']}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route index element={<Navigate to="/super-admin/dashboard" replace />} />
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
                 <Route path="schools" element={<SchoolsManagementPage />} />
+                <Route path="students" element={<UsersPage />} />
+                <Route path="teachers" element={<UsersPage />} />
+                <Route path="staff" element={<UsersPage />} />
+                <Route path="reports" element={<GlobalReportsPage />} />
+                <Route path="activity" element={<SuperAdminAnalyticsPage />} />
                 <Route path="analytics" element={<SuperAdminAnalyticsPage />} />
                 <Route path="settings" element={<SuperAdminSettingsPage />} />
               </Route>
@@ -115,9 +125,9 @@ export default function App() {
               <Route
                 path="/school-admin"
                 element={
-                  <RoleGuard allowedRoles={['school-admin']}>
+                  <ProtectedRoute allowedRoles={[ROLES.PRINCIPAL, 'school-admin']}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route index element={<Navigate to="/school-admin/dashboard" replace />} />
@@ -145,13 +155,14 @@ export default function App() {
               <Route
                 path="/teacher"
                 element={
-                  <RoleGuard allowedRoles={['teacher']}>
+                  <ProtectedRoute allowedRoles={[ROLES.TEACHER, 'teacher']}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route index element={<Navigate to="/teacher/dashboard" replace />} />
                 <Route path="dashboard" element={<TeacherDashboard />} />
+                <Route path="students" element={<TeacherStudentsPage />} />
                 <Route path="attendance" element={<TeacherAttendancePage />} />
                 <Route path="assignments" element={<TeacherAssignmentsPage />} />
                 <Route path="marks" element={<TeacherMarksPage />} />
@@ -165,9 +176,9 @@ export default function App() {
               <Route
                 path="/student"
                 element={
-                  <RoleGuard allowedRoles={['student']}>
+                  <ProtectedRoute allowedRoles={[ROLES.STUDENT, 'student']}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route index element={<Navigate to="/student/dashboard" replace />} />
@@ -181,7 +192,7 @@ export default function App() {
                 <Route path="leave" element={<StudentLeavePage />} />
               </Route>
 
-              {/* Fallback */}
+              {/* Wildcard Fallback */}
               <Route path="*" element={<RootRedirect />} />
             </Routes>
           </ToastProvider>
