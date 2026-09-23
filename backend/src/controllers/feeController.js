@@ -1,6 +1,39 @@
 const Fee = require("../models/Fee");
 const Student = require("../models/Student");
+const FeeSetting = require("../models/FeeSetting");
 
+const calculateLateFine = (fee, feeSetting) => {
+  if (!fee.dueDate || !feeSetting || Number(fee.pendingAmount) <= 0) {
+    return 0;
+  }
+
+  const dueDate = new Date(fee.dueDate);
+  const today = new Date();
+
+  dueDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const gracePeriod = Number(feeSetting.gracePeriod || 0);
+
+  const graceEndDate = new Date(dueDate);
+  graceEndDate.setDate(graceEndDate.getDate() + gracePeriod);
+
+  if (today <= graceEndDate) {
+    return 0;
+  }
+
+  const lateDays = Math.floor((today - graceEndDate) / (1000 * 60 * 60 * 24));
+
+  if (feeSetting.fineType === "per_day") {
+    return lateDays * Number(feeSetting.fineAmount || 0);
+  }
+
+  if (feeSetting.fineType === "fixed") {
+    return Number(feeSetting.fixedAmount || 0);
+  }
+
+  return 0;
+};
 // Create Fee
 const createFee = async (req, res) => {
   try {
@@ -109,6 +142,48 @@ const getAllFees = async (req, res) => {
       .populate("studentId", "name email admissionNumber")
       .sort({ createdAt: -1 });
 
+    for (const fee of fees) {
+      const feeSetting = await FeeSetting.findOne({
+        tenantId: req.user.tenantId,
+        academicSession: fee.academicSession,
+        isActive: true,
+      });
+
+      if (!fee.dueDate || !feeSetting) {
+        continue;
+      }
+
+      const calculatedFine = calculateLateFine(fee, feeSetting);
+
+      if (calculatedFine === 0 && Number(fee.fineAmount || 0) > 0) {
+        fee.fineAmount = 0;
+
+        fee.pendingAmount = Number(fee.totalAmount) - Number(fee.paidAmount);
+
+        if (fee.pendingAmount <= 0) {
+          fee.pendingAmount = 0;
+          fee.status = "PAID";
+        } else if (fee.paidAmount > 0) {
+          fee.status = "PARTIAL";
+        } else {
+          fee.status = "PENDING";
+        }
+
+        await fee.save();
+        continue;
+      }
+
+      if (calculatedFine > 0) {
+        fee.fineAmount = calculatedFine;
+
+        fee.pendingAmount =
+          Number(fee.totalAmount) - Number(fee.paidAmount) + calculatedFine;
+
+        fee.status = "OVERDUE";
+
+        await fee.save();
+      }
+    }
     return res.status(200).json({
       success: true,
       count: fees.length,
@@ -126,6 +201,7 @@ const getAllFees = async (req, res) => {
 };
 
 // Get Fee By ID
+// Get Fee By ID
 const getFeeById = async (req, res) => {
   try {
     const fee = await Fee.findOne({
@@ -139,6 +215,47 @@ const getFeeById = async (req, res) => {
         success: false,
         message: "Fee record not found",
       });
+    }
+
+    const feeSetting = await FeeSetting.findOne({
+      tenantId: req.user.tenantId,
+      academicSession: fee.academicSession,
+      isActive: true,
+    });
+
+    const calculatedFine = calculateLateFine(fee, feeSetting);
+    console.log("FINE DEBUG:", {
+      dueDate: fee.dueDate,
+      today: new Date(),
+      fineSetting: feeSetting,
+      pendingAmount: fee.pendingAmount,
+      calculatedFine,
+    });
+
+    if (calculatedFine > 0) {
+      fee.fineAmount = calculatedFine;
+
+      fee.pendingAmount =
+        Number(fee.totalAmount) - Number(fee.paidAmount) + calculatedFine;
+
+      fee.status = "OVERDUE";
+
+      await fee.save();
+    } else if (Number(fee.fineAmount || 0) > 0) {
+      fee.fineAmount = 0;
+
+      fee.pendingAmount = Number(fee.totalAmount) - Number(fee.paidAmount);
+
+      if (fee.pendingAmount <= 0) {
+        fee.pendingAmount = 0;
+        fee.status = "PAID";
+      } else if (fee.paidAmount > 0) {
+        fee.status = "PARTIAL";
+      } else {
+        fee.status = "PENDING";
+      }
+
+      await fee.save();
     }
 
     return res.status(200).json({
@@ -164,6 +281,42 @@ const getStudentFees = async (req, res) => {
       tenantId: req.user.tenantId,
       isActive: true,
     }).sort({ createdAt: -1 });
+
+    for (const fee of fees) {
+      const feeSetting = await FeeSetting.findOne({
+        tenantId: req.user.tenantId,
+        academicSession: fee.academicSession,
+        isActive: true,
+      });
+
+      const calculatedFine = calculateLateFine(fee, feeSetting);
+
+      if (calculatedFine > 0) {
+        fee.fineAmount = calculatedFine;
+
+        fee.pendingAmount =
+          Number(fee.totalAmount) - Number(fee.paidAmount) + calculatedFine;
+
+        fee.status = "OVERDUE";
+
+        await fee.save();
+      } else if (Number(fee.fineAmount || 0) > 0) {
+        fee.fineAmount = 0;
+
+        fee.pendingAmount = Number(fee.totalAmount) - Number(fee.paidAmount);
+
+        if (fee.pendingAmount <= 0) {
+          fee.pendingAmount = 0;
+          fee.status = "PAID";
+        } else if (fee.paidAmount > 0) {
+          fee.status = "PARTIAL";
+        } else {
+          fee.status = "PENDING";
+        }
+
+        await fee.save();
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -197,6 +350,12 @@ const updateFee = async (req, res) => {
       });
     }
 
+    const feeSetting = await FeeSetting.findOne({
+      tenantId: req.user.tenantId,
+      academicSession: fee.academicSession,
+      isActive: true,
+    });
+
     const allowedFields = [
       "academicSession",
       "className",
@@ -214,10 +373,12 @@ const updateFee = async (req, res) => {
       }
     });
 
+    const recalculatedFine = calculateLateFine(fee, feeSetting);
+
+    fee.fineAmount = recalculatedFine;
+
     fee.pendingAmount =
-      Number(fee.totalAmount) -
-      Number(fee.paidAmount) +
-      Number(fee.fineAmount || 0);
+      Number(fee.totalAmount) - Number(fee.paidAmount) + recalculatedFine;
 
     if (fee.pendingAmount <= 0) {
       fee.pendingAmount = 0;

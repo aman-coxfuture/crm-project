@@ -21,6 +21,10 @@ const examRoutes = require("./routes/examRoutes");
 const examMarkRoutes = require("./routes/examMarkRoutes");
 const feeRoutes = require("./routes/feeRoutes");
 const feePaymentRoutes = require("./routes/feePaymentRoutes");
+const feeSettingRoutes = require("./routes/feeSettingRoutes");
+const academicSessionRoutes = require("./routes/academicSessionRoutes");
+const staffFeeRoutes = require("./routes/staffFeeRoutes");
+const salarySlipRoutes = require("./routes/salarySlipRoutes");
 const app = express();
 
 app.use(helmet());
@@ -54,4 +58,9 @@ app.use("/api/exams", examRoutes);
 app.use("/api/exam-marks", examMarkRoutes);
 app.use("/api/fees", feeRoutes);
 app.use("/api/fee-payments", feePaymentRoutes);
+app.use("/api/fee-settings", feeSettingRoutes);
+app.use("/api/academic-sessions", academicSessionRoutes);
+app.use("/api/staff-fees", staffFeeRoutes);
+app.use("/api/salary-slips", salarySlipRoutes);
+
 module.exports = app;

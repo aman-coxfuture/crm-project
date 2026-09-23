@@ -408,6 +408,35 @@ const reactivateFaculty = async (req, res) => {
   }
 };
 
+const getMyFacultyProfile = async (req, res) => {
+  try {
+    const faculty = await Faculty.findOne({
+      _id: req.user.userId,
+      tenantId: req.user.tenantId,
+      isActive: true,
+    }).select("-password -__v");
+
+    if (!faculty) {
+      return res.status(404).json({
+        success: false,
+        message: "Faculty profile not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      faculty,
+    });
+  } catch (error) {
+    console.error("Get my faculty profile error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   createFaculty,
   getAllFaculty,
@@ -415,4 +444,5 @@ module.exports = {
   updateFaculty,
   deactivateFaculty,
   reactivateFaculty,
+  getMyFacultyProfile,
 };

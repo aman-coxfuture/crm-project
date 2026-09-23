@@ -1,12 +1,46 @@
 const Fee = require("../models/Fee");
 const FeePayment = require("../models/FeePayment");
 const Student = require("../models/Student");
+const FeeSetting = require("../models/FeeSetting");
 
 const generateReceiptNo = () => {
   const timestamp = Date.now();
   const random = Math.floor(1000 + Math.random() * 9000);
 
   return `REC-${timestamp}-${random}`;
+};
+
+const calculateLateFine = (fee, feeSetting) => {
+  if (!fee.dueDate || !feeSetting) {
+    return 0;
+  }
+
+  const dueDate = new Date(fee.dueDate);
+  const today = new Date();
+
+  dueDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const gracePeriod = Number(feeSetting.gracePeriod || 0);
+
+  const graceEndDate = new Date(dueDate);
+  graceEndDate.setDate(graceEndDate.getDate() + gracePeriod);
+
+  if (today <= graceEndDate) {
+    return 0;
+  }
+
+  const lateDays = Math.floor((today - graceEndDate) / (1000 * 60 * 60 * 24));
+
+  if (feeSetting.fineType === "per_day") {
+    return lateDays * Number(feeSetting.fineAmount || 0);
+  }
+
+  if (feeSetting.fineType === "fixed") {
+    return Number(feeSetting.fixedAmount || 0);
+  }
+
+  return 0;
 };
 
 // Record Fee Payment
@@ -80,11 +114,19 @@ const createFeePayment = async (req, res) => {
       });
     }
 
+    const feeSetting = await FeeSetting.findOne({
+      tenantId: req.user.tenantId,
+      academicSession: fee.academicSession,
+      isActive: true,
+    });
+
     // Do not allow payment greater than outstanding amount
+    const recalculatedFine = calculateLateFine(fee, feeSetting);
+
+    fee.fineAmount = recalculatedFine;
+
     const outstandingAmount =
-      Number(fee.totalAmount) -
-      Number(fee.paidAmount) +
-      Number(fee.fineAmount || 0);
+      Number(fee.totalAmount) - Number(fee.paidAmount) + recalculatedFine;
 
     if (paymentAmount > outstandingAmount) {
       return res.status(400).json({
@@ -110,17 +152,28 @@ const createFeePayment = async (req, res) => {
     });
 
     // Update fee ledger
+    // Update fee ledger
     fee.paidAmount = Number(fee.paidAmount || 0) + paymentAmount;
+    fee.fineAmount = recalculatedFine;
+
+    // Update the paid amount of the selected fee head
+    const selectedFeeHead = fee.feeHeads.find(
+      (head) =>
+        (head.name || "").trim().toLowerCase() === feeType.trim().toLowerCase(),
+    );
+
+    if (selectedFeeHead) {
+      selectedFeeHead.paidAmount =
+        Number(selectedFeeHead.paidAmount || 0) + paymentAmount;
+    }
 
     fee.pendingAmount =
-      Number(fee.totalAmount) -
-      Number(fee.paidAmount) +
-      Number(fee.fineAmount || 0);
+      Number(fee.totalAmount) - Number(fee.paidAmount) + recalculatedFine;
 
     if (fee.pendingAmount <= 0) {
       fee.pendingAmount = 0;
       fee.status = "PAID";
-    } else if (fee.dueDate && new Date(fee.dueDate) < new Date()) {
+    } else if (recalculatedFine > 0) {
       fee.status = "OVERDUE";
     } else {
       fee.status = "PARTIAL";
