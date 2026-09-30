@@ -10,6 +10,13 @@ export const assignmentService = {
   async getAssignmentsByFaculty(facultyId) {
     return await api.get(`/assignments/faculty/${facultyId}`);
   },
+  async getMyCourseworkAssignments() {
+    return await api.get("/coursework-assignments/my");
+  },
+
+  async createCourseworkAssignment(data) {
+    return await api.post("/coursework-assignments", data);
+  },
 
   // Create assignment
   async createAssignment(data) {

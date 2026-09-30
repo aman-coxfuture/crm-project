@@ -15,34 +15,28 @@ const tenantMiddleware = require("../middleware/tenantMiddleware");
 
 const router = express.Router();
 
-// =====================================================
-// AUTHENTICATION + SCHOOL TENANT
-// =====================================================
-
+// Authentication + Tenant
 router.use(authMiddleware);
-router.use(authorizeRoles("ADMIN"));
 router.use(tenantMiddleware);
 
-// =====================================================
-// EXAMINATION ROUTES
-// =====================================================
+// ===============================
+// FACULTY + ADMIN — VIEW EXAMS
+// ===============================
 
-// Get all active examinations
-router.get("/", getExams);
+router.get("/", authorizeRoles("ADMIN", "FACULTY"), getExams);
 
-// Get single examination
-router.get("/:id", getExamById);
+router.get("/:id", authorizeRoles("ADMIN", "FACULTY"), getExamById);
 
-// Create examination
-router.post("/", createExam);
+// ===============================
+// ADMIN ONLY — MANAGE EXAMS
+// ===============================
 
-// Update examination
-router.put("/:id", updateExam);
+router.post("/", authorizeRoles("ADMIN"), createExam);
 
-// Deactivate examination
-router.patch("/:id/deactivate", deactivateExam);
+router.put("/:id", authorizeRoles("ADMIN"), updateExam);
 
-// Reactivate examination
-router.patch("/:id/reactivate", reactivateExam);
+router.patch("/:id/deactivate", authorizeRoles("ADMIN"), deactivateExam);
+
+router.patch("/:id/reactivate", authorizeRoles("ADMIN"), reactivateExam);
 
 module.exports = router;

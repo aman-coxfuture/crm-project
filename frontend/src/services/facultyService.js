@@ -10,6 +10,10 @@ export const facultyService = {
     return await api.get("/faculty");
   },
 
+  async getMyFacultyProfile() {
+    return await api.get("/faculty/me");
+  },
+
   async createSchoolFaculty(data) {
     return await api.post("/faculty", data);
   },

@@ -15,7 +15,12 @@ const authMiddleware = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/authorizeRoles");
 
 router.post("/", authMiddleware, authorizeRoles("ADMIN"), createClass);
-router.get("/", authMiddleware, authorizeRoles("ADMIN"), getAllClasses);
+router.get(
+  "/",
+  authMiddleware,
+  authorizeRoles("ADMIN", "FACULTY"),
+  getAllClasses,
+);
 router.get("/:id", authMiddleware, authorizeRoles("ADMIN"), getClassById);
 router.put("/:id", authMiddleware, authorizeRoles("ADMIN"), updateClass);
 router.patch(

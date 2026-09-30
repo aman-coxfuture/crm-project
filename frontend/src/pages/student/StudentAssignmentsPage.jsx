@@ -1,102 +1,206 @@
-import React, { useState } from 'react';
-import { schoolDataService } from '../../services/schoolDataService';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
-import DataTable from '../../components/common/DataTable';
-import Modal from '../../components/common/Modal';
-import { Textarea } from '../../components/common/FormInput';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { BookOpen, UploadCloud, CheckCircle2, FileText, Send } from 'lucide-react';
+import React, { useState } from "react";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
+import DataTable from "../../components/common/DataTable";
+import Modal from "../../components/common/Modal";
+import { Textarea } from "../../components/common/FormInput";
+import { StatusBadge } from "../../components/common/StatusBadge";
+import {
+  BookOpen,
+  UploadCloud,
+  CheckCircle2,
+  FileText,
+  Send,
+} from "lucide-react";
 
 export default function StudentAssignmentsPage() {
   const { currentUser } = useAuth();
   const { success, info } = useToast();
-  const [assignments, setAssignments] = useState(() => schoolDataService.getAssignments());
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [student, setStudent] = useState(null);
   const [selectedAsnToSubmit, setSelectedAsnToSubmit] = useState(null);
-  const [submissionText, setSubmissionText] = useState('');
+  const [submissionText, setSubmissionText] = useState("");
+  const [submissionFile, setSubmissionFile] = useState(null);
 
-  const studentId = currentUser?.id || 'STU001';
-  const studentName = currentUser?.name || 'Alex Johnson';
+  const studentId = currentUser?.id || "STU001";
+  const studentClass =
+    student?.className && student?.section
+      ? `${student.className}-${student.section}`
+      : "My Class";
+  const studentName = currentUser?.name || "Alex Johnson";
 
-  const handleSubmitWork = (e) => {
+  React.useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        setLoading(true);
+
+        const profileResponse = await api.get("/students/me");
+        setStudent(profileResponse.student);
+
+        const response = await api.get("/coursework-assignments/student");
+
+        console.log("STUDENT ASSIGNMENTS RESPONSE:", response);
+
+        setAssignments(
+          (response.assignments || []).map((assignment) => ({
+            ...assignment,
+            id: assignment._id,
+            teacher: assignment.facultyId?.name || "—",
+          })),
+        );
+      } catch (error) {
+        console.error("Failed to fetch student assignments:", error);
+        setAssignments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssignments();
+  }, []);
+
+  const handleSubmitWork = async (e) => {
     e.preventDefault();
+
     if (!selectedAsnToSubmit) return;
 
-    schoolDataService.submitAssignmentWork(selectedAsnToSubmit.id, {
-      studentId,
-      studentName,
-      text: submissionText,
-    });
+    if (!submissionText.trim() && !submissionFile) {
+      info("Please enter submission text or attach a PDF");
+      return;
+    }
 
-    setAssignments(schoolDataService.getAssignments());
-    setSelectedAsnToSubmit(null);
-    setSubmissionText('');
-    success(`Assignment "${selectedAsnToSubmit.title}" submitted successfully!`);
+    try {
+      const formData = new FormData();
+
+      formData.append("text", submissionText.trim());
+
+      if (submissionFile) {
+        formData.append("file", submissionFile);
+      }
+
+      await api.post(
+        `/coursework-assignments/${selectedAsnToSubmit.id}/submit`,
+        formData,
+      );
+
+      success(
+        `Assignment "${selectedAsnToSubmit.title}" submitted successfully!`,
+      );
+
+      setSelectedAsnToSubmit(null);
+      setSubmissionText("");
+      setSubmissionFile(null);
+
+      const response = await api.get("/coursework-assignments/student");
+
+      setAssignments(
+        (response.assignments || []).map((assignment) => ({
+          ...assignment,
+          id: assignment._id,
+          teacher: assignment.facultyId?.name || "—",
+        })),
+      );
+    } catch (error) {
+      console.error("Failed to submit assignment:", error);
+      info(error?.response?.data?.message || "Failed to submit assignment");
+    }
   };
 
   const columns = [
     {
-      header: 'Assignment Title',
-      accessor: 'title',
+      header: "Assignment Title",
+      accessor: "title",
       sortable: true,
       render: (val, row) => (
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{val}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Teacher: {row.teacher} • Max: {row.maxMarks} Marks</div>
+          <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
+            {val}
+          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)" }}>
+            Teacher: {row.teacher} • Max: {row.maxMarks} Marks
+          </div>
         </div>
       ),
     },
     {
-      header: 'Subject',
-      accessor: 'subject',
+      header: "Subject",
+      accessor: "subject",
       sortable: true,
       render: (val) => <span className="badge badge-primary">{val}</span>,
     },
     {
-      header: 'Due Date',
-      accessor: 'dueDate',
+      header: "Due Date",
+      accessor: "dueDate",
       sortable: true,
-      render: (val) => <strong>{val}</strong>,
+      render: (val) => (
+        <strong>
+          {val
+            ? new Date(val).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "—"}
+        </strong>
+      ),
     },
     {
-      header: 'My Submission Status',
-      accessor: 'id',
+      header: "My Submission Status",
+      accessor: "submissionStatus",
       render: (id, row) => {
         const mySub = row.submissions?.find((s) => s.studentId === studentId);
         if (!mySub) {
-          return <span className="badge badge-warning">Pending Submission</span>;
+          return (
+            <span className="badge badge-warning">Pending Submission</span>
+          );
         }
         return <StatusBadge status={mySub.status} />;
       },
     },
     {
-      header: 'My Grade / Feedback',
-      accessor: 'submissions',
+      header: "My Grade / Feedback",
+      accessor: "submissions",
       render: (subs, row) => {
         const mySub = subs?.find((s) => s.studentId === studentId);
         if (!mySub || mySub.marks === null) {
-          return <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Awaiting review</span>;
+          return (
+            <span
+              style={{ fontSize: "0.75rem", color: "var(--text-tertiary)" }}
+            >
+              Awaiting review
+            </span>
+          );
         }
         return (
           <div>
-            <strong style={{ color: 'var(--primary)' }}>{mySub.marks} / {row.maxMarks}</strong>
-            {mySub.feedback && <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>"{mySub.feedback}"</div>}
+            <strong style={{ color: "var(--primary)" }}>
+              {mySub.marks} / {row.maxMarks}
+            </strong>
+            {mySub.feedback && (
+              <div
+                style={{ fontSize: "0.725rem", color: "var(--text-secondary)" }}
+              >
+                "{mySub.feedback}"
+              </div>
+            )}
           </div>
         );
       },
     },
     {
-      header: 'Action',
-      accessor: 'id',
+      header: "Action",
+      accessor: "action",
       render: (id, row) => {
         const mySub = row.submissions?.find((s) => s.studentId === studentId);
         return (
           <button
-            className={`btn btn-sm ${mySub ? 'btn-secondary' : 'btn-primary'}`}
+            className={`btn btn-sm ${mySub ? "btn-secondary" : "btn-primary"}`}
             onClick={() => setSelectedAsnToSubmit(row)}
           >
             {mySub ? <CheckCircle2 size={13} /> : <UploadCloud size={13} />}
-            <span>{mySub ? 'Resubmit' : 'Submit Work'}</span>
+            <span>{mySub ? "Resubmit" : "Submit Work"}</span>
           </button>
         );
       },
@@ -112,31 +216,49 @@ export default function StudentAssignmentsPage() {
             My Homework & Assignments
           </h1>
           <p className="page-subtitle">
-            Submit coursework tasks online, track grading feedback and score summaries
+            Submit coursework tasks online, track grading feedback and score
+            summaries
           </p>
         </div>
       </div>
 
       <DataTable
-        title="Class 10-A Coursework Roster"
+        title={`${studentClass} Coursework`}
         subtitle="Active and completed assignments"
         columns={columns}
         data={assignments}
-        searchKeys={['title', 'subject', 'teacher', 'dueDate']}
+        searchKeys={["title", "subject", "teacher", "dueDate"]}
       />
 
       {/* Submit Assignment Modal */}
       <Modal
         isOpen={!!selectedAsnToSubmit}
         onClose={() => setSelectedAsnToSubmit(null)}
-        title={selectedAsnToSubmit?.title || 'Submit Assignment'}
+        title={selectedAsnToSubmit?.title || "Submit Assignment"}
         subtitle={`Subject: ${selectedAsnToSubmit?.subject} • Due: ${selectedAsnToSubmit?.dueDate}`}
       >
         {selectedAsnToSubmit && (
           <form onSubmit={handleSubmitWork}>
-            <div className="card" style={{ padding: '12px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>TEACHER INSTRUCTIONS:</div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            <div
+              className="card"
+              style={{ padding: "12px", marginBottom: "16px" }}
+            >
+              <div
+                style={{
+                  fontSize: "0.725rem",
+                  color: "var(--text-tertiary)",
+                  fontWeight: 700,
+                }}
+              >
+                TEACHER INSTRUCTIONS:
+              </div>
+              <p
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--text-secondary)",
+                  marginTop: "2px",
+                }}
+              >
                 {selectedAsnToSubmit.description}
               </p>
             </div>
@@ -149,26 +271,56 @@ export default function StudentAssignmentsPage() {
               onChange={(e) => setSubmissionText(e.target.value)}
               placeholder="Paste your essay, working steps, or document submission link here..."
             />
+            <div className="form-group">
+              <label>Attach Assignment (PDF)</label>
+
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => {
+                  setSubmissionFile(e.target.files[0] || null);
+                }}
+              />
+
+              {submissionFile && <small>Selected: {submissionFile.name}</small>}
+            </div>
 
             <div
               style={{
-                padding: '16px',
-                border: '2px dashed var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                textAlign: 'center',
-                backgroundColor: 'var(--bg-tertiary)',
-                marginBottom: '16px',
-                cursor: 'pointer',
+                padding: "16px",
+                border: "2px dashed var(--border-color)",
+                borderRadius: "var(--radius-md)",
+                textAlign: "center",
+                backgroundColor: "var(--bg-tertiary)",
+                marginBottom: "16px",
+                cursor: "pointer",
               }}
-              onClick={() => info('Mock file attached: Homework_Solution.pdf')}
+              onClick={() => info("Mock file attached: Homework_Solution.pdf")}
             >
-              <UploadCloud size={24} color="var(--primary)" style={{ margin: '0 auto 6px' }} />
-              <div style={{ fontSize: '0.825rem', fontWeight: 600 }}>Click to mock upload PDF / Doc file</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Max file size: 25 MB</div>
+              <UploadCloud
+                size={24}
+                color="var(--primary)"
+                style={{ margin: "0 auto 6px" }}
+              />
+              <div style={{ fontSize: "0.825rem", fontWeight: 600 }}>
+                Click to mock upload PDF / Doc file
+              </div>
+              <div
+                style={{ fontSize: "0.7rem", color: "var(--text-tertiary)" }}
+              >
+                Max file size: 25 MB
+              </div>
             </div>
 
-            <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setSelectedAsnToSubmit(null)}>
+            <div
+              className="modal-footer"
+              style={{ margin: "20px -24px -24px", padding: "16px 24px" }}
+            >
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setSelectedAsnToSubmit(null)}
+              >
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">

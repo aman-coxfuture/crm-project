@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { schoolDataService } from "../../services/schoolDataService";
+import api from "../../services/api";
 import StatCard from "../../components/common/StatCard";
 import { StatusBadge } from "../../components/common/StatusBadge";
 import {
@@ -22,23 +23,78 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  const students = schoolDataService.getStudents("SCH-001");
-  const student =
-    students.find(
-      (s) =>
-        s.id === currentUser?.id ||
-        (s.rollNumber &&
-          s.rollNumber.toUpperCase() ===
-            (currentUser?.rollNumber || "").toUpperCase()),
-    ) || students[0];
+  const [student, setStudent] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [attendanceRate, setAttendanceRate] = React.useState(0);
+  React.useEffect(() => {
+    const fetchStudentProfile = async () => {
+      try {
+        setLoading(true);
 
-  const studentClassKey = student.class
-    ? `${student.class}-${student.section || "A"}`
+        const response = await api.get("/students/me");
+
+        setStudent(response.student);
+      } catch (error) {
+        console.error("Failed to fetch student profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentProfile();
+  }, []);
+
+  React.useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        const response = await api.get("/student-attendance");
+
+        const attendance = response?.attendance || [];
+
+        if (attendance.length === 0) {
+          setAttendanceRate(0);
+          return;
+        }
+
+        const presentCount = attendance.filter(
+          (record) => record.status === "PRESENT",
+        ).length;
+
+        const percentage = Math.round((presentCount / attendance.length) * 100);
+
+        setAttendanceRate(percentage);
+      } catch (error) {
+        console.error("Failed to fetch attendance:", error);
+        setAttendanceRate(0);
+      }
+    };
+
+    fetchAttendance();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="card">Loading student dashboard...</div>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="page-container">
+        <div className="card">Unable to load student profile.</div>
+      </div>
+    );
+  }
+
+  const studentClassKey = student.className
+    ? `${student.className}-${student.section || "A"}`
     : "Class 10-A";
-  const scheduleRows = schoolDataService.getTimetableForClass(studentClassKey);
+  const scheduleRows = [];
 
-  const assignments = schoolDataService.getAssignments("SCH-001");
-  const notices = schoolDataService.getNotices("SCH-001");
+  const assignments = [];
+  const notices = [];
   const marks =
     schoolDataService.getMarks()[student.id] ||
     schoolDataService.getMarks()["STU001"];
@@ -114,7 +170,7 @@ export default function StudentDashboard() {
               <p
                 style={{ fontSize: "0.875rem", opacity: 0.9, marginTop: "2px" }}
               >
-                {student.class} - Section {student.section} • Roll Number:{" "}
+                {student.className} - Section {student.section} • Roll Number:{" "}
                 <strong>{student.rollNumber}</strong> • Greenwood Public School
               </p>
             </div>
@@ -152,7 +208,7 @@ export default function StudentDashboard() {
       <div className="grid-4" style={{ marginBottom: "24px" }}>
         <StatCard
           title="Attendance Rate"
-          value={`${student.attendance}%`}
+          value={`${attendanceRate}%`}
           icon={CalendarCheck}
           color="emerald"
           trend="Regular"

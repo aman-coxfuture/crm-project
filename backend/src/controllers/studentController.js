@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const Student = require("../models/Student");
 const Tenant = require("../models/Tenant");
 const SchoolClass = require("../models/SchoolClass");
-
+const Assignment = require("../models/Assignment");
 const createStudent = async (req, res) => {
   try {
     const {
@@ -11,6 +11,7 @@ const createStudent = async (req, res) => {
       email,
       password,
       admissionNumber,
+      rollNumber,
       dateOfBirth,
       gender,
       phone,
@@ -111,6 +112,7 @@ const createStudent = async (req, res) => {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       admissionNumber: admissionNumber.trim(),
+      rollNumber: rollNumber?.trim() || null,
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
       phone: phone?.trim() || null,
@@ -134,6 +136,7 @@ const createStudent = async (req, res) => {
         name: student.name,
         email: student.email,
         admissionNumber: student.admissionNumber,
+        rollNumber: student.rollNumber,
         dateOfBirth: student.dateOfBirth,
         gender: student.gender,
         phone: student.phone,
@@ -151,6 +154,144 @@ const createStudent = async (req, res) => {
     });
   } catch (error) {
     console.error("Create student error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const getMyStudents = async (req, res) => {
+  try {
+    // This API is only for faculty
+    if (req.user.role !== "FACULTY") {
+      return res.status(403).json({
+        success: false,
+        message: "Only faculty can access assigned students",
+      });
+    }
+
+    if (!req.user.tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not associated with any school",
+      });
+    }
+
+    // req.user.userId is the logged-in faculty ID
+    const facultyId = req.user.userId;
+
+    // Find all active class/section assignments of this faculty
+    const assignments = await Assignment.find({
+      facultyId,
+      tenantId: req.user.tenantId,
+      isActive: true,
+    })
+      .populate("classId", "name sections")
+      .select("classId section subject room");
+
+    if (!assignments.length) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        assignments: [],
+        students: [],
+      });
+    }
+
+    // Build class + section combinations
+    const classSectionFilters = assignments
+      .filter((assignment) => assignment.classId)
+      .map((assignment) => ({
+        classId: assignment.classId._id,
+        section: assignment.section,
+      }));
+
+    // Remove duplicate class + section combinations
+    const uniqueFilters = Array.from(
+      new Map(
+        classSectionFilters.map((item) => [
+          `${item.classId}-${item.section}`,
+          item,
+        ]),
+      ).values(),
+    );
+
+    // Find only students belonging to faculty's assigned classes/sections
+    const studentQuery = uniqueFilters.map((item) => ({
+      classId: item.classId,
+      section: item.section,
+      tenantId: req.user.tenantId,
+      isActive: true,
+    }));
+
+    const students = await Student.find({
+      $or: studentQuery,
+    })
+      .select("-password -__v")
+      .populate("classId", "name sections")
+      .sort({
+        className: 1,
+        section: 1,
+        rollNumber: 1,
+        name: 1,
+      });
+
+    return res.status(200).json({
+      success: true,
+      count: students.length,
+
+      assignments: assignments.map((assignment) => ({
+        id: assignment._id,
+        classId: assignment.classId?._id,
+        className: assignment.classId?.name,
+        section: assignment.section,
+        subject: assignment.subject,
+        room: assignment.room,
+      })),
+
+      students,
+    });
+  } catch (error) {
+    console.error("Get my students error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch assigned students",
+    });
+  }
+};
+
+const getMyStudentProfile = async (req, res) => {
+  try {
+    if (!req.user.tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not associated with any school",
+      });
+    }
+
+    const student = await Student.findOne({
+      _id: req.user.userId,
+      tenantId: req.user.tenantId,
+    })
+      .populate("tenantId", "name code type email phone address")
+      .select("-password -__v");
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      student,
+    });
+  } catch (error) {
+    console.error("Get my student profile error:", error);
 
     return res.status(500).json({
       success: false,
@@ -238,6 +379,7 @@ const updateStudent = async (req, res) => {
       email,
       password,
       admissionNumber,
+      rollNumber,
       dateOfBirth,
       gender,
       phone,
@@ -342,7 +484,10 @@ const updateStudent = async (req, res) => {
 
       student.admissionNumber = admissionNumber.trim();
     }
-
+    // Update roll number
+    if (rollNumber !== undefined) {
+      student.rollNumber = rollNumber?.trim() || null;
+    }
     if (dateOfBirth !== undefined) {
       student.dateOfBirth = dateOfBirth || null;
     }
@@ -404,6 +549,7 @@ const updateStudent = async (req, res) => {
         name: student.name,
         email: student.email,
         admissionNumber: student.admissionNumber,
+        rollNumber: student.rollNumber,
         dateOfBirth: student.dateOfBirth,
         gender: student.gender,
         phone: student.phone,
@@ -513,6 +659,8 @@ const reactivateStudent = async (req, res) => {
 
 module.exports = {
   createStudent,
+  getMyStudentProfile,
+  getMyStudents,
   getAllStudents,
   getStudentById,
   updateStudent,

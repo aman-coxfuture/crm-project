@@ -7,6 +7,7 @@ const {
   getAllFees,
   getFeeById,
   getStudentFees,
+  getMyStudentFees,
   updateFee,
   deactivateFee,
 } = require("../controllers/feeController");
@@ -14,10 +15,12 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/authorizeRoles");
 
-// All fee routes require authentication
 router.use(authMiddleware);
 
-// Only School Admin can manage fees
+// Student can view only their own fees
+router.get("/my", authorizeRoles("STUDENT"), getMyStudentFees);
+
+// Admin-only fee management
 router.use(authorizeRoles("ADMIN"));
 
 // Create Fee

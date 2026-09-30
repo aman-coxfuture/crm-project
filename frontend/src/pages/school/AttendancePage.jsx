@@ -107,7 +107,7 @@ export default function AttendancePage() {
           return;
         }
 
-        const response = await attendanceService.getAttendance({
+        const response = await attendanceService.getStudentAttendance({
           date: selectedDate,
         });
 
@@ -270,52 +270,6 @@ export default function AttendancePage() {
     loadFacultyAttendance();
   }, [facultyDate]);
 
-  const handleFacultyAttendanceAction = async (
-    teacherId,
-    teacherName,
-    attendanceRecord,
-  ) => {
-    try {
-      const now = new Date();
-
-      const currentTime = now.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-
-      // No actual attendance record yet = Punch In
-      if (!attendanceRecord?.attendanceId) {
-        await attendanceService.markFacultyAttendance({
-          facultyId: teacherId,
-          date: facultyDate,
-          status: "PRESENT",
-          checkInTime: currentTime,
-          checkOutTime: null,
-        });
-
-        success(`Punch In recorded at ${currentTime}`);
-      }
-      // Attendance exists but Punch Out is pending
-      else if (!attendanceRecord.punchOut) {
-        await attendanceService.updateFacultyAttendance(
-          attendanceRecord.attendanceId,
-          {
-            checkOutTime: currentTime,
-          },
-        );
-
-        success(`Punch Out recorded at ${currentTime}`);
-      }
-
-      await loadFacultyAttendance();
-    } catch (err) {
-      console.error("Failed to update faculty attendance:", err);
-
-      error(err.message || "Failed to update faculty attendance");
-    }
-  };
-
   const filteredFaculty = facultyRecords.filter((t) => {
     const matchesSearch =
       t.teacherName?.toLowerCase().includes(facultySearch.toLowerCase()) ||
@@ -438,25 +392,6 @@ export default function AttendancePage() {
             and Support Staff
           </p>
         </div>
-
-        {activeTab === "student" && (
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              className="btn btn-secondary"
-              onClick={handleMarkAllStudentsPresent}
-            >
-              <CheckCircle2 size={16} />
-              <span>Mark All Present</span>
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleSaveStudentAttendance}
-            >
-              <Save size={16} />
-              <span>Save Register</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
@@ -617,7 +552,6 @@ export default function AttendancePage() {
                     <th>Status</th>
                     <th>Punch In</th>
                     <th>Punch Out</th>
-                    <th style={{ textAlign: "center" }}>Admin Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -732,40 +666,6 @@ export default function AttendancePage() {
                           >
                             {t.punchOut || "—"}
                           </strong>
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() =>
-                              handleFacultyAttendanceAction(
-                                t.teacherId,
-                                t.teacherName,
-                                attendanceRecord,
-                              )
-                            }
-                            style={{
-                              fontSize: "0.75rem",
-                              padding: "4px 10px",
-                              borderColor: attendanceRecord?.checkOutTime
-                                ? "#6b7280"
-                                : attendanceRecord?.checkInTime
-                                  ? "#ef4444"
-                                  : "#10b981",
-                              color: attendanceRecord?.checkOutTime
-                                ? "#6b7280"
-                                : attendanceRecord?.checkInTime
-                                  ? "#ef4444"
-                                  : "#10b981",
-                            }}
-                            disabled={Boolean(attendanceRecord?.punchOut)}
-                          >
-                            {attendanceRecord?.punchOut
-                              ? "Completed"
-                              : attendanceRecord?.punchIn
-                                ? "Punch Out"
-                                : "Punch In"}
-                          </button>
                         </td>
                       </tr>
                     );
@@ -947,80 +847,64 @@ export default function AttendancePage() {
                               >
                                 {student.name}
                               </div>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "var(--text-tertiary)",
-                                }}
-                              >
-                                ID: {student._id}
-                              </div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <strong>{student.admissionNumber}</strong>
+                          <td>
+                            <strong>{student.rollNumber || "-"}</strong>
+                          </td>
                         </td>
-                        <td>
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStudentStatusChange(
-                                  student._id,
-                                  "present",
-                                )
-                              }
+                        <td style={{ textAlign: "center" }}>
+                          {isPresent ? (
+                            <span
                               style={{
-                                padding: "6px 16px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "7px 14px",
+                                borderRadius: "20px",
+                                backgroundColor: "rgba(16, 185, 129, 0.10)",
+                                color: "#059669",
+                                fontWeight: 700,
                                 fontSize: "0.8rem",
-                                fontWeight: isPresent ? 800 : 500,
-                                borderRadius: "var(--radius-md)",
-                                border: isPresent
-                                  ? "2px solid #10b981"
-                                  : "1px solid var(--border-color)",
-                                backgroundColor: isPresent
-                                  ? "#10b981"
-                                  : "var(--bg-tertiary)",
-                                color: isPresent
-                                  ? "#ffffff"
-                                  : "var(--text-primary)",
-                                cursor: "pointer",
                               }}
                             >
-                              🟢 Present
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStudentStatusChange(student._id, "absent")
-                              }
+                              🟢 PRESENT
+                            </span>
+                          ) : isAbsent ? (
+                            <span
                               style={{
-                                padding: "6px 16px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "7px 14px",
+                                borderRadius: "20px",
+                                backgroundColor: "rgba(239, 68, 68, 0.10)",
+                                color: "#dc2626",
+                                fontWeight: 700,
                                 fontSize: "0.8rem",
-                                fontWeight: isAbsent ? 800 : 500,
-                                borderRadius: "var(--radius-md)",
-                                border: isAbsent
-                                  ? "2px solid #ef4444"
-                                  : "1px solid var(--border-color)",
-                                backgroundColor: isAbsent
-                                  ? "#ef4444"
-                                  : "var(--bg-tertiary)",
-                                color: isAbsent
-                                  ? "#ffffff"
-                                  : "var(--text-primary)",
-                                cursor: "pointer",
                               }}
                             >
-                              🔴 Absent
-                            </button>
-                          </div>
+                              🔴 ABSENT
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "7px 14px",
+                                borderRadius: "20px",
+                                backgroundColor: "rgba(107, 114, 128, 0.10)",
+                                color: "#6b7280",
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              ⚪ NOT MARKED
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1201,7 +1085,6 @@ export default function AttendancePage() {
                     <th>Daily Status</th>
                     <th>Check-In Time</th>
                     <th>Check-Out Time</th>
-                    <th style={{ textAlign: "center" }}>Admin Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1282,80 +1165,6 @@ export default function AttendancePage() {
                             }}
                           >
                             {attendanceRecord?.checkOutTime || "—"}
-                          </td>
-
-                          <td style={{ textAlign: "center" }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              onClick={async () => {
-                                try {
-                                  const now = new Date();
-
-                                  const currentTime = now.toLocaleTimeString(
-                                    "en-IN",
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                      hour12: true,
-                                    },
-                                  );
-
-                                  const attendanceRecord =
-                                    getStaffAttendanceRecord(s._id);
-
-                                  if (!attendanceRecord) {
-                                    // First click = Punch In
-                                    await attendanceService.markStaffAttendance(
-                                      {
-                                        staffId: s._id,
-                                        date: staffDate,
-                                        status: "PRESENT",
-                                        checkInTime: currentTime,
-                                        checkOutTime: null,
-                                      },
-                                    );
-
-                                    success(
-                                      `Punch In recorded at ${currentTime}`,
-                                    );
-                                  } else if (!attendanceRecord.checkOutTime) {
-                                    await attendanceService.updateStaffAttendance(
-                                      attendanceRecord._id,
-                                      {
-                                        checkOutTime: currentTime,
-                                      },
-                                    );
-
-                                    success(
-                                      `Punch Out recorded at ${currentTime}`,
-                                    );
-                                  }
-
-                                  await loadStaffAttendance();
-                                } catch (err) {
-                                  console.error(err);
-                                  error(
-                                    err.message ||
-                                      "Failed to update attendance",
-                                  );
-                                }
-                              }}
-                              style={{
-                                fontSize: "0.75rem",
-                                padding: "4px 10px",
-                                borderColor:
-                                  status === "present" ? "#ef4444" : "#10b981",
-                                color:
-                                  status === "present" ? "#ef4444" : "#10b981",
-                              }}
-                            >
-                              {getStaffAttendanceRecord(s._id)?.checkOutTime
-                                ? "Completed"
-                                : getStaffAttendanceRecord(s._id)?.checkInTime
-                                  ? "Punch Out"
-                                  : "Punch In"}
-                            </button>
                           </td>
                         </tr>
                       );

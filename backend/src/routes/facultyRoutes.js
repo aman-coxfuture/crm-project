@@ -9,6 +9,8 @@ const {
   updateFaculty,
   deactivateFaculty,
   reactivateFaculty,
+  getMyFacultyProfile,
+  updateMyFacultyProfile,
 } = require("../controllers/facultyController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -18,6 +20,13 @@ const authorizeRoles = require("../middleware/authorizeRoles");
 router.post("/", authMiddleware, authorizeRoles("ADMIN"), createFaculty);
 
 router.get("/", authMiddleware, authorizeRoles("ADMIN"), getAllFaculty);
+
+router.get(
+  "/me",
+  authMiddleware,
+  authorizeRoles("FACULTY"),
+  getMyFacultyProfile,
+);
 
 router.get("/:id", authMiddleware, authorizeRoles("ADMIN"), getFacultyById);
 

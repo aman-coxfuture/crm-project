@@ -120,6 +120,7 @@ export default function StudentsPage() {
   const [newStudent, setNewStudent] = useState({
     name: "",
     admissionNumber: "",
+    rollNumber: "",
     email: "",
     password: "",
     dateOfBirth: "",
@@ -180,6 +181,7 @@ export default function StudentsPage() {
         email: newStudent.email.trim().toLowerCase(),
         password: newStudent.password,
         admissionNumber: newStudent.admissionNumber.trim(),
+        rollNumber: newStudent.rollNumber.trim(),
         dateOfBirth: newStudent.dateOfBirth || null,
         gender: newStudent.gender || null,
         classId: newStudent.classId || null,
@@ -208,6 +210,7 @@ export default function StudentsPage() {
       setNewStudent({
         name: "",
         admissionNumber: "",
+        rollNumber: "",
         email: "",
         password: "",
         dateOfBirth: "",
@@ -1395,7 +1398,7 @@ export default function StudentsPage() {
         size="lg"
       >
         <form onSubmit={handleAddSubmit}>
-          <div className="grid-2">
+          <div className="grid-3">
             <FormInput
               label="Student Full Name"
               required
@@ -1406,8 +1409,9 @@ export default function StudentsPage() {
                   name: e.target.value,
                 })
               }
-              placeholder="e.g. Liam Smith"
+              placeholder=""
             />
+
             <FormInput
               label="Admission Number"
               required
@@ -1418,7 +1422,20 @@ export default function StudentsPage() {
                   admissionNumber: e.target.value,
                 })
               }
-              placeholder="e.g. STU009"
+              placeholder=""
+            />
+
+            <FormInput
+              label="Roll Number"
+              required
+              value={newStudent.rollNumber}
+              onChange={(e) =>
+                setNewStudent({
+                  ...newStudent,
+                  rollNumber: e.target.value,
+                })
+              }
+              placeholder=""
             />
           </div>
 

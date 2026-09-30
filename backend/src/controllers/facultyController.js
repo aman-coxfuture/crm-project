@@ -310,6 +310,7 @@ const updateFaculty = async (req, res) => {
         designation: faculty.designation,
         experience: faculty.experience,
         qualification: faculty.qualification,
+        subjects: faculty.subjects,
         salary: faculty.salary,
         tenantId: faculty.tenantId,
         isActive: faculty.isActive,
@@ -408,6 +409,66 @@ const reactivateFaculty = async (req, res) => {
   }
 };
 
+const getMyFacultyProfile = async (req, res) => {
+  try {
+    if (req.user.role !== "FACULTY") {
+      return res.status(403).json({
+        success: false,
+        message: "Only faculty can access their profile",
+      });
+    }
+
+    if (!req.user.tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not associated with any school",
+      });
+    }
+
+    // req.user.userId is the logged-in faculty ID
+    const facultyId = req.user.userId;
+
+    const faculty = await Faculty.findOne({
+      _id: facultyId,
+      tenantId: req.user.tenantId,
+    }).select("-__v");
+
+    if (!faculty) {
+      return res.status(404).json({
+        success: false,
+        message: "Faculty profile not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      faculty: {
+        _id: faculty._id,
+        name: faculty.name,
+        email: faculty.email,
+        employeeId: faculty.employeeId,
+        phone: faculty.phone,
+        department: faculty.department,
+        designation: faculty.designation,
+        experience: faculty.experience,
+        qualification: faculty.qualification,
+        salary: faculty.salary,
+        isActive: faculty.isActive,
+        createdAt: faculty.createdAt,
+        updatedAt: faculty.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get my faculty profile error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch faculty profile",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createFaculty,
   getAllFaculty,
@@ -415,4 +476,5 @@ module.exports = {
   updateFaculty,
   deactivateFaculty,
   reactivateFaculty,
+  getMyFacultyProfile,
 };

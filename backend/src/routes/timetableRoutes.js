@@ -14,24 +14,19 @@ const tenantMiddleware = require("../middleware/tenantMiddleware");
 
 const router = express.Router();
 
-// All timetable routes require School Admin authentication
 router.use(authMiddleware);
-router.use(authorizeRoles("ADMIN"));
 router.use(tenantMiddleware);
 
-// Get timetable
-router.get("/", getTimetable);
+// ADMIN + FACULTY can view timetable
+router.get("/", authorizeRoles("ADMIN", "FACULTY", "STUDENT"), getTimetable);
 
-// Create timetable entry
-router.post("/", createTimetable);
+// Only ADMIN can manage timetable
+router.post("/", authorizeRoles("ADMIN"), createTimetable);
 
-// Update timetable entry
-router.put("/:id", updateTimetable);
+router.put("/:id", authorizeRoles("ADMIN"), updateTimetable);
 
-// Deactivate timetable entry
-router.patch("/:id/deactivate", deactivateTimetable);
+router.patch("/:id/deactivate", authorizeRoles("ADMIN"), deactivateTimetable);
 
-// Reactivate timetable entry
-router.patch("/:id/reactivate", reactivateTimetable);
+router.patch("/:id/reactivate", authorizeRoles("ADMIN"), reactivateTimetable);
 
 module.exports = router;

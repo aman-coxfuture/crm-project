@@ -25,7 +25,7 @@ router.get("/", authMiddleware, authorizeRoles("ADMIN"), getAllAssignments);
 router.get(
   "/faculty/:facultyId",
   authMiddleware,
-  authorizeRoles("ADMIN"),
+  authorizeRoles("ADMIN", "FACULTY"),
   getAssignmentsByFaculty,
 );
 
