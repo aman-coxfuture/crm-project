@@ -16,7 +16,6 @@ import {
   Library,
   Calendar,
   Bell,
-  FileText,
   BarChart3,
   Settings,
   Building2,
@@ -27,8 +26,6 @@ import {
   X,
   ClipboardList,
   UserCheck,
-  CheckSquare,
-  ShieldCheck,
   Wallet,
 } from "lucide-react";
 
@@ -47,6 +44,7 @@ export default function Sidebar({
   });
 
   const handleLogout = () => {
+    const isSuperAdmin = role === 'super_admin' || role === 'super-admin';
     logout();
     navigate("/login");
   };
@@ -583,6 +581,51 @@ export default function Sidebar({
                               );
                             })}
                           </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (item.disabled) {
+                    return (
+                      <div
+                        key={item.label}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: isCollapsed ? 'center' : 'space-between',
+                          gap: '12px',
+                          padding: isCollapsed ? '12px 0' : '10px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: '0.925rem',
+                          fontWeight: 500,
+                          color: 'var(--text-tertiary)',
+                          opacity: 0.6,
+                          cursor: 'not-allowed',
+                          userSelect: 'none',
+                        }}
+                        title={isCollapsed ? `${item.label} (Coming Soon)` : undefined}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <Icon size={18} style={{ flexShrink: 0 }} />
+                          {!isCollapsed && <span>{item.label}</span>}
+                        </div>
+                        {!isCollapsed && item.badge && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                              color: '#d97706',
+                              padding: '2px 6px',
+                              borderRadius: 'var(--radius-sm)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {item.badge}
+                          </span>
                         )}
                       </div>
                     );

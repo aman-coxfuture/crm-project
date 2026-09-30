@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { schoolDataService } from '../../services/schoolDataService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StatCard from '../../components/common/StatCard';
-import { BarChart, DonutChart } from '../../components/common/Charts';
 import DataTable from '../../components/common/DataTable';
 import Modal from '../../components/common/Modal';
 import { FormInput, Select, Textarea } from '../../components/common/FormInput';
@@ -19,12 +18,27 @@ import {
   Power,
   ShieldCheck,
   Eye,
-  Bus,
   Phone,
   Mail,
   MapPin,
   Calendar,
+  Layers,
+  Landmark,
+  ArrowRight,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Activity,
+  BookOpen,
+  DollarSign,
+  TrendingUp,
 } from 'lucide-react';
+
+// Format Indian Rupee currency
+const formatRupee = (amount) => {
+  return `₹${Number(amount || 0).toLocaleString('en-IN')}`;
+};
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -32,145 +46,168 @@ export default function SuperAdminDashboard() {
   const { success, info } = useToast();
 
   const [schools, setSchools] = useState(() => schoolDataService.getSchools());
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedSchoolDetails, setSelectedSchoolDetails] = useState(null);
+  const [selectedSchoolForDetails, setSelectedSchoolForDetails] = useState(null);
 
-  const [newSchool, setNewSchool] = useState({
-    name: '',
-    schoolCode: '',
-    principal: '',
-    email: '',
-    phone: '',
-    address: '',
-    affiliation: 'CBSE Board',
-    establishedYear: '2020',
-  });
-
-  // Aggregated platform stats across all registered schools
+  // STEP 2: Calculate Super Admin Top Summary Cards dynamically from mock school data
   const totalSchools = schools.length;
-  const activeSchools = schools.filter((s) => s.status === 'Active').length;
-  const inactiveSchools = totalSchools - activeSchools;
-  const totalStudents = schools.reduce((acc, s) => acc + (s.studentsCount || 0), 0);
-  const totalTeachers = schools.reduce((acc, s) => acc + (s.teachersCount || 0), 0);
-  const totalStaff = schools.reduce((acc, s) => acc + (s.staffCount || 0), 0);
+  const activeSchools = useMemo(() => schools.filter((s) => s.status === 'Active').length, [schools]);
+  const inactiveSchools = useMemo(() => schools.filter((s) => s.status !== 'Active').length, [schools]);
+  const totalStudents = useMemo(() => schools.reduce((acc, s) => acc + (Number(s.students || s.studentsCount) || 0), 0), [schools]);
+  const totalTeachers = useMemo(() => schools.reduce((acc, s) => acc + (Number(s.teachers || s.teachersCount) || 0), 0), [schools]);
+  const totalStaff = useMemo(() => schools.reduce((acc, s) => acc + (Number(s.staff || s.staffCount) || 0), 0), [schools]);
 
-  const handleToggleStatus = (id) => {
-    const updated = schoolDataService.toggleSchoolStatus(id);
-    setSchools(updated);
-    info('School status updated');
-  };
+  // STEP 19: Calculate Attention Required metrics
+  const lowAttendanceSchools = useMemo(() => schools.filter((s) => (s.attendance || 90) < 80).length, [schools]);
+  const pendingFeeSchools = useMemo(() => schools.filter((s) => (s.pendingFees || 0) > 300000).length, [schools]);
 
-  const handleOpenSchool = async (school) => {
-    changeSchool(school);
-    await switchRole('school-admin');
-    success(`Launched management dashboard for ${school.name}`);
-    navigate('/school-admin/dashboard');
-  };
-
-  const handleAddSchoolSubmit = (e) => {
-    e.preventDefault();
-    if (!newSchool.name || !newSchool.principal) return;
-    const created = schoolDataService.addSchool(newSchool);
-    setSchools(schoolDataService.getSchools());
-    setIsAddModalOpen(false);
-    setNewSchool({
-      name: '',
-      schoolCode: '',
-      principal: '',
-      email: '',
-      phone: '',
-      address: '',
-      affiliation: 'CBSE Board',
-      establishedYear: '2020',
-    });
-    success(`School "${created.name}" registered successfully!`);
-  };
-
-  const schoolChartData = schools.map((s) => ({
-    label: s.name.split(' ')[0],
-    value: s.studentsCount || 0,
-    color: '#4f46e5',
-  }));
-
-  const statusDonutData = [
-    { label: 'Active Schools', value: activeSchools, color: '#10b981' },
-    { label: 'Inactive Schools', value: inactiveSchools, color: '#ef4444' },
+  // STEP 18: Mock Recent Activity Logs
+  const recentActivities = [
+    {
+      id: 1,
+      title: 'New school registered: Delhi Public School',
+      time: '10 minutes ago',
+      type: 'add',
+      badge: 'New School',
+      color: '#4f46e5',
+    },
+    {
+      id: 2,
+      title: 'School SCH-002 activated by Super Admin',
+      time: '2 hours ago',
+      type: 'status',
+      badge: 'Status Update',
+      color: '#10b981',
+    },
+    {
+      id: 3,
+      title: 'School SCH-006 status toggled to Inactive',
+      time: '5 hours ago',
+      type: 'status',
+      badge: 'Attention',
+      color: '#ef4444',
+    },
+    {
+      id: 4,
+      title: 'Kendriya Vidyalaya No. 1 updated principal details',
+      time: '1 day ago',
+      type: 'update',
+      badge: 'Profile Update',
+      color: '#0ea5e9',
+    },
+    {
+      id: 5,
+      title: 'Platform-wide quarterly academic audit completed',
+      time: '2 days ago',
+      type: 'system',
+      badge: 'System Audit',
+      color: '#8b5cf6',
+    },
   ];
 
-  const columns = [
+  // STEP 10: Super Admin Direct School Access
+  const handleOpenSchool = (school) => {
+    // Navigate to All Schools page with the selected school opened in overview mode
+    navigate(`/super-admin/schools?openSchoolId=${school.id}`);
+  };
+
+  // Toggle school status
+  const handleToggleStatus = (id) => {
+    const updated = schoolDataService.toggleSchoolStatus(id);
+    setSchools(schoolDataService.getSchools());
+    if (selectedSchoolForDetails && selectedSchoolForDetails.id === id) {
+      const updatedSchool = updated.find((s) => s.id === id);
+      setSelectedSchoolForDetails(updatedSchool);
+    }
+    const currentSchool = updated.find((s) => s.id === id);
+    if (currentSchool?.status === 'Active') {
+      success(`${currentSchool.name} is now Activated.`);
+    } else {
+      info(`${currentSchool?.name} has been Deactivated.`);
+    }
+  };
+
+  // Columns for Recent Schools Table
+  const recentSchoolColumns = [
     {
-      header: 'School Name & ID',
+      header: 'School',
       accessor: 'name',
       sortable: true,
       render: (val, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '1.4rem' }}>{row.logo || '🏫'}</span>
           <div>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{val}</div>
+            <div
+              style={{ fontWeight: 700, color: 'var(--primary)', cursor: 'pointer' }}
+              onClick={() => setSelectedSchoolForDetails(row)}
+            >
+              {val}
+            </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-              {row.id} • Code: {row.schoolCode} • Est. {row.establishedYear}
+              ID: {row.id} • {row.board || row.affiliation || 'CBSE'}
             </div>
           </div>
         </div>
       ),
     },
     {
-      header: 'Principal / Head',
-      accessor: 'principal',
+      header: 'Location',
+      accessor: 'city',
       sortable: true,
-      render: (val, row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{val}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{row.email}</div>
+      render: (_, row) => (
+        <div style={{ fontSize: '0.85rem' }}>
+          {row.city || 'Bhopal'}, {row.state || 'Madhya Pradesh'}
         </div>
       ),
     },
     {
-      header: 'Enrollment & Staff',
-      accessor: 'studentsCount',
+      header: 'Students',
+      accessor: 'students',
       sortable: true,
       render: (val, row) => (
-        <div style={{ fontSize: '0.85rem' }}>
-          <strong>{val?.toLocaleString()}</strong> students
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>
-            {row.teachersCount} teachers • {row.staffCount || 15} staff
-          </div>
-        </div>
+        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+          {(val || row.studentsCount || 0).toLocaleString('en-IN')}
+        </span>
       ),
     },
     {
       header: 'Status',
       accessor: 'status',
-      isStatus: true,
       sortable: true,
+      render: (val) => (
+        <span
+          style={{
+            backgroundColor: val === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            color: val === 'Active' ? '#059669' : '#dc2626',
+            padding: '3px 8px',
+            borderRadius: 'var(--radius-sm)',
+            fontWeight: 700,
+            fontSize: '0.8rem',
+          }}
+        >
+          {val || 'Active'}
+        </span>
+      ),
     },
     {
-      header: 'Actions',
+      header: 'Action',
       accessor: 'id',
-      render: (id, row) => (
+      render: (_, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             className="btn btn-secondary btn-sm"
-            onClick={() => setSelectedSchoolDetails(row)}
+            onClick={() => setSelectedSchoolForDetails(row)}
             title="View School Details"
           >
             <Eye size={13} />
-            <span>Details</span>
+            <span>View</span>
           </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => handleOpenSchool(row)}
-            title="Launch School Admin Dashboard"
+            title="Open School Overview directly"
           >
             <ExternalLink size={13} />
-            <span>Launch</span>
-          </button>
-          <button
-            className={`btn btn-sm ${row.status === 'Active' ? 'btn-outline' : 'btn-success'}`}
-            onClick={() => handleToggleStatus(id)}
-            title={row.status === 'Active' ? 'Deactivate School' : 'Activate School'}
-          >
-            <Power size={13} />
+            <span>Open</span>
           </button>
         </div>
       ),
@@ -179,259 +216,600 @@ export default function SuperAdminDashboard() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="page-header">
+      {/* Page Header */}
+      <div className="page-header" style={{ marginBottom: '22px' }}>
         <div>
           <h1 className="page-title">
             <ShieldCheck size={28} color="var(--primary)" />
             Super Admin Control Center
           </h1>
           <p className="page-subtitle">
-            Global multi-school monitoring, institution directory, platform statistics and school launching
+            Centralized multi-institution CRM administration. Direct global access to all registered schools.
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-          <Plus size={16} />
-          <span>Register New School</span>
+        <button className="btn btn-primary" onClick={() => navigate('/super-admin/schools')}>
+          <Building2 size={16} />
+          <span>Manage All Schools</span>
         </button>
       </div>
 
-      {/* Top Aggregated Metric Cards */}
-      <div className="grid-4" style={{ marginBottom: '24px' }}>
+      {/* STEP 2: Top Cards - 6 Metric Cards */}
+      <div
+        className="grid-6"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
+        }}
+      >
         <StatCard
           title="Total Schools"
           value={totalSchools}
           icon={Building2}
           color="indigo"
-          subtitle={`${activeSchools} Active • ${inactiveSchools} Inactive`}
+          subtitle="Registered institutions"
         />
         <StatCard
-          title="Total Students (Platform)"
-          value={totalStudents.toLocaleString()}
-          icon={Users}
+          title="Active Schools"
+          value={activeSchools}
+          icon={CheckCircle2}
           color="emerald"
-          trend="+18%"
-          trendPositive={true}
+          subtitle="Operational campuses"
         />
         <StatCard
-          title="Total Teachers (Platform)"
-          value={totalTeachers.toLocaleString()}
-          icon={GraduationCap}
+          title="Inactive Schools"
+          value={inactiveSchools}
+          icon={AlertCircle}
+          color="rose"
+          subtitle="Suspended or pending"
+        />
+        <StatCard
+          title="Total Students"
+          value={totalStudents.toLocaleString('en-IN')}
+          icon={Users}
           color="sky"
-          trend="+12%"
-          trendPositive={true}
+          subtitle="Across all schools"
         />
         <StatCard
-          title="Total Staff Personnel"
-          value={totalStaff.toLocaleString()}
-          icon={Briefcase}
+          title="Total Teachers"
+          value={totalTeachers.toLocaleString('en-IN')}
+          icon={GraduationCap}
           color="purple"
-          subtitle="Non-teaching operations"
+          subtitle="Faculty strength"
+        />
+        <StatCard
+          title="Total Staff"
+          value={totalStaff.toLocaleString('en-IN')}
+          icon={Briefcase}
+          color="amber"
+          subtitle="Support & operations"
         />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid-3" style={{ marginBottom: '24px' }}>
-        <div className="card" style={{ gridColumn: 'span 2' }}>
-          <div className="card-header">
-            <h3 className="card-title">School Enrollment Comparison</h3>
-            <span className="badge badge-primary">Current Session</span>
+      {/* STEP 3: 3 Institution Cards (ALL SCHOOLS, ALL COLLEGES, ALL UNIVERSITIES) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '18px',
+          marginBottom: '28px',
+        }}
+      >
+        {/* Card 1: ALL SCHOOLS (ACTIVE) */}
+        <div
+          className="card card-hover"
+          style={{
+            padding: '22px',
+            borderTop: '4px solid var(--primary)',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                  color: 'var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Building2 size={24} />
+              </div>
+              <span
+                style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  color: '#059669',
+                  padding: '3px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 750,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                ACTIVE
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 4px', color: 'var(--text-primary)' }}>
+              ALL SCHOOLS
+            </h3>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '8px' }}>
+              {totalSchools} Schools
+            </div>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: '1.4' }}>
+              K-12 Primary, Secondary and Senior Secondary campuses under CBSE, ICSE & State boards.
+            </p>
           </div>
-          <BarChart data={schoolChartData} height={200} color="#6366f1" />
+
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/super-admin/schools')}
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            <span>Manage Schools</span>
+            <ArrowRight size={15} />
+          </button>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Institution Status</h3>
+        {/* Card 2: ALL COLLEGES (DISABLED - Coming Soon) */}
+        <div
+          className="card"
+          style={{
+            padding: '22px',
+            borderTop: '4px solid #94a3b8',
+            opacity: 0.65,
+            backgroundColor: 'var(--bg-secondary)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            cursor: 'not-allowed',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <GraduationCap size={24} />
+              </div>
+              <span
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  color: '#d97706',
+                  padding: '3px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 750,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                COMING SOON
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 4px', color: 'var(--text-primary)' }}>
+              ALL COLLEGES
+            </h3>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+              Coming Soon
+            </div>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: '1.4' }}>
+              Degree colleges, polytechnics, and vocational institutes management module.
+            </p>
           </div>
-          <DonutChart data={statusDonutData} size={150} />
+
+          <button
+            className="btn btn-secondary"
+            disabled
+            style={{ width: '100%', justifyContent: 'center', cursor: 'not-allowed', opacity: 0.7 }}
+          >
+            <span>Disabled</span>
+          </button>
+        </div>
+
+        {/* Card 3: ALL UNIVERSITIES (DISABLED - Coming Soon) */}
+        <div
+          className="card"
+          style={{
+            padding: '22px',
+            borderTop: '4px solid #94a3b8',
+            opacity: 0.65,
+            backgroundColor: 'var(--bg-secondary)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            cursor: 'not-allowed',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Landmark size={24} />
+              </div>
+              <span
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  color: '#d97706',
+                  padding: '3px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 750,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                COMING SOON
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 4px', color: 'var(--text-primary)' }}>
+              ALL UNIVERSITIES
+            </h3>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+              Coming Soon
+            </div>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: '1.4' }}>
+              Higher education universities, research wings and multi-faculty campuses module.
+            </p>
+          </div>
+
+          <button
+            className="btn btn-secondary"
+            disabled
+            style={{ width: '100%', justifyContent: 'center', cursor: 'not-allowed', opacity: 0.7 }}
+          >
+            <span>Disabled</span>
+          </button>
         </div>
       </div>
 
-      {/* Schools DataTable */}
-      <DataTable
-        title="Registered Schools Directory"
-        subtitle="Manage and inspect individual schools across the multi-tenant platform"
-        columns={columns}
-        data={schools}
-        searchKeys={['name', 'id', 'schoolCode', 'principal', 'email']}
-        pageSize={6}
-      />
+      {/* Two Column Grid: Recent Schools (Left) + Activity & Attention (Right) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '22px' }}>
+        {/* STEP 17: Recent Schools Section */}
+        <div className="card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                Recent Schools
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+                Latest registered schools across the CRM
+              </p>
+            </div>
 
-      {/* VIEW SCHOOL DETAILS MODAL (Requirement #11) */}
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate('/super-admin/schools')}
+            >
+              <span>View All</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
+          <DataTable
+            columns={recentSchoolColumns}
+            data={schools.slice(0, 5)}
+            pageSize={5}
+            emptyMessage="No schools found."
+          />
+        </div>
+
+        {/* Right Column: Attention Required + Recent Activity */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+          {/* STEP 19: Attention Required Section */}
+          <div className="card" style={{ padding: '20px', borderLeft: '4px solid #f59e0b' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <AlertTriangle size={20} color="#d97706" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                Attention Required
+              </h3>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Inactive Schools</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>
+                  {inactiveSchools}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Low Attendance</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
+                  {lowAttendanceSchools}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Pending Fee Data</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#6366f1', marginTop: '2px' }}>
+                  {pendingFeeSchools}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 18: Recent Activity Section */}
+          <div className="card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Activity size={18} color="var(--primary)" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                Recent Activity
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {recentActivities.map((act) => (
+                <div
+                  key={act.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    paddingBottom: '10px',
+                    borderBottom: act.id !== recentActivities.length ? '1px solid var(--border-color)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: act.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {act.title}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{act.time}</div>
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      backgroundColor: 'var(--bg-secondary)',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {act.badge}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* STEP 8 & 9: View School Details Modal */}
       <Modal
-        isOpen={!!selectedSchoolDetails}
-        onClose={() => setSelectedSchoolDetails(null)}
-        title={selectedSchoolDetails ? `${selectedSchoolDetails.name} — School Details` : 'School Details'}
-        subtitle={`School ID: ${selectedSchoolDetails?.id} • Affiliation: ${selectedSchoolDetails?.affiliation || 'CBSE Board'}`}
+        isOpen={!!selectedSchoolForDetails}
+        onClose={() => setSelectedSchoolForDetails(null)}
+        title={selectedSchoolForDetails ? `${selectedSchoolForDetails.name}` : 'School Details'}
+        subtitle={`School ID: ${selectedSchoolForDetails?.id} • Board: ${selectedSchoolForDetails?.board || selectedSchoolForDetails?.affiliation || 'CBSE'}`}
         size="lg"
       >
-        {selectedSchoolDetails && (
+        {selectedSchoolForDetails && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <span style={{ fontSize: '2.5rem' }}>{selectedSchoolDetails.logo || '🏫'}</span>
+            {/* School Profile Card */}
+            <div
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '2.2rem' }}>{selectedSchoolForDetails.logo || '🏫'}</span>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+                      {selectedSchoolForDetails.name}
+                    </h3>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                      Code: <strong>{selectedSchoolForDetails.code || selectedSchoolForDetails.schoolCode}</strong> • Board: <strong>{selectedSchoolForDetails.board || selectedSchoolForDetails.affiliation || 'CBSE'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <StatusBadge status={selectedSchoolForDetails.status} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '0.85rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{selectedSchoolDetails.name}</h3>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                    Established {selectedSchoolDetails.establishedYear || '2005'} • Session: {selectedSchoolDetails.academicSession || '2025-2026'}
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>Location:</span>
+                  <div>📍 {selectedSchoolForDetails.address || selectedSchoolForDetails.city}, {selectedSchoolForDetails.city}, {selectedSchoolForDetails.state} - {selectedSchoolForDetails.pincode}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>Contact Info:</span>
+                  <div>✉️ {selectedSchoolForDetails.email}</div>
+                  <div>📞 {selectedSchoolForDetails.phone}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>Principal:</span>
+                  <div style={{ fontWeight: 700 }}>
+                    {selectedSchoolForDetails.principalDetails?.name || selectedSchoolForDetails.principal}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+                    {selectedSchoolForDetails.principalDetails?.email || selectedSchoolForDetails.email} • {selectedSchoolForDetails.principalDetails?.phone || selectedSchoolForDetails.phone}
                   </div>
                 </div>
               </div>
-
-              <StatusBadge status={selectedSchoolDetails.status} />
             </div>
 
-            {/* School Attributes Grid */}
-            <div className="grid-3" style={{ gap: '12px', marginBottom: '20px' }}>
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>SCHOOL ID</div>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', marginTop: '2px', color: 'var(--primary)' }}>
-                  {selectedSchoolDetails.id}
+            {/* STEP 9: School Statistics Cards */}
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 10px', color: 'var(--primary)' }}>
+              School Academic & Financial Metrics
+            </h4>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '10px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Total Students</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  {(selectedSchoolForDetails.students || selectedSchoolForDetails.studentsCount || 0).toLocaleString('en-IN')}
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>PRINCIPAL / HEAD</div>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', marginTop: '2px' }}>
-                  {selectedSchoolDetails.principal}
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Total Teachers</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0ea5e9' }}>
+                  {(selectedSchoolForDetails.teachers || selectedSchoolForDetails.teachersCount || 0).toLocaleString('en-IN')}
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>CONTACT EMAIL</div>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '2px' }}>
-                  {selectedSchoolDetails.email}
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Total Staff</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#8b5cf6' }}>
+                  {(selectedSchoolForDetails.staff || selectedSchoolForDetails.staffCount || 0).toLocaleString('en-IN')}
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>TOTAL STUDENTS</div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '2px', color: '#10b981' }}>
-                  {selectedSchoolDetails.studentsCount} Students
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Total Classes</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f59e0b' }}>
+                  {selectedSchoolForDetails.classes || 30}
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>TEACHERS</div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '2px', color: '#06b6d4' }}>
-                  {selectedSchoolDetails.teachersCount} Teachers
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Total Books</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>
+                  {(selectedSchoolForDetails.books || 3500).toLocaleString('en-IN')}
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>STAFF & DRIVERS</div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '2px', color: '#8b5cf6' }}>
-                  {selectedSchoolDetails.staffCount || 22} Staff Personnel
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Attendance</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: (selectedSchoolForDetails.attendance || 90) >= 80 ? '#10b981' : '#ef4444' }}>
+                  {selectedSchoolForDetails.attendance || 92}%
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Collected Fees</span>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>
+                  {formatRupee(selectedSchoolForDetails.collectedFees || 1500000)}
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Pending Fees</span>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ef4444' }}>
+                  {formatRupee(selectedSchoolForDetails.pendingFees || 300000)}
                 </div>
               </div>
             </div>
 
-            {/* Address & Contact */}
-            <div className="card" style={{ padding: '14px', marginBottom: '20px' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '6px' }}>
-                CAMPUS ADDRESS & PHONE
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
-                <div>📍 {selectedSchoolDetails.address || '452 Elmwood Avenue, North District'}</div>
-                <div>📞 {selectedSchoolDetails.phone || '+1 (555) 234-5678'}</div>
-              </div>
-            </div>
-
-            <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px', display: 'flex', justifyContent: 'space-between' }}>
-              <button className="btn btn-secondary" onClick={() => setSelectedSchoolDetails(null)}>
-                Close
-              </button>
+            {/* Modal Footer with Actions */}
+            <div
+              className="modal-footer"
+              style={{
+                margin: '20px -24px -24px',
+                padding: '16px 24px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              {/* STEP 15: Activate / Deactivate Button */}
               <button
-                className="btn btn-primary"
-                onClick={() => {
-                  handleOpenSchool(selectedSchoolDetails);
-                  setSelectedSchoolDetails(null);
-                }}
+                className={`btn btn-sm ${selectedSchoolForDetails.status === 'Active' ? 'btn-danger' : 'btn-success'}`}
+                onClick={() => handleToggleStatus(selectedSchoolForDetails.id)}
               >
-                <ExternalLink size={15} />
-                <span>Launch School Admin Dashboard</span>
+                <Power size={14} />
+                <span>{selectedSchoolForDetails.status === 'Active' ? 'Deactivate School' : 'Activate School'}</span>
               </button>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn-secondary" onClick={() => setSelectedSchoolForDetails(null)}>
+                  Close
+                </button>
+
+                {/* STEP 10: Super Admin Global Open School */}
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const schoolToOpen = selectedSchoolForDetails;
+                    setSelectedSchoolForDetails(null);
+                    handleOpenSchool(schoolToOpen);
+                  }}
+                >
+                  <ExternalLink size={15} />
+                  <span>Open School</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
-      </Modal>
-
-      {/* Add School Modal */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Register New School"
-        subtitle="Onboard a new educational campus into the platform"
-        size="lg"
-      >
-        <form onSubmit={handleAddSchoolSubmit}>
-          <div className="grid-2">
-            <FormInput
-              label="School Name"
-              required
-              value={newSchool.name}
-              onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
-              placeholder="e.g. Cambridge High School"
-            />
-            <FormInput
-              label="Unique School ID / Code"
-              value={newSchool.schoolCode}
-              onChange={(e) => setNewSchool({ ...newSchool, schoolCode: e.target.value })}
-              placeholder="e.g. CHS-505"
-            />
-          </div>
-
-          <div className="grid-2">
-            <FormInput
-              label="Principal / Head Name"
-              required
-              value={newSchool.principal}
-              onChange={(e) => setNewSchool({ ...newSchool, principal: e.target.value })}
-              placeholder="e.g. Dr. Eleanor Vance"
-            />
-            <FormInput
-              label="Official Contact Email"
-              type="email"
-              value={newSchool.email}
-              onChange={(e) => setNewSchool({ ...newSchool, email: e.target.value })}
-              placeholder="contact@cambridge.edu"
-            />
-          </div>
-
-          <div className="grid-2">
-            <FormInput
-              label="Contact Phone"
-              value={newSchool.phone}
-              onChange={(e) => setNewSchool({ ...newSchool, phone: e.target.value })}
-              placeholder="+1 (555) 000-1122"
-            />
-            <Select
-              label="Board / Affiliation"
-              value={newSchool.affiliation}
-              onChange={(e) => setNewSchool({ ...newSchool, affiliation: e.target.value })}
-              options={['CBSE Board', 'ICSE Board', 'State Board', 'Cambridge / IB']}
-            />
-          </div>
-
-          <Textarea
-            label="Campus Address"
-            value={newSchool.address}
-            onChange={(e) => setNewSchool({ ...newSchool, address: e.target.value })}
-            placeholder="Full postal address with district and zip code"
-            rows={2}
-          />
-
-          <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Register School
-            </button>
-          </div>
-        </form>
       </Modal>
     </div>
   );

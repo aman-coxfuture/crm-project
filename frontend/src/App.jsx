@@ -93,8 +93,23 @@ export default function App() {
         <ThemeProvider>
           <ToastProvider>
             <Routes>
-              {/* Public Login */}
-              <Route path="/login" element={<LoginPage />} />
+              {/* Public Authentication Portals */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/super-admin/login"
+                element={
+                  <PublicRoute>
+                    <SuperAdminLoginPage />
+                  </PublicRoute>
+                }
+              />
               <Route path="/" element={<RootRedirect />} />
 
               {/* SUPER ADMIN PORTAL */}
@@ -103,7 +118,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["super-admin"]}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route
@@ -112,6 +127,11 @@ export default function App() {
                 />
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
                 <Route path="schools" element={<SchoolsManagementPage />} />
+                <Route path="students" element={<UsersPage />} />
+                <Route path="teachers" element={<UsersPage />} />
+                <Route path="staff" element={<UsersPage />} />
+                <Route path="reports" element={<GlobalReportsPage />} />
+                <Route path="activity" element={<SuperAdminAnalyticsPage />} />
                 <Route path="analytics" element={<SuperAdminAnalyticsPage />} />
                 <Route path="settings" element={<SuperAdminSettingsPage />} />
               </Route>
@@ -122,7 +142,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["school-admin"]}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route
@@ -155,7 +175,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["teacher"]}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route
@@ -163,6 +183,7 @@ export default function App() {
                   element={<Navigate to="/teacher/dashboard" replace />}
                 />
                 <Route path="dashboard" element={<TeacherDashboard />} />
+                <Route path="students" element={<TeacherStudentsPage />} />
                 <Route path="attendance" element={<TeacherAttendancePage />} />
                 <Route
                   path="assignments"
@@ -181,7 +202,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["student"]}>
                     <DashboardLayout />
-                  </RoleGuard>
+                  </ProtectedRoute>
                 }
               >
                 <Route
@@ -201,7 +222,7 @@ export default function App() {
                 <Route path="leave" element={<StudentLeavePage />} />
               </Route>
 
-              {/* Fallback */}
+              {/* Wildcard Fallback */}
               <Route path="*" element={<RootRedirect />} />
             </Routes>
           </ToastProvider>

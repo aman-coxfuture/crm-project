@@ -12,7 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-export default function TeacherPunchCard({ showHistory = false }) {
+export default function TeacherPunchCard({ compact = false }) {
   const { currentUser } = useAuth();
   const { success, info } = useToast();
 
@@ -315,6 +315,9 @@ export default function TeacherPunchCard({ showHistory = false }) {
               >
                 {todayRecord.punchIn || "—"}
               </div>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '300px', margin: '4px auto 0' }}>
+                Record your arrival time for today ({new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+              </p>
             </div>
 
             <div style={{ textAlign: "right" }}>
@@ -340,6 +343,7 @@ export default function TeacherPunchCard({ showHistory = false }) {
               </div>
             </div>
           </div>
+        )}
 
           {isPresent && (
             <div
@@ -377,8 +381,6 @@ export default function TeacherPunchCard({ showHistory = false }) {
               <AlertCircle size={13} />
               <span>You are currently recorded as Absent today.</span>
             </div>
-          )}
-        </div>
 
         {/* Action Buttons (Punch In / Punch Out / Mark Absent Demo) */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -426,7 +428,15 @@ export default function TeacherPunchCard({ showHistory = false }) {
                   textAlign: "center",
                 }}
               >
-                ✓ Day Completed (Punched Out)
+                <div
+                  style={{
+                    width: `${progressPercent}%`,
+                    height: '100%',
+                    backgroundColor: is8HoursCompleted ? '#10b981' : 'var(--primary)',
+                    borderRadius: '999px',
+                    transition: 'width 0.5s ease',
+                  }}
+                />
               </div>
               <button
                 className="btn btn-secondary btn-sm"
@@ -437,16 +447,14 @@ export default function TeacherPunchCard({ showHistory = false }) {
                 Update Punch In
               </button>
             </div>
-          )}
 
-          {isAbsent && (
             <button
               className="btn btn-primary"
               onClick={handlePunchIn}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              <LogIn size={15} />
-              <span>Punch In (Mark Present)</span>
+              <LogOut size={18} />
+              <span>Punch Out</span>
             </button>
           )}
         </div>
@@ -475,6 +483,71 @@ export default function TeacherPunchCard({ showHistory = false }) {
             <Calendar size={14} />
             <span>My Attendance History</span>
           </div>
+        )}
+
+        {/* STATE 3: SHIFT COMPLETED */}
+        {isShiftCompleted && (
+          <div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                padding: '14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                border: '1px solid rgba(99, 102, 241, 0.2)',
+                marginBottom: '16px',
+                textAlign: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Punch In
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981', marginTop: '2px' }}>
+                  {todayRecord.punchIn}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Punch Out
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ef4444', marginTop: '2px' }}>
+                  {todayRecord.punchOut}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Total Hours
+                </div>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--primary)', marginTop: '2px' }}>
+                  {todayRecord.totalWorkingHours || elapsedTimeStr}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: '#10b981',
+                fontSize: '0.825rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                marginBottom: '14px',
+              }}
+            >
+              <CheckCircle2 size={16} />
+              <span>Shift Completed & Recorded</span>
+            </div>
 
           <div
             style={{
@@ -582,8 +655,8 @@ export default function TeacherPunchCard({ showHistory = false }) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import api from './api';
-import { mockUsers } from '../mock/mockUsers';
+import { mockUsersList } from '../mock/mockUsers';
 
-let localUsers = [...mockUsers];
+let localUsers = [...mockUsersList];
 
 export const userService = {
   async getUsers(params = {}) {

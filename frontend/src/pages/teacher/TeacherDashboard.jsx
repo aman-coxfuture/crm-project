@@ -8,13 +8,9 @@ import StatCard from "../../components/common/StatCard";
 import { StatusBadge } from "../../components/common/StatusBadge";
 import TeacherPunchCard from "../../components/teacher/TeacherPunchCard";
 import {
-  CalendarCheck,
   BookOpen,
   Award,
   Clock,
-  Bell,
-  CheckCircle2,
-  ArrowRight,
   Plus,
   ClipboardList,
   Layers,
@@ -110,7 +106,7 @@ export default function TeacherDashboard() {
   return (
     <div>
       {/* Teacher Dashboard Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ alignItems: 'center' }}>
         <div>
           <h1 className="page-title">
             <span>Welcome, {teacherName}! 👨‍🏫</span>
@@ -457,9 +453,6 @@ export default function TeacherDashboard() {
               </div>
             </div>
           </div>
-
-          {/* Teacher Own Attendance (Punch In / Punch Out Card) */}
-          <TeacherPunchCard showHistory={false} />
 
           {/* School Notices */}
           <div className="card">

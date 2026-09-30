@@ -27,7 +27,10 @@ export default function Breadcrumb({ customItems }) {
   // Generate automatically from path
   const pathnames = location.pathname.split('/').filter((x) => x);
 
-  const formatLabel = (str) => {
+  const formatLabel = (str, currentPath) => {
+    if (currentPath === '/school-admin/fees' || (location.pathname.startsWith('/school-admin') && str === 'fees')) {
+      return 'Student Fee Management';
+    }
     return str
       .split('-')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -47,10 +50,10 @@ export default function Breadcrumb({ customItems }) {
           <React.Fragment key={routeTo}>
             <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
             {isLast ? (
-              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatLabel(name)}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatLabel(name, routeTo)}</span>
             ) : (
               <Link to={routeTo} style={{ color: 'var(--text-secondary)' }}>
-                {formatLabel(name)}
+                {formatLabel(name, routeTo)}
               </Link>
             )}
           </React.Fragment>

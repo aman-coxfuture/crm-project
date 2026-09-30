@@ -45,10 +45,12 @@ export default function SchoolAdminDashboard() {
   const staffOutstandingAmount = staffFeeLedgers.reduce((sum, s) => sum + (Number(s.pendingAmount) || 0), 0);
 
   // Teacher Attendance (Scoped to current school)
-  const todayDate = '2026-09-09';
+  const todayDate = new Date().toISOString().split('T')[0];
   const teacherAttendanceList = schoolDataService.getTeacherAttendance(schoolId, todayDate);
-  const presentTeachers = teacherAttendanceList.filter((t) => t.status === 'present');
+  const teacherActivities = schoolDataService.getTeacherActivities();
+  const presentTeachers = teacherAttendanceList.filter((t) => t.status === 'present' || t.status === 'shift_completed');
   const absentTeachers = teacherAttendanceList.filter((t) => t.status === 'absent');
+  const notPunchedTeachers = teacherAttendanceList.filter((t) => t.status === 'not_marked' || (!t.punchIn || t.punchIn === '—'));
   const teacherAttendanceRate =
     teachers.length > 0
       ? ((presentTeachers.length / teachers.length) * 100).toFixed(1)
@@ -272,13 +274,13 @@ export default function SchoolAdminDashboard() {
           <ComparisonBarChart data={attendanceWeekly} height={200} />
         </div>
 
-        {/* PART 16: Today's Teacher Attendance Widget */}
+        {/* Today's Teacher Attendance Widget (Real-time synced) */}
         <div className="card">
           <div className="card-header">
             <div>
               <h3 className="card-title">Today's Teacher Attendance</h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                Date: 09 September 2026 • Faculty Roster
+                {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} • Faculty Roster
               </p>
             </div>
             <span className="badge badge-primary">{teacherAttendanceRate}% Present</span>
@@ -293,45 +295,88 @@ export default function SchoolAdminDashboard() {
               <div style={{ fontSize: '0.675rem', color: '#10b981', textTransform: 'uppercase', fontWeight: 700 }}>🟢 Present</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>{presentTeachers.length}</div>
             </div>
-            <div style={{ padding: '8px 10px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.675rem', color: '#ef4444', textTransform: 'uppercase', fontWeight: 700 }}>🔴 Absent</div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>{absentTeachers.length}</div>
+            <div style={{ padding: '8px 10px', backgroundColor: 'rgba(100, 116, 139, 0.1)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.675rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>⚪ Not Punched</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-tertiary)', marginTop: '2px' }}>{notPunchedTeachers.length}</div>
             </div>
           </div>
 
-          {absentTeachers.length > 0 ? (
-            <div>
-              <div style={{ fontSize: '0.725rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Absent Today:
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {absentTeachers.map((t) => (
-                  <div
-                    key={t.id || t.teacherId}
-                    onClick={() => navigate('/school-admin/attendance')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                      cursor: 'pointer',
-                    }}
+          {/* Teacher List with Punch Status */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', marginBottom: '14px' }}>
+            {teacherAttendanceList.map((t) => {
+              const isPunched = (t.status === 'present' || t.status === 'shift_completed') && t.punchIn && t.punchIn !== '—';
+              const isCompleted = t.status === 'shift_completed' || (t.punchOut && t.punchOut !== '—');
+
+              return (
+                <div
+                  key={t.id || t.teacherId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: isCompleted
+                      ? 'rgba(99, 102, 241, 0.08)'
+                      : isPunched
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : 'var(--bg-tertiary)',
+                    border: `1px solid ${
+                      isCompleted
+                        ? 'rgba(99, 102, 241, 0.2)'
+                        : isPunched
+                        ? 'rgba(16, 185, 129, 0.25)'
+                        : 'var(--border-color)'
+                    }`,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.825rem', color: 'var(--text-primary)' }}>
+                      {isCompleted ? '🟢 ' : isPunched ? '🟢 ' : '⚪ '}
+                      {t.teacherName}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      {isCompleted ? (
+                        <span>Punch In: <strong>{t.punchIn}</strong> • Out: <strong>{t.punchOut}</strong> ({t.totalWorkingHours})</span>
+                      ) : isPunched ? (
+                        <span>Punch In: <strong>{t.punchIn}</strong> • Working</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-tertiary)' }}>Not Punched In</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <span
+                    className={`badge ${
+                      isCompleted
+                        ? 'badge-purple'
+                        : isPunched
+                        ? 'badge-success'
+                        : 'badge-gray'
+                    }`}
+                    style={{ fontSize: '0.675rem' }}
                   >
-                    <span style={{ fontWeight: 700, fontSize: '0.8rem', color: '#dc2626' }}>
-                      🔴 {t.teacherName}
-                    </span>
-                    <span style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>
-                      {t.department || 'Faculty'}
-                    </span>
+                    {isCompleted ? 'Shift Done' : isPunched ? 'Present' : 'Pending'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Activity / Notification Feed on Principal Dashboard */}
+          {teacherActivities.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                Latest Teacher Activity
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {teacherActivities.slice(0, 2).map((act, i) => (
+                  <div key={act.id || i} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>📢 {act.text}</span>
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '0.7rem' }}>{act.punchIn || act.punchOut || ''}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div style={{ padding: '8px 12px', backgroundColor: 'rgba(16, 185, 129, 0.08)', borderRadius: 'var(--radius-md)', color: '#10b981', fontSize: '0.775rem', fontWeight: 700, textAlign: 'center' }}>
-              ✓ 100% Faculty Attendance Recorded Today
             </div>
           )}
         </div>
