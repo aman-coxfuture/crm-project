@@ -11,6 +11,14 @@ const attendanceService = {
   getStudentAttendanceSummary: (studentId) =>
     api.get(`/attendance/student/${studentId}`),
 
+  getStudentAttendance: (params = {}) =>
+    api.get("/student-attendance", { params }),
+
+  markStudentAttendance: (data) => api.post("/student-attendance", data),
+
+  updateStudentAttendance: (id, data) =>
+    api.put(`/student-attendance/${id}`, data),
+
   // Faculty Attendance
   getFacultyAttendance: (params = {}) =>
     api.get("/faculty-attendance", { params }),

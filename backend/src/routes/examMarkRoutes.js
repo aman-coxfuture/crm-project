@@ -6,6 +6,7 @@ const {
   createExamMark,
   updateExamMark,
   deactivateExamMark,
+  getMyStudentResults,
   getStudentResult,
 } = require("../controllers/examMarkController");
 
@@ -16,17 +17,25 @@ const tenantMiddleware = require("../middleware/tenantMiddleware");
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(authorizeRoles("ADMIN"));
 router.use(tenantMiddleware);
 
-router.get("/", getExamMarks);
-router.get("/result/:examId/:studentId", getStudentResult);
-router.get("/:id", getExamMarkById);
+router.get("/", authorizeRoles("ADMIN", "FACULTY"), getExamMarks);
 
-router.post("/", createExamMark);
+router.get("/my-results", authorizeRoles("STUDENT"), getMyStudentResults);
 
-router.put("/:id", updateExamMark);
+router.get(
+  "/result/:examId/:studentId",
+  authorizeRoles("ADMIN", "FACULTY"),
+  getStudentResult,
+);
 
-router.patch("/:id/deactivate", deactivateExamMark);
+router.get("/:id", authorizeRoles("ADMIN", "FACULTY"), getExamMarkById);
+
+router.post("/", authorizeRoles("ADMIN", "FACULTY"), createExamMark);
+
+router.put("/:id", authorizeRoles("ADMIN", "FACULTY"), updateExamMark);
+
+// Deactivation remains Admin-only
+router.patch("/:id/deactivate", authorizeRoles("ADMIN"), deactivateExamMark);
 
 module.exports = router;

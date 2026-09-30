@@ -19,6 +19,19 @@ export default function TimetablePage() {
 
   const [classes, setClasses] = useState([]);
   const [faculties, setFaculties] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const [newTimetable, setNewTimetable] = useState({
+    day: "MONDAY",
+    period: 1,
+    startTime: "08:00",
+    endTime: "08:40",
+    classId: "",
+    section: "",
+    facultyId: "",
+    subject: "",
+    room: "",
+  });
 
   const days = [
     { value: "MONDAY", label: "Monday" },
@@ -164,6 +177,61 @@ export default function TimetablePage() {
     window.print();
   };
 
+  const handleCreateTimetable = async () => {
+    try {
+      setError("");
+
+      if (
+        !newTimetable.day ||
+        !newTimetable.period ||
+        !newTimetable.startTime ||
+        !newTimetable.endTime ||
+        !newTimetable.classId ||
+        !newTimetable.section ||
+        !newTimetable.facultyId ||
+        !newTimetable.subject.trim()
+      ) {
+        setError("Please fill all required timetable fields");
+        return;
+      }
+
+      setLoading(true);
+
+      await timetableService.createTimetable({
+        day: newTimetable.day,
+        period: Number(newTimetable.period),
+        startTime: newTimetable.startTime,
+        endTime: newTimetable.endTime,
+        classId: newTimetable.classId,
+        section: newTimetable.section,
+        facultyId: newTimetable.facultyId,
+        subject: newTimetable.subject.trim(),
+        room: newTimetable.room.trim() || null,
+      });
+
+      setShowAddModal(false);
+
+      setNewTimetable({
+        day: "MONDAY",
+        period: 1,
+        startTime: "08:00",
+        endTime: "08:40",
+        classId: "",
+        section: "",
+        facultyId: "",
+        subject: "",
+        room: "",
+      });
+
+      await loadTimetable();
+    } catch (err) {
+      console.error("Failed to create timetable:", err);
+      setError(err.message || "Failed to create timetable");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ---------------------------------------------------------
   // GET PERIOD ENTRY
   // ---------------------------------------------------------
@@ -200,10 +268,19 @@ export default function TimetablePage() {
           </p>
         </div>
 
-        <button className="btn btn-secondary" onClick={handlePrint}>
-          <Printer size={15} />
-          <span>Print Timetable</span>
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
+            + Add Timetable Entry
+          </button>
+
+          <button className="btn btn-secondary" onClick={handlePrint}>
+            <Printer size={15} />
+            <span>Print Timetable</span>
+          </button>
+        </div>
       </div>
 
       {/* =====================================================
@@ -806,6 +883,300 @@ export default function TimetablePage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+      {showAddModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: "100%",
+              maxWidth: "650px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              padding: "24px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "22px",
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0, fontSize: "1.2rem" }}>
+                  Add Timetable Entry
+                </h2>
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    fontSize: "0.8rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Assign a teacher and subject to a class period.
+                </p>
+              </div>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* DAY + PERIOD */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+                marginBottom: "16px",
+              }}
+            >
+              <div>
+                <label className="form-label">Day *</label>
+                <select
+                  className="form-select"
+                  value={newTimetable.day}
+                  onChange={(e) =>
+                    setNewTimetable((prev) => ({
+                      ...prev,
+                      day: e.target.value,
+                    }))
+                  }
+                >
+                  {days.map((day) => (
+                    <option key={day.value} value={day.value}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Period *</label>
+                <select
+                  className="form-select"
+                  value={newTimetable.period}
+                  onChange={(e) => {
+                    const period = Number(e.target.value);
+                    const [startTime, endTime] = periodTimes[period];
+
+                    setNewTimetable((prev) => ({
+                      ...prev,
+                      period,
+                      startTime,
+                      endTime,
+                    }));
+                  }}
+                >
+                  {Object.keys(periodTimes).map((period) => (
+                    <option key={period} value={period}>
+                      Period {period}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* TIME */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+                marginBottom: "16px",
+              }}
+            >
+              <div>
+                <label className="form-label">Start Time *</label>
+                <input
+                  type="time"
+                  className="form-input"
+                  value={newTimetable.startTime}
+                  onChange={(e) =>
+                    setNewTimetable((prev) => ({
+                      ...prev,
+                      startTime: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="form-label">End Time *</label>
+                <input
+                  type="time"
+                  className="form-input"
+                  value={newTimetable.endTime}
+                  onChange={(e) =>
+                    setNewTimetable((prev) => ({
+                      ...prev,
+                      endTime: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            {/* CLASS */}
+            <div style={{ marginBottom: "16px" }}>
+              <label className="form-label">Class *</label>
+
+              <select
+                className="form-select"
+                value={newTimetable.classId}
+                onChange={(e) => {
+                  const classId = e.target.value;
+                  const selectedClassData = classes.find(
+                    (c) => c._id === classId,
+                  );
+
+                  setNewTimetable((prev) => ({
+                    ...prev,
+                    classId,
+                    section: selectedClassData?.sections?.[0] || "",
+                  }));
+                }}
+              >
+                <option value="">Select Class</option>
+
+                {classes.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* SECTION */}
+            <div style={{ marginBottom: "16px" }}>
+              <label className="form-label">Section *</label>
+
+              <select
+                className="form-select"
+                value={newTimetable.section}
+                onChange={(e) =>
+                  setNewTimetable((prev) => ({
+                    ...prev,
+                    section: e.target.value,
+                  }))
+                }
+                disabled={!newTimetable.classId}
+              >
+                <option value="">Select Section</option>
+
+                {(
+                  classes.find((c) => c._id === newTimetable.classId)
+                    ?.sections || []
+                ).map((section) => (
+                  <option key={section} value={section}>
+                    {section}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* TEACHER */}
+            <div style={{ marginBottom: "16px" }}>
+              <label className="form-label">Assigned Teacher *</label>
+
+              <select
+                className="form-select"
+                value={newTimetable.facultyId}
+                onChange={(e) =>
+                  setNewTimetable((prev) => ({
+                    ...prev,
+                    facultyId: e.target.value,
+                  }))
+                }
+              >
+                <option value="">Select Teacher</option>
+
+                {faculties.map((faculty) => (
+                  <option key={faculty._id} value={faculty._id}>
+                    {faculty.name}
+                    {faculty.designation ? ` (${faculty.designation})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* SUBJECT */}
+            <div style={{ marginBottom: "16px" }}>
+              <label className="form-label">Subject *</label>
+
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Mathematics"
+                value={newTimetable.subject}
+                onChange={(e) =>
+                  setNewTimetable((prev) => ({
+                    ...prev,
+                    subject: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* ROOM */}
+            <div style={{ marginBottom: "22px" }}>
+              <label className="form-label">Room</label>
+
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Room 101"
+                value={newTimetable.room}
+                onChange={(e) =>
+                  setNewTimetable((prev) => ({
+                    ...prev,
+                    room: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* ACTIONS */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={handleCreateTimetable}
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Save Timetable"}
+              </button>
+            </div>
           </div>
         </div>
       )}

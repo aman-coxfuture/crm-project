@@ -42,6 +42,10 @@ class ApiClient {
       ...options.headers,
     };
 
+    if (options.body instanceof FormData) {
+      delete headers["Content-Type"];
+    }
+
     try {
       const { params, ...fetchOptions } = options;
 
@@ -58,6 +62,12 @@ class ApiClient {
         );
       }
 
+      if (options.responseType === "blob") {
+        return await response.blob();
+      }
+
+      return await response.json();
+
       return await response.json();
     } catch (error) {
       // In development or when backend is offline, propagate error for service mock fallback
@@ -72,7 +82,7 @@ class ApiClient {
   post(endpoint, data, options = {}) {
     return this.request(endpoint, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
       ...options,
     });
   }

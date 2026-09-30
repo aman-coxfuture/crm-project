@@ -5,6 +5,10 @@ const attendanceService = {
   // Optional filters: date, studentId
   getAttendance: (params = {}) => api.get("/attendance", { params }),
 
+  // Get logged-in student's attendance
+  getStudentAttendance: (params = {}) =>
+    api.get("/student-attendance", { params }),
+
   // Mark attendance
   markAttendance: (data) => api.post("/attendance", data),
 

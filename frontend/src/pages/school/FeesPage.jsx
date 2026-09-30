@@ -2,10 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { SCHOOL_CLASSES } from "../../services/schoolDataService";
 import feeService from "../../services/feeService";
 import StatCard from "../../components/common/StatCard";
 import Modal from "../../components/common/Modal";
+import classService from "../../services/classService";
+import academicSessionService from "../../services/academicSessionService";
 import { FormInput, Select } from "../../components/common/FormInput";
 import {
   DollarSign,
@@ -64,8 +65,6 @@ export default function FeesPage() {
     setSearchParams({ tab: tabKey });
   };
 
-  const schoolId = selectedSchool?.id || "SCH-001";
-
   // State loaded from schoolDataService
   const [studentLedgers, setStudentLedgers] = useState([]);
   const [feeTransactions, setFeeTransactions] = useState([]);
@@ -73,6 +72,7 @@ export default function FeesPage() {
     fineType: "per_day",
     fineAmount: 50,
     fixedAmount: 500,
+    gracePeriod: 5,
   });
   const [loading, setLoading] = useState(true);
   // Modals state
@@ -87,18 +87,64 @@ export default function FeesPage() {
   const [selectedClass, setSelectedClass] = useState("All");
   const [selectedSection, setSelectedSection] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  const [selectedSession, setSelectedSession] = useState("2026-27");
+  const [selectedSession, setSelectedSession] = useState("");
+  const [academicSessions, setAcademicSessions] = useState([]);
+  const [schoolClasses, setSchoolClasses] = useState([]);
 
   // Filters state for Late Fine section
   const [fineSearchQuery, setFineSearchQuery] = useState("");
   const [fineClass, setFineClass] = useState("All");
   const [fineSection, setFineSection] = useState("All");
   const [fineStatus, setFineStatus] = useState("All");
-  const [fineSession, setFineSession] = useState("2026-27");
+  const [fineSession, setFineSession] = useState("");
 
   // Dashboard class overview selector
-  const [dashboardOverviewClass, setDashboardOverviewClass] =
-    useState("Class 9");
+  const [dashboardOverviewClass, setDashboardOverviewClass] = useState("");
+
+  const loadAcademicSessions = async () => {
+    try {
+      const response = await academicSessionService.getActiveAcademicSessions();
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to load academic sessions");
+      }
+
+      const sessions = response.sessions || [];
+
+      setAcademicSessions(sessions);
+
+      if (sessions.length > 0) {
+        const firstSession = sessions[0].name;
+
+        setSelectedSession((current) => current || firstSession);
+        setFineSession((current) => current || firstSession);
+      }
+    } catch (error) {
+      console.error("Failed to load academic sessions:", error);
+      toastError(error.message || "Failed to load academic sessions");
+    }
+  };
+
+  const loadSchoolClasses = async () => {
+    try {
+      const response = await classService.getSchoolClasses();
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to load classes");
+      }
+
+      const classes = response.classes || [];
+
+      setSchoolClasses(classes);
+
+      if (classes.length > 0) {
+        setDashboardOverviewClass((current) => current || classes[0].name);
+      }
+    } catch (error) {
+      console.error("Failed to load classes:", error);
+      toastError(error.message || "Failed to load classes");
+    }
+  };
 
   // Refresh helper
   const reloadData = async () => {
@@ -147,6 +193,7 @@ export default function FeesPage() {
           class: payment.feeId?.className || payment.feeId?.class || "",
           section: payment.feeId?.section || "",
           feeType: payment.feeType || "",
+          academicSession: payment.feeId?.academicSession || "",
           amount: Number(payment.amount) || 0,
           paidDate: payment.paymentDate || payment.createdAt || "",
           paymentMethod: payment.paymentMethod || "",
@@ -165,8 +212,31 @@ export default function FeesPage() {
     }
   };
   useEffect(() => {
+    loadAcademicSessions();
+    loadSchoolClasses();
     reloadData();
   }, []);
+
+  useEffect(() => {
+    const loadFineSettings = async () => {
+      try {
+        const response = await feeService.getFineSettings(fineSession);
+
+        if (response.success && response.setting) {
+          setFineSettings({
+            fineType: response.setting.fineType || "per_day",
+            fineAmount: Number(response.setting.fineAmount) || 50,
+            fixedAmount: Number(response.setting.fixedAmount) || 500,
+            gracePeriod: Number(response.setting.gracePeriod) || 5,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load fine settings:", error);
+      }
+    };
+
+    loadFineSettings();
+  }, [fineSession]);
 
   // Helper currency formatter
   const formatCurrency = (val) => {
@@ -250,6 +320,25 @@ export default function FeesPage() {
         );
       })
       .map((item) => {
+        let lateDays = 0;
+        let lateDaysAfterGrace = 0;
+
+        if (item.dueDate) {
+          const dueDate = new Date(item.dueDate);
+          const today = new Date();
+
+          dueDate.setHours(0, 0, 0, 0);
+          today.setHours(0, 0, 0, 0);
+
+          if (today > dueDate) {
+            lateDays = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+
+            const gracePeriod = Number(fineSettings.gracePeriod || 0);
+
+            lateDaysAfterGrace = Math.max(0, lateDays - gracePeriod);
+          }
+        }
+
         const fineTypeDisplay =
           fineSettings.fineType === "fixed"
             ? `Fixed (₹${fineSettings.fixedAmount || 500})`
@@ -257,6 +346,8 @@ export default function FeesPage() {
 
         return {
           ...item,
+          lateDays,
+          lateDaysAfterGrace,
           fineTypeDisplay,
         };
       });
@@ -273,13 +364,22 @@ export default function FeesPage() {
   // Late Fine Summary Metrics
   const fineMetrics = useMemo(() => {
     const studentsWithFine = studentLedgers.filter(
-      (l) => l.fineAmount > 0 || l.lateDays > 0,
+      (l) =>
+        (!selectedSession || l.academicSession === selectedSession) &&
+        (l.fineAmount > 0 || l.lateDays > 0),
     ).length;
-    const finePending = studentLedgers.reduce(
-      (acc, l) => acc + (Number(l.fineAmount) || 0),
-      0,
-    );
-    const fineCollected = 75000; // base realized fine
+    const finePending = studentLedgers
+      .filter((l) => !selectedSession || l.academicSession === selectedSession)
+      .reduce((acc, l) => acc + (Number(l.fineAmount) || 0), 0);
+    const fineCollected = feeTransactions
+      .filter(
+        (payment) =>
+          payment.status === "SUCCESS" &&
+          (!selectedSession || payment.academicSession === selectedSession) &&
+          ((payment.feeType || "").toLowerCase().includes("fine") ||
+            (payment.notes || "").toLowerCase().includes("fine")),
+      )
+      .reduce((total, payment) => total + Number(payment.amount || 0), 0);
     const totalLateFines = fineCollected + finePending;
 
     return {
@@ -288,55 +388,82 @@ export default function FeesPage() {
       finePending,
       studentsWithFine,
     };
-  }, [studentLedgers]);
+  }, [studentLedgers, feeTransactions, selectedSession]);
 
   // Summary Metrics for Dashboard
   const metrics = useMemo(() => {
-    const totalStudents = studentLedgers.length;
-    const totalFees = studentLedgers.reduce(
-      (acc, l) => acc + (Number(l.totalFee) || 0),
-      0,
-    );
-    const collected = studentLedgers.reduce(
-      (acc, l) => acc + (Number(l.paidAmount) || 0),
-      0,
-    );
-    const pending = studentLedgers.reduce(
-      (acc, l) => acc + (Number(l.pendingAmount) || 0),
-      0,
-    );
-    const overdue = studentLedgers
-      .filter((l) => l.status === "OVERDUE")
+    const totalStudents = studentLedgers.filter(
+      (l) => !selectedSession || l.academicSession === selectedSession,
+    ).length;
+    const totalFees = studentLedgers
+      .filter((l) => !selectedSession || l.academicSession === selectedSession)
+      .reduce((acc, l) => acc + (Number(l.totalFee) || 0), 0);
+    const collected = studentLedgers
+      .filter((l) => !selectedSession || l.academicSession === selectedSession)
+      .reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0);
+    const pending = studentLedgers
+      .filter((l) => !selectedSession || l.academicSession === selectedSession)
       .reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0);
+    const overdue = studentLedgers
+      .filter(
+        (l) =>
+          (!selectedSession || l.academicSession === selectedSession) &&
+          l.status === "OVERDUE",
+      )
+      .reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0);
+
+    const overdueAmount = overdue;
     const lateFineCollected = feeTransactions
       .filter(
         (t) =>
-          (t.feeType || "").toLowerCase().includes("fine") ||
-          (t.notes || "").toLowerCase().includes("fine"),
+          t.status === "SUCCESS" &&
+          ((t.feeType || "").toLowerCase().includes("fine") ||
+            (t.notes || "").toLowerCase().includes("fine")),
       )
-      .reduce((acc, t) => acc + (Number(t.amount) || 0), 75000);
+      .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
 
-    const paidCount = studentLedgers.filter((l) => l.status === "PAID").length;
+    const paidCount = studentLedgers.filter(
+      (l) =>
+        (!selectedSession || l.academicSession === selectedSession) &&
+        l.status === "PAID",
+    ).length;
     const partialCount = studentLedgers.filter(
-      (l) => l.status === "PARTIAL",
+      (l) =>
+        (!selectedSession || l.academicSession === selectedSession) &&
+        l.status === "PARTIAL",
     ).length;
     const pendingCount = studentLedgers.filter(
-      (l) => l.status === "PENDING",
+      (l) =>
+        (!selectedSession || l.academicSession === selectedSession) &&
+        l.status === "PENDING",
     ).length;
     const overdueCount = studentLedgers.filter(
-      (l) => l.status === "OVERDUE",
+      (l) =>
+        (!selectedSession || l.academicSession === selectedSession) &&
+        l.status === "OVERDUE",
     ).length;
 
     const paidAmount = studentLedgers
-      .filter((l) => l.status === "PAID")
+      .filter(
+        (l) =>
+          (!selectedSession || l.academicSession === selectedSession) &&
+          l.status === "PAID",
+      )
       .reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0);
     const partialAmount = studentLedgers
-      .filter((l) => l.status === "PARTIAL")
+      .filter(
+        (l) =>
+          (!selectedSession || l.academicSession === selectedSession) &&
+          l.status === "PARTIAL",
+      )
       .reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0);
     const pendingAmount = studentLedgers
-      .filter((l) => l.status === "PENDING")
+      .filter(
+        (l) =>
+          (!selectedSession || l.academicSession === selectedSession) &&
+          l.status === "PENDING",
+      )
       .reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0);
-    const overdueAmount = overdue;
 
     return {
       totalStudents,
@@ -370,7 +497,7 @@ export default function FeesPage() {
           : 0,
       },
     };
-  }, [studentLedgers, feeTransactions]);
+  }, [studentLedgers, feeTransactions, selectedSession]);
 
   const collectionMetrics = useMemo(() => {
     const now = new Date();
@@ -387,7 +514,9 @@ export default function FeesPage() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const validPayments = feeTransactions.filter(
-      (payment) => payment.status === "SUCCESS",
+      (payment) =>
+        payment.status === "SUCCESS" &&
+        (!selectedSession || payment.academicSession === selectedSession),
     );
 
     const getAmount = (startDate) =>
@@ -414,11 +543,13 @@ export default function FeesPage() {
       monthAmount: getAmount(startOfMonth),
       monthCount: getCount(startOfMonth),
     };
-  }, [feeTransactions]);
+  }, [feeTransactions, selectedSession]);
 
   const paymentMethodMetrics = useMemo(() => {
     const successfulPayments = feeTransactions.filter(
-      (payment) => payment.status === "SUCCESS",
+      (payment) =>
+        payment.status === "SUCCESS" &&
+        (!selectedSession || payment.academicSession === selectedSession),
     );
 
     const getMethodData = (method) => {
@@ -434,19 +565,52 @@ export default function FeesPage() {
         count: payments.length,
       };
     };
+    const totalAmount = successfulPayments.reduce(
+      (total, payment) => total + Number(payment.amount || 0),
+      0,
+    );
+    const getShare = (amount) => {
+      if (!totalAmount) return 0;
+      return Math.round((amount / totalAmount) * 100);
+    };
+
+    const upi = getMethodData("UPI");
+    const bankTransfer = getMethodData("Bank Transfer");
+    const cash = getMethodData("Cash");
+    const cheque = getMethodData("Cheque");
 
     return {
-      upi: getMethodData("UPI"),
-      bankTransfer: getMethodData("Bank Transfer"),
-      cash: getMethodData("Cash"),
-      cheque: getMethodData("Cheque"),
-    };
-  }, [feeTransactions]);
+      totalAmount,
 
+      upi: {
+        ...upi,
+        share: getShare(upi.amount),
+      },
+
+      bankTransfer: {
+        ...bankTransfer,
+        share: getShare(bankTransfer.amount),
+      },
+
+      cash: {
+        ...cash,
+        share: getShare(cash.amount),
+      },
+
+      cheque: {
+        ...cheque,
+        share: getShare(cheque.amount),
+      },
+    };
+  }, [feeTransactions, selectedSession]);
+
+  // Class Overview Details for Dashboard
   // Class Overview Details for Dashboard
   const classOverviewData = useMemo(() => {
     const classStudents = studentLedgers.filter(
-      (s) => s.class === dashboardOverviewClass,
+      (s) =>
+        s.class === dashboardOverviewClass &&
+        (!selectedSession || s.academicSession === selectedSession),
     );
     const count = classStudents.length;
     const paid = classStudents.filter((s) => s.status === "PAID").length;
@@ -476,7 +640,80 @@ export default function FeesPage() {
       collected,
       pendingAmt,
     };
-  }, [studentLedgers, dashboardOverviewClass]);
+  }, [studentLedgers, dashboardOverviewClass, selectedSession]);
+
+  const monthlyCollectionTrend = useMemo(() => {
+    const successfulPayments = feeTransactions.filter(
+      (payment) =>
+        payment.status === "SUCCESS" &&
+        (!selectedSession || payment.academicSession === selectedSession),
+    );
+
+    const months = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 1);
+
+      const amount = successfulPayments
+        .filter((payment) => {
+          const paymentDate = new Date(payment.paidDate || payment.paymentDate);
+
+          return paymentDate >= startDate && paymentDate < endDate;
+        })
+        .reduce((total, payment) => total + Number(payment.amount || 0), 0);
+
+      months.push({
+        month: startDate.toLocaleString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        amount,
+      });
+    }
+
+    const maxAmount = Math.max(...months.map((item) => item.amount), 0);
+
+    return months.map((item) => ({
+      ...item,
+      pct: maxAmount ? Math.round((item.amount / maxAmount) * 100) : 0,
+    }));
+  }, [feeTransactions, selectedSession]);
+  const feeHeadMetrics = useMemo(() => {
+    const heads = {};
+
+    studentLedgers
+      .filter(
+        (fee) => !selectedSession || fee.academicSession === selectedSession,
+      )
+      .forEach((fee) => {
+        (fee.feeHeads || []).forEach((head) => {
+          const name = head.name || "Other";
+
+          if (!heads[name]) {
+            heads[name] = {
+              head: name,
+              total: 0,
+              collected: 0,
+            };
+          }
+
+          heads[name].total += Number(head.amount || 0);
+          heads[name].collected += Number(head.paidAmount || 0);
+        });
+      });
+
+    return Object.values(heads).map((item) => ({
+      ...item,
+      pct: item.total ? Math.round((item.collected / item.total) * 100) : 0,
+    }));
+  }, [studentLedgers, selectedSession]);
 
   const handleRecordPaymentSubmit = async (e) => {
     e.preventDefault();
@@ -533,19 +770,42 @@ export default function FeesPage() {
   };
 
   // Late Fine Configuration Form Handler
-  const handleSaveFineSettings = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const newSettings = {
-      fineType: formData.get("fineType"),
-      fineAmount: Number(formData.get("fineAmount")),
-      fixedAmount: Number(formData.get("fixedAmount")),
-      gracePeriod: Number(formData.get("gracePeriod")),
-    };
-    schoolDataService.saveLateFineSettings(newSettings, schoolId);
-    reloadData();
-    setIsFineSettingsModalOpen(false);
-    success("Late fine policy and grace period updated successfully!");
+  const handleSaveFineSettings = async (newSettings) => {
+    try {
+      const response = await feeService.saveFineSettings({
+        academicSession: fineSession,
+        fineType: newSettings.fineType,
+        fineAmount: Number(newSettings.fineAmount) || 0,
+        fixedAmount: Number(newSettings.fixedAmount) || 0,
+        gracePeriod: Number(newSettings.gracePeriod) || 0,
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to save fine settings");
+      }
+
+      setFineSettings({
+        fineType: response.setting?.fineType || newSettings.fineType,
+        fineAmount:
+          Number(response.setting?.fineAmount) ||
+          Number(newSettings.fineAmount) ||
+          0,
+        fixedAmount:
+          Number(response.setting?.fixedAmount) ||
+          Number(newSettings.fixedAmount) ||
+          0,
+        gracePeriod:
+          Number(response.setting?.gracePeriod) ||
+          Number(newSettings.gracePeriod) ||
+          0,
+      });
+
+      success("Fine settings saved successfully");
+      setIsFineSettingsModalOpen(false);
+    } catch (error) {
+      console.error("Failed to save fine settings:", error);
+      toastError(error.message || "Failed to save fine settings");
+    }
   };
 
   // Status Badge UI Component
@@ -853,7 +1113,7 @@ export default function FeesPage() {
                   marginTop: "4px",
                 }}
               >
-                Nursery – Class 10 enrolled
+                {metrics.totalStudents} students enrolled
               </div>
             </div>
 
@@ -887,7 +1147,7 @@ export default function FeesPage() {
                   marginTop: "4px",
                 }}
               >
-                Academic Session 2026-27
+                Academic Session {selectedSession}
               </div>
             </div>
 
@@ -1372,9 +1632,9 @@ export default function FeesPage() {
                   onChange={(e) => setDashboardOverviewClass(e.target.value)}
                   style={{ width: "160px", padding: "6px 12px" }}
                 >
-                  {SCHOOL_CLASSES.map((cls) => (
-                    <option key={cls} value={cls}>
-                      {cls}
+                  {schoolClasses.map((cls) => (
+                    <option key={cls._id} value={cls.name}>
+                      {cls.name}
                     </option>
                   ))}
                 </select>
@@ -1580,12 +1840,18 @@ export default function FeesPage() {
                 }}
               >
                 <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>
-                  Collection Trend (2026)
+                  Collection Trend ({new Date().getFullYear()})
                 </h3>
                 <span
                   style={{ fontSize: "0.8rem", color: "var(--text-tertiary)" }}
                 >
-                  Apr 2026 – Sep 2026
+                  {monthlyCollectionTrend.length > 0
+                    ? `${monthlyCollectionTrend[0].month} – ${
+                        monthlyCollectionTrend[
+                          monthlyCollectionTrend.length - 1
+                        ].month
+                      }`
+                    : "No collection data"}
                 </span>
               </div>
               <div
@@ -1595,44 +1861,7 @@ export default function FeesPage() {
                   gap: "12px",
                 }}
               >
-                {[
-                  {
-                    month: "April 2026",
-                    amount: 3200000,
-                    target: 3500000,
-                    pct: 91,
-                  },
-                  {
-                    month: "May 2026",
-                    amount: 2850000,
-                    target: 3000000,
-                    pct: 95,
-                  },
-                  {
-                    month: "June 2026",
-                    amount: 1900000,
-                    target: 2000000,
-                    pct: 95,
-                  },
-                  {
-                    month: "July 2026",
-                    amount: 2100000,
-                    target: 2500000,
-                    pct: 84,
-                  },
-                  {
-                    month: "August 2026",
-                    amount: 1800000,
-                    target: 2000000,
-                    pct: 90,
-                  },
-                  {
-                    month: "September 2026",
-                    amount: 1650000,
-                    target: 2000000,
-                    pct: 82,
-                  },
-                ].map((item) => (
+                {monthlyCollectionTrend.map((item) => (
                   <div key={item.month}>
                     <div
                       style={{
@@ -1685,7 +1914,7 @@ export default function FeesPage() {
                 <span
                   style={{ fontSize: "0.8rem", color: "var(--text-tertiary)" }}
                 >
-                  All Categories
+                  {feeHeadMetrics.length} Categories
                 </span>
               </div>
               <div
@@ -1695,39 +1924,7 @@ export default function FeesPage() {
                   gap: "12px",
                 }}
               >
-                {[
-                  {
-                    head: "Tuition Fee",
-                    collected: 5800000,
-                    total: 7200000,
-                    color: "#6366f1",
-                  },
-                  {
-                    head: "Admission & Annual Fee",
-                    collected: 1850000,
-                    total: 2000000,
-                    color: "#10b981",
-                  },
-                  {
-                    head: "Transport Fee",
-                    collected: 950000,
-                    total: 1300000,
-                    color: "#f59e0b",
-                  },
-                  {
-                    head: "Exam & Lab Fee",
-                    collected: 780000,
-                    total: 950000,
-                    color: "#3b82f6",
-                  },
-                  {
-                    head: "Library & Activities",
-                    collected: 470000,
-                    total: 600000,
-                    color: "#8b5cf6",
-                  },
-                ].map((item) => {
-                  const pct = Math.round((item.collected / item.total) * 100);
+                {feeHeadMetrics.map((item) => {
                   return (
                     <div key={item.head}>
                       <div
@@ -1741,7 +1938,7 @@ export default function FeesPage() {
                         <span style={{ fontWeight: 600 }}>{item.head}</span>
                         <span style={{ color: "var(--text-secondary)" }}>
                           {formatCurrency(item.collected)} /{" "}
-                          {formatCurrency(item.total)} ({pct}%)
+                          {formatCurrency(item.total)} ({item.pct}%)
                         </span>
                       </div>
                       <div
@@ -1755,7 +1952,7 @@ export default function FeesPage() {
                         <div
                           style={{
                             height: "100%",
-                            width: `${pct}%`,
+                            width: `${item.pct}%`,
                             backgroundColor: item.color,
                             borderRadius: "4px",
                           }}
@@ -1808,7 +2005,7 @@ export default function FeesPage() {
                 />
               </div>
 
-              {/* Class Filter (Nursery -> Class 10) */}
+              {/* Class Filter */}
               <div style={{ width: "160px" }}>
                 <select
                   className="form-control"
@@ -1817,9 +2014,10 @@ export default function FeesPage() {
                   style={{ height: "40px" }}
                 >
                   <option value="All">All Classes (K-10)</option>
-                  {SCHOOL_CLASSES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+
+                  {schoolClasses.map((schoolClass) => (
+                    <option key={schoolClass._id} value={schoolClass.name}>
+                      {schoolClass.name}
                     </option>
                   ))}
                 </select>
@@ -1834,9 +2032,16 @@ export default function FeesPage() {
                   style={{ height: "40px" }}
                 >
                   <option value="All">All Sections</option>
-                  <option value="A">Section A</option>
-                  <option value="B">Section B</option>
-                  <option value="C">Section C</option>
+
+                  {(
+                    schoolClasses.find(
+                      (schoolClass) => schoolClass.name === selectedClass,
+                    )?.sections || []
+                  ).map((section) => (
+                    <option key={section} value={section}>
+                      Section {section}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -2166,7 +2371,8 @@ export default function FeesPage() {
                   marginTop: "2px",
                 }}
               >
-                95% of monthly quota
+                {formatCurrency(collectionMetrics.monthAmount)} collected this
+                month
               </div>
             </div>
 
@@ -2200,7 +2406,7 @@ export default function FeesPage() {
                   marginTop: "2px",
                 }}
               >
-                Session 2026-27 total
+                Session {selectedSession} total
               </div>
             </div>
           </div>
@@ -2285,7 +2491,7 @@ export default function FeesPage() {
                     marginTop: "2px",
                   }}
                 >
-                  {paymentMethodMetrics.bankTransfer.count} txns
+                  33% Share • {paymentMethodMetrics.bankTransfer.count} txns
                 </div>
               </div>
 
@@ -2321,7 +2527,7 @@ export default function FeesPage() {
                     marginTop: "2px",
                   }}
                 >
-                  15% Share • 56 txns
+                  15% Share • {paymentMethodMetrics.cash.count} txns
                 </div>
               </div>
 
@@ -2357,7 +2563,7 @@ export default function FeesPage() {
                     marginTop: "2px",
                   }}
                 >
-                  5% Share • 18 txns
+                  5% Share • {paymentMethodMetrics.cheque.count} txns
                 </div>
               </div>
             </div>
@@ -2500,9 +2706,10 @@ export default function FeesPage() {
                 style={{ width: "150px" }}
               >
                 <option value="All">All Classes</option>
-                {SCHOOL_CLASSES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+
+                {schoolClasses.map((schoolClass) => (
+                  <option key={schoolClass._id} value={schoolClass.name}>
+                    {schoolClass.name}
                   </option>
                 ))}
               </select>
@@ -2900,7 +3107,7 @@ export default function FeesPage() {
                   marginTop: "4px",
                 }}
               >
-                Session 2026-27 assessment
+                Session {selectedSession} assessment
               </div>
             </div>
 
@@ -3043,7 +3250,7 @@ export default function FeesPage() {
                 />
               </div>
 
-              {/* Class Filter (Nursery to Class 10) */}
+              {/* Class Filter */}
               <div style={{ width: "150px" }}>
                 <select
                   className="form-control"
@@ -3052,9 +3259,10 @@ export default function FeesPage() {
                   style={{ height: "40px" }}
                 >
                   <option value="All">All Classes (K-10)</option>
-                  {SCHOOL_CLASSES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+
+                  {schoolClasses.map((schoolClass) => (
+                    <option key={schoolClass._id} value={schoolClass.name}>
+                      {schoolClass.name}
                     </option>
                   ))}
                 </select>
@@ -3069,9 +3277,16 @@ export default function FeesPage() {
                   style={{ height: "40px" }}
                 >
                   <option value="All">All Sections</option>
-                  <option value="A">Section A</option>
-                  <option value="B">Section B</option>
-                  <option value="C">Section C</option>
+
+                  {(
+                    schoolClasses.find(
+                      (schoolClass) => schoolClass.name === fineClass,
+                    )?.sections || []
+                  ).map((section) => (
+                    <option key={section} value={section}>
+                      Section {section}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -3099,8 +3314,11 @@ export default function FeesPage() {
                   onChange={(e) => setFineSession(e.target.value)}
                   style={{ height: "40px" }}
                 >
-                  <option value="2026-27">2026-27</option>
-                  <option value="2025-26">2025-26</option>
+                  {academicSessions.map((session) => (
+                    <option key={session._id} value={session.name}>
+                      {session.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -3500,35 +3718,35 @@ export default function FeesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {SCHOOL_CLASSES.map((cls) => {
+                  {schoolClasses.map((schoolClass) => {
+                    const cls = schoolClass.name;
                     const classStudents = studentLedgers.filter(
                       (s) => s.class === cls,
                     );
-                    const count = classStudents.length || 40;
-                    const totalFee =
-                      classStudents.reduce(
-                        (acc, s) => acc + (Number(s.totalFee) || 0),
-                        0,
-                      ) || (cls.includes("Nursery") ? 800000 : 900000);
-                    const collected =
-                      classStudents.reduce(
-                        (acc, s) => acc + (Number(s.paidAmount) || 0),
-                        0,
-                      ) || (cls.includes("Nursery") ? 700000 : 800000);
-                    const pending =
-                      classStudents.reduce(
+                    const count = classStudents.length;
+
+                    const totalFee = classStudents.reduce(
+                      (acc, s) => acc + (Number(s.totalFee) || 0),
+                      0,
+                    );
+
+                    const collected = classStudents.reduce(
+                      (acc, s) => acc + (Number(s.paidAmount) || 0),
+                      0,
+                    );
+
+                    const pending = classStudents.reduce(
+                      (acc, s) => acc + (Number(s.pendingAmount) || 0),
+                      0,
+                    );
+
+                    const overdue = classStudents
+                      .filter((s) => s.status === "OVERDUE")
+                      .reduce(
                         (acc, s) => acc + (Number(s.pendingAmount) || 0),
                         0,
-                      ) || 80000;
-                    const overdue =
-                      classStudents
-                        .filter((s) => s.status === "OVERDUE")
-                        .reduce(
-                          (acc, s) => acc + (Number(s.pendingAmount) || 0),
-                          0,
-                        ) || 20000;
+                      );
                     const pct = Math.round((collected / totalFee) * 100);
-
                     return (
                       <tr key={cls}>
                         <td>
@@ -3582,9 +3800,6 @@ export default function FeesPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL: LATE FINE DETAILS & CALCULATION VISUALIZER */}
-      {/* ========================================================================= */}
       {selectedFineForDetails && (
         <Modal
           isOpen={!!selectedFineForDetails}
@@ -4496,7 +4711,7 @@ export default function FeesPage() {
                   type="number"
                   name="amount"
                   className="form-control"
-                  defaultValue={paymentModalData.pendingAmount || 10000}
+                  defaultValue={paymentModalData.pendingAmount || ""}
                   min="1"
                   required
                 />
@@ -4563,10 +4778,6 @@ export default function FeesPage() {
           </form>
         </Modal>
       )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: PRINTABLE RECEIPT VOUCHER */}
-      {/* ========================================================================= */}
       {selectedReceiptForPrint && (
         <Modal
           isOpen={!!selectedReceiptForPrint}

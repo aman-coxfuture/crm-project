@@ -225,6 +225,33 @@ const getAllFeePayments = async (req, res) => {
   }
 };
 
+// Get My Payment History - Student
+const getMyFeePayments = async (req, res) => {
+  try {
+    const payments = await FeePayment.find({
+      studentId: req.user.userId,
+      tenantId: req.user.tenantId,
+      status: "SUCCESS",
+    })
+      .populate("feeId", "academicSession className section")
+      .sort({ paymentDate: -1, createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: payments.length,
+      payments,
+    });
+  } catch (error) {
+    console.error("Get My Fee Payments Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch my payment history",
+      error: error.message,
+    });
+  }
+};
+
 // Get Payments By Student
 const getStudentFeePayments = async (req, res) => {
   try {
@@ -256,4 +283,5 @@ module.exports = {
   createFeePayment,
   getAllFeePayments,
   getStudentFeePayments,
+  getMyFeePayments,
 };

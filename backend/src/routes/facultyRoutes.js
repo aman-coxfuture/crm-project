@@ -10,6 +10,7 @@ const {
   deactivateFaculty,
   reactivateFaculty,
   getMyFacultyProfile,
+  updateMyFacultyProfile,
 } = require("../controllers/facultyController");
 
 const authMiddleware = require("../middleware/authMiddleware");

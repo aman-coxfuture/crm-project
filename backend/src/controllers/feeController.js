@@ -200,8 +200,6 @@ const getAllFees = async (req, res) => {
   }
 };
 
-// Get Fee By ID
-// Get Fee By ID
 const getFeeById = async (req, res) => {
   try {
     const fee = await Fee.findOne({
@@ -268,6 +266,67 @@ const getFeeById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch fee record",
+      error: error.message,
+    });
+  }
+};
+
+// Get My Fees - Student
+const getMyStudentFees = async (req, res) => {
+  try {
+    const fees = await Fee.find({
+      studentId: req.user.userId,
+      tenantId: req.user.tenantId,
+      isActive: true,
+    }).sort({ createdAt: -1 });
+
+    for (const fee of fees) {
+      const feeSetting = await FeeSetting.findOne({
+        tenantId: req.user.tenantId,
+        academicSession: fee.academicSession,
+        isActive: true,
+      });
+
+      const calculatedFine = calculateLateFine(fee, feeSetting);
+
+      if (calculatedFine > 0) {
+        fee.fineAmount = calculatedFine;
+
+        fee.pendingAmount =
+          Number(fee.totalAmount) - Number(fee.paidAmount) + calculatedFine;
+
+        fee.status = "OVERDUE";
+
+        await fee.save();
+      } else if (Number(fee.fineAmount || 0) > 0) {
+        fee.fineAmount = 0;
+
+        fee.pendingAmount = Number(fee.totalAmount) - Number(fee.paidAmount);
+
+        if (fee.pendingAmount <= 0) {
+          fee.pendingAmount = 0;
+          fee.status = "PAID";
+        } else if (fee.paidAmount > 0) {
+          fee.status = "PARTIAL";
+        } else {
+          fee.status = "PENDING";
+        }
+
+        await fee.save();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: fees.length,
+      fees,
+    });
+  } catch (error) {
+    console.error("Get My Student Fees Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch my fees",
       error: error.message,
     });
   }
@@ -453,6 +512,7 @@ module.exports = {
   getAllFees,
   getFeeById,
   getStudentFees,
+  getMyStudentFees,
   updateFee,
   deactivateFee,
 };

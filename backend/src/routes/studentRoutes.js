@@ -4,6 +4,8 @@ const router = express.Router();
 
 const {
   createStudent,
+  getMyStudentProfile,
+  getMyStudents,
   getAllStudents,
   getStudentById,
   updateStudent,
@@ -17,7 +19,26 @@ const authorizeRoles = require("../middleware/authorizeRoles");
 // Create Student
 router.post("/", authMiddleware, authorizeRoles("ADMIN"), createStudent);
 
-router.get("/", authMiddleware, authorizeRoles("ADMIN"), getAllStudents);
+router.get(
+  "/",
+  authMiddleware,
+  authorizeRoles("ADMIN", "FACULTY"),
+  getAllStudents,
+);
+
+router.get(
+  "/me",
+  authMiddleware,
+  authorizeRoles("STUDENT"),
+  getMyStudentProfile,
+);
+
+router.get(
+  "/my-students",
+  authMiddleware,
+  authorizeRoles("FACULTY"),
+  getMyStudents,
+);
 
 router.get("/:id", authMiddleware, authorizeRoles("ADMIN"), getStudentById);
 

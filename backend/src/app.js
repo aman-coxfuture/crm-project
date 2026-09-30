@@ -1,8 +1,10 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const fs = require("fs");
 
 const authRoutes = require("./routes/authRoutes");
 const tenantRoutes = require("./routes/tenantRoutes");
@@ -25,6 +27,10 @@ const feeSettingRoutes = require("./routes/feeSettingRoutes");
 const academicSessionRoutes = require("./routes/academicSessionRoutes");
 const staffFeeRoutes = require("./routes/staffFeeRoutes");
 const salarySlipRoutes = require("./routes/salarySlipRoutes");
+const studentAttendanceRoutes = require("./routes/studentAttendanceRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
+const courseworkAssignmentRoutes = require("./routes/courseworkAssignmentRoutes");
+const noticeRoutes = require("./routes/noticeRoutes");
 const app = express();
 
 app.use(helmet());
@@ -62,5 +68,24 @@ app.use("/api/fee-settings", feeSettingRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
 app.use("/api/staff-fees", staffFeeRoutes);
 app.use("/api/salary-slips", salarySlipRoutes);
+app.use("/api/student-attendance", studentAttendanceRoutes);
+app.use("/api/leaves", leaveRoutes);
+app.use("/api/coursework-assignments", courseworkAssignmentRoutes);
+app.use("/api/notices", noticeRoutes);
+app.get("/api/uploads/assignments/:filename", (req, res) => {
+  const filePath = path.join(
+    __dirname,
+    "uploads",
+    "assignments",
+    req.params.filename,
+  );
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: "File not found",
+    });
+  }
 
+  res.sendFile(filePath);
+});
 module.exports = app;

@@ -46,6 +46,16 @@ export const feeService = {
     return await api.get(`/fee-payments/student/${studentId}`);
   },
 
+  async getFineSettings(academicSession) {
+    return await api.get("/fee-settings", {
+      params: { academicSession },
+    });
+  },
+
+  async saveFineSettings(data) {
+    return await api.put("/fee-settings", data);
+  },
+
   // --- COLLEGE FEES ---
   async getCollegeFees(params = {}) {
     try {

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const ExamMark = require("../models/ExamMark");
 const Exam = require("../models/Exam");
 const Student = require("../models/Student");
-
+const Assignment = require("../models/Assignment");
 // GET ALL MARKS
 const getExamMarks = async (req, res) => {
   try {
@@ -136,7 +136,91 @@ const createExamMark = async (req, res) => {
       });
     }
 
-    const max = Number(maxMarks);
+    // Faculty can enter marks only for their assigned
+    // class, section and subject
+    if (req.user.role === "FACULTY") {
+      const normalizedSection = student.section?.trim().toUpperCase();
+      const normalizedSubject = subject.trim();
+
+      const teacherAssignment = await Assignment.findOne({
+        facultyId: req.user.userId,
+        tenantId: req.tenantId,
+        classId: student.classId,
+        section: normalizedSection,
+        subject: normalizedSubject,
+        isActive: true,
+      });
+
+      if (!teacherAssignment) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You are not assigned to this student's class, section and subject",
+        });
+      }
+    }
+
+    // ============================================
+    // FACULTY + EXAM VALIDATION
+    // ============================================
+
+    if (req.user.role === "FACULTY") {
+      const normalizedSection = student.section?.trim().toUpperCase();
+      const normalizedSubject = subject.trim().toLowerCase();
+
+      // 1. Check faculty assignment
+      const teacherAssignment = await Assignment.findOne({
+        facultyId: req.user.userId,
+        tenantId: req.tenantId,
+        classId: student.classId,
+        section: normalizedSection,
+        subject: new RegExp(`^${normalizedSubject}$`, "i"),
+        isActive: true,
+      });
+
+      if (!teacherAssignment) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You are not assigned to this student's class, section and subject",
+        });
+      }
+
+      // 2. Check whether student's class is included in exam
+      const examClass = exam.classesIncluded.find(
+        (item) =>
+          item.classId.toString() === student.classId.toString() &&
+          item.sections.some(
+            (section) => section.trim().toUpperCase() === normalizedSection,
+          ),
+      );
+
+      if (!examClass) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "This student's class or section is not included in this examination",
+        });
+      }
+
+      // 3. Check whether subject exists in exam schedule
+      const examSchedule = exam.schedule.find(
+        (item) => item.subject.trim().toLowerCase() === normalizedSubject,
+      );
+
+      if (!examSchedule) {
+        return res.status(400).json({
+          success: false,
+          message: "This subject is not scheduled for this examination",
+        });
+      }
+
+      // 4. Always use maximum marks from examination schedule
+      req.examMaxMarks = examSchedule.maxMarks;
+    }
+
+    const max =
+      req.user.role === "FACULTY" ? req.examMaxMarks : Number(maxMarks);
     const obtained = Number(marksObtained);
 
     if (!Number.isFinite(max) || max <= 0) {
@@ -227,6 +311,40 @@ const updateExamMark = async (req, res) => {
         success: false,
         message: "Exam marks not found",
       });
+    }
+
+    // Faculty can update marks only for their assigned
+    // class, section and subject
+    if (req.user.role === "FACULTY") {
+      const student = await Student.findOne({
+        _id: mark.studentId,
+        tenantId: req.tenantId,
+        isActive: true,
+      });
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: "Student not found",
+        });
+      }
+
+      const teacherAssignment = await Assignment.findOne({
+        facultyId: req.user.userId,
+        tenantId: req.tenantId,
+        classId: student.classId,
+        section: student.section?.trim().toUpperCase(),
+        subject: mark.subject.trim(),
+        isActive: true,
+      });
+
+      if (!teacherAssignment) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You are not assigned to this student's class, section and subject",
+        });
+      }
     }
 
     const { maxMarks, marksObtained, grade, remarks } = req.body;
@@ -420,6 +538,84 @@ const getStudentResult = async (req, res) => {
   }
 };
 
+const getMyStudentResults = async (req, res) => {
+  try {
+    const marks = await ExamMark.find({
+      studentId: req.user.userId,
+      tenantId: req.tenantId,
+      isActive: true,
+    })
+      .populate("examId", "name term academicYear startDate endDate")
+      .sort({ createdAt: -1, subject: 1 });
+
+    const groupedResults = {};
+
+    for (const mark of marks) {
+      const examId = mark.examId?._id?.toString();
+
+      if (!examId) continue;
+
+      if (!groupedResults[examId]) {
+        groupedResults[examId] = {
+          exam: mark.examId,
+          subjects: [],
+          totalMarks: 0,
+          totalMaxMarks: 0,
+        };
+      }
+
+      groupedResults[examId].subjects.push({
+        subject: mark.subject,
+        maxMarks: mark.maxMarks,
+        marksObtained: mark.marksObtained,
+        grade: mark.grade,
+        remarks: mark.remarks,
+      });
+
+      groupedResults[examId].totalMarks += Number(mark.marksObtained || 0);
+      groupedResults[examId].totalMaxMarks += Number(mark.maxMarks || 0);
+    }
+
+    const results = Object.values(groupedResults).map((result) => {
+      const percentage =
+        result.totalMaxMarks > 0
+          ? Number(
+              ((result.totalMarks / result.totalMaxMarks) * 100).toFixed(2),
+            )
+          : 0;
+
+      let grade;
+
+      if (percentage >= 90) grade = "A+";
+      else if (percentage >= 80) grade = "A";
+      else if (percentage >= 70) grade = "B+";
+      else if (percentage >= 60) grade = "B";
+      else if (percentage >= 50) grade = "C";
+      else if (percentage >= 40) grade = "D";
+      else grade = "F";
+
+      return {
+        ...result,
+        percentage,
+        grade,
+        result: percentage >= 40 ? "PASS" : "FAIL",
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      results,
+    });
+  } catch (error) {
+    console.error("Get My Student Results Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch student results",
+    });
+  }
+};
+
 module.exports = {
   getExamMarks,
   getExamMarkById,
@@ -427,4 +623,5 @@ module.exports = {
   updateExamMark,
   deactivateExamMark,
   getStudentResult,
+  getMyStudentResults,
 };

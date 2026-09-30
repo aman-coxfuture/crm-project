@@ -1,12 +1,89 @@
-import React from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { schoolDataService } from '../../services/schoolDataService';
-import { Clock, Printer } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { Clock, Printer } from "lucide-react";
+
+import timetableService from "../../services/timetableService";
+import facultyService from "../../services/facultyService";
 
 export default function TeacherTimetablePage() {
   const { currentUser } = useAuth();
-  const teacherName = currentUser?.name || 'Rahul Sharma';
-  const scheduleRows = schoolDataService.getTimetableForTeacher(teacherName);
+
+  const [timetable, setTimetable] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const teacherName = currentUser?.name || "Faculty";
+
+  const scheduleRows = Array.from({ length: 7 }, (_, index) => {
+    const periodNumber = index + 1;
+
+    const getEntry = (day) =>
+      timetable.find(
+        (entry) => entry.day === day && Number(entry.period) === periodNumber,
+      );
+
+    const monday = getEntry("MONDAY");
+    const tuesday = getEntry("TUESDAY");
+    const wednesday = getEntry("WEDNESDAY");
+    const thursday = getEntry("THURSDAY");
+    const friday = getEntry("FRIDAY");
+
+    const firstEntry = monday || tuesday || wednesday || thursday || friday;
+
+    const getDisplayValue = (entry) => {
+      if (!entry) return "Free Period";
+
+      const className = entry.classId?.name || "Class";
+      const section = entry.section || "";
+      const subject = entry.subject || "Subject";
+
+      return `${subject} • ${className}${section ? `-${section}` : ""}`;
+    };
+
+    return {
+      period: periodNumber,
+      time: firstEntry
+        ? `${firstEntry.startTime} - ${firstEntry.endTime}`
+        : "08:00 - 08:40",
+
+      monday: getDisplayValue(monday),
+      tuesday: getDisplayValue(tuesday),
+      wednesday: getDisplayValue(wednesday),
+      thursday: getDisplayValue(thursday),
+      friday: getDisplayValue(friday),
+    };
+  });
+
+  useEffect(() => {
+    const loadMyTimetable = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const profileResponse = await facultyService.getMyFacultyProfile();
+
+        const facultyId = profileResponse?.faculty?._id;
+
+        if (!facultyId) {
+          throw new Error("Faculty profile not found");
+        }
+
+        const response = await timetableService.getTimetable({
+          facultyId,
+        });
+
+        setTimetable(response?.timetable || []);
+      } catch (err) {
+        console.error("Failed to load my timetable:", err);
+        setError(err.message || "Failed to load timetable");
+        setTimetable([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMyTimetable();
+  }, []);
 
   return (
     <div>
@@ -17,7 +94,8 @@ export default function TeacherTimetablePage() {
             My 7-Period Teaching Schedule Matrix
           </h1>
           <p className="page-subtitle">
-            Personal timetable: 4 Periods before lunch • 30-Min Lunch Break • 3 Periods after lunch
+            Personal timetable: 4 Periods before lunch • 30-Min Lunch Break • 3
+            Periods after lunch
           </p>
         </div>
 
@@ -30,29 +108,55 @@ export default function TeacherTimetablePage() {
       {/* Structure indicator */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '12px 18px',
-          borderRadius: 'var(--radius-lg)',
-          backgroundColor: 'rgba(99, 102, 241, 0.08)',
-          border: '1px solid rgba(99, 102, 241, 0.2)',
-          marginBottom: '20px',
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          padding: "12px 18px",
+          borderRadius: "var(--radius-lg)",
+          backgroundColor: "rgba(99, 102, 241, 0.08)",
+          border: "1px solid rgba(99, 102, 241, 0.2)",
+          marginBottom: "20px",
         }}
       >
-        <span style={{ fontSize: '1.2rem' }}>👨‍🏫</span>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-          <strong>Faculty Schedule for {teacherName}:</strong> Displaying weekly personal allocations for Nursery to Class 10 divisions and designated planning periods.
+        <span style={{ fontSize: "1.2rem" }}>👨‍🏫</span>
+        <div style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>
+          <strong>Faculty Schedule for {teacherName}:</strong> Displaying weekly
+          personal allocations for Nursery to Class 10 divisions and designated
+          planning periods.
         </div>
       </div>
+      {error && (
+        <div className="alert alert-danger" style={{ marginBottom: "20px" }}>
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div
+          className="card"
+          style={{
+            marginBottom: "20px",
+            padding: "20px",
+            textAlign: "center",
+            color: "var(--text-secondary)",
+          }}
+        >
+          Loading your timetable...
+        </div>
+      )}
 
       {/* 7-Period Schedule Table */}
-      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div className="table-container" style={{ border: 'none', borderRadius: '0' }}>
-          <table className="custom-table" style={{ textAlign: 'center' }}>
+      <div className="card" style={{ padding: "0", overflow: "hidden" }}>
+        <div
+          className="table-container"
+          style={{ border: "none", borderRadius: "0" }}
+        >
+          <table className="custom-table" style={{ textAlign: "center" }}>
             <thead>
               <tr>
-                <th style={{ width: '130px', textAlign: 'left' }}>Period / Time</th>
+                <th style={{ width: "130px", textAlign: "left" }}>
+                  Period / Time
+                </th>
                 <th>Monday</th>
                 <th>Tuesday</th>
                 <th>Wednesday</th>
@@ -62,25 +166,34 @@ export default function TeacherTimetablePage() {
             </thead>
             <tbody>
               {scheduleRows.map((row, idx) => {
-                const isBreak = row.isBreak || row.period === 'Lunch';
+                const isBreak = row.isBreak || row.period === "Lunch";
 
                 if (isBreak) {
                   return (
                     <tr
                       key={idx}
                       style={{
-                        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                        backgroundColor: "rgba(245, 158, 11, 0.12)",
                         fontWeight: 800,
-                        color: '#d97706',
-                        borderTop: '2px dashed #f59e0b',
-                        borderBottom: '2px dashed #f59e0b',
+                        color: "#d97706",
+                        borderTop: "2px dashed #f59e0b",
+                        borderBottom: "2px dashed #f59e0b",
                       }}
                     >
-                      <td style={{ textAlign: 'left', fontWeight: 800 }}>
+                      <td style={{ textAlign: "left", fontWeight: 800 }}>
                         <div>🍱 Lunch Break</div>
-                        <div style={{ fontSize: '0.7rem', color: '#b45309' }}>{row.time}</div>
+                        <div style={{ fontSize: "0.7rem", color: "#b45309" }}>
+                          {row.time}
+                        </div>
                       </td>
-                      <td colSpan={5} style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+                      <td
+                        colSpan={5}
+                        style={{
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          fontSize: "0.85rem",
+                        }}
+                      >
                         🍱 30-MINUTE SCHOOL LUNCH BREAK 🍱
                       </td>
                     </tr>
@@ -89,19 +202,32 @@ export default function TeacherTimetablePage() {
 
                 return (
                   <tr key={idx}>
-                    <td style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 800, color: 'var(--primary)' }}>Period {row.period}</div>
-                      <div style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)' }}>{row.time}</div>
+                    <td style={{ textAlign: "left" }}>
+                      <div style={{ fontWeight: 800, color: "var(--primary)" }}>
+                        Period {row.period}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.725rem",
+                          color: "var(--text-tertiary)",
+                        }}
+                      >
+                        {row.time}
+                      </div>
                     </td>
                     <td>
                       <div
                         style={{
-                          padding: '8px 10px',
-                          backgroundColor: row.monday?.includes('Free') ? 'var(--bg-tertiary)' : 'var(--primary-light)',
-                          color: row.monday?.includes('Free') ? 'var(--text-tertiary)' : 'var(--primary-text)',
-                          borderRadius: 'var(--radius-md)',
+                          padding: "8px 10px",
+                          backgroundColor: row.monday?.includes("Free")
+                            ? "var(--bg-tertiary)"
+                            : "var(--primary-light)",
+                          color: row.monday?.includes("Free")
+                            ? "var(--text-tertiary)"
+                            : "var(--primary-text)",
+                          borderRadius: "var(--radius-md)",
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: "0.8rem",
                         }}
                       >
                         {row.monday}
@@ -110,12 +236,16 @@ export default function TeacherTimetablePage() {
                     <td>
                       <div
                         style={{
-                          padding: '8px 10px',
-                          backgroundColor: row.tuesday?.includes('Free') ? 'var(--bg-tertiary)' : 'var(--primary-light)',
-                          color: row.tuesday?.includes('Free') ? 'var(--text-tertiary)' : 'var(--primary-text)',
-                          borderRadius: 'var(--radius-md)',
+                          padding: "8px 10px",
+                          backgroundColor: row.tuesday?.includes("Free")
+                            ? "var(--bg-tertiary)"
+                            : "var(--primary-light)",
+                          color: row.tuesday?.includes("Free")
+                            ? "var(--text-tertiary)"
+                            : "var(--primary-text)",
+                          borderRadius: "var(--radius-md)",
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: "0.8rem",
                         }}
                       >
                         {row.tuesday}
@@ -124,12 +254,16 @@ export default function TeacherTimetablePage() {
                     <td>
                       <div
                         style={{
-                          padding: '8px 10px',
-                          backgroundColor: row.wednesday?.includes('Free') ? 'var(--bg-tertiary)' : 'var(--primary-light)',
-                          color: row.wednesday?.includes('Free') ? 'var(--text-tertiary)' : 'var(--primary-text)',
-                          borderRadius: 'var(--radius-md)',
+                          padding: "8px 10px",
+                          backgroundColor: row.wednesday?.includes("Free")
+                            ? "var(--bg-tertiary)"
+                            : "var(--primary-light)",
+                          color: row.wednesday?.includes("Free")
+                            ? "var(--text-tertiary)"
+                            : "var(--primary-text)",
+                          borderRadius: "var(--radius-md)",
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: "0.8rem",
                         }}
                       >
                         {row.wednesday}
@@ -138,12 +272,16 @@ export default function TeacherTimetablePage() {
                     <td>
                       <div
                         style={{
-                          padding: '8px 10px',
-                          backgroundColor: row.thursday?.includes('Free') ? 'var(--bg-tertiary)' : 'var(--primary-light)',
-                          color: row.thursday?.includes('Free') ? 'var(--text-tertiary)' : 'var(--primary-text)',
-                          borderRadius: 'var(--radius-md)',
+                          padding: "8px 10px",
+                          backgroundColor: row.thursday?.includes("Free")
+                            ? "var(--bg-tertiary)"
+                            : "var(--primary-light)",
+                          color: row.thursday?.includes("Free")
+                            ? "var(--text-tertiary)"
+                            : "var(--primary-text)",
+                          borderRadius: "var(--radius-md)",
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: "0.8rem",
                         }}
                       >
                         {row.thursday}
@@ -152,12 +290,16 @@ export default function TeacherTimetablePage() {
                     <td>
                       <div
                         style={{
-                          padding: '8px 10px',
-                          backgroundColor: row.friday?.includes('Free') ? 'var(--bg-tertiary)' : 'var(--primary-light)',
-                          color: row.friday?.includes('Free') ? 'var(--text-tertiary)' : 'var(--primary-text)',
-                          borderRadius: 'var(--radius-md)',
+                          padding: "8px 10px",
+                          backgroundColor: row.friday?.includes("Free")
+                            ? "var(--bg-tertiary)"
+                            : "var(--primary-light)",
+                          color: row.friday?.includes("Free")
+                            ? "var(--text-tertiary)"
+                            : "var(--primary-text)",
+                          borderRadius: "var(--radius-md)",
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: "0.8rem",
                         }}
                       >
                         {row.friday}

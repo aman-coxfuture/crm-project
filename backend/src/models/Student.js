@@ -28,6 +28,12 @@ const studentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    rollNumber: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     dateOfBirth: {
       type: Date,
       default: null,

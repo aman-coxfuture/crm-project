@@ -1,6 +1,7 @@
 const Timetable = require("../models/Timetable");
 const SchoolClass = require("../models/SchoolClass");
 const Faculty = require("../models/Faculty");
+const Student = require("../models/Student");
 
 // GET timetable
 const getTimetable = async (req, res) => {
@@ -13,9 +14,35 @@ const getTimetable = async (req, res) => {
     };
 
     if (day) filter.day = day.toUpperCase();
-    if (classId) filter.classId = classId;
-    if (section) filter.section = section;
-    if (facultyId) filter.facultyId = facultyId;
+
+    if (req.user.role === "STUDENT") {
+      const student = await Student.findOne({
+        _id: req.user.userId,
+        tenantId: req.tenantId,
+        isActive: true,
+      }).select("classId section");
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: "Student not found",
+        });
+      }
+
+      if (!student.classId || !student.section) {
+        return res.status(400).json({
+          success: false,
+          message: "Student class or section is not assigned",
+        });
+      }
+
+      filter.classId = student.classId;
+      filter.section = student.section;
+    } else {
+      if (classId) filter.classId = classId;
+      if (section) filter.section = section;
+      if (facultyId) filter.facultyId = facultyId;
+    }
 
     const timetable = await Timetable.find(filter)
       .populate("classId", "name sections")

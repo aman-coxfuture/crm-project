@@ -13,7 +13,7 @@ const tenantMiddleware = require("../middleware/tenantMiddleware");
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(authorizeRoles("ADMIN"));
+router.use(authorizeRoles("ADMIN", "FACULTY"));
 router.use(tenantMiddleware);
 
 router.get("/", getFacultyAttendance);

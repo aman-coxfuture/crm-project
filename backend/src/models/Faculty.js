@@ -58,6 +58,12 @@ const facultySchema = new mongoose.Schema(
       default: null,
     },
 
+    subjects: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     salary: {
       type: String,
       trim: true,
