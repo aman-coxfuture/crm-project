@@ -2,6 +2,21 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import attendanceService from "../../services/attendanceService";
+
+function parseClockTime(timeStr) {
+  if (!timeStr || timeStr === "—") return null;
+  const match = String(timeStr)
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === "PM" && hours < 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
 import {
   Clock,
   CheckCircle2,
@@ -12,7 +27,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-export default function TeacherPunchCard({ compact = false }) {
+export default function TeacherPunchCard({
+  compact = false,
+  showHistory = false,
+}) {
   const { currentUser } = useAuth();
   const { success, info } = useToast();
 
@@ -172,6 +190,23 @@ export default function TeacherPunchCard({ compact = false }) {
     isPresent && todayRecord.punchIn && todayRecord.punchIn !== "—";
   const hasPunchedOut =
     isPresent && todayRecord.punchOut && todayRecord.punchOut !== "—";
+
+  const punchInMinutes = parseClockTime(todayRecord.punchIn);
+  const punchOutMinutes = parseClockTime(todayRecord.punchOut);
+  const workedMinutes =
+    punchInMinutes != null && punchOutMinutes != null
+      ? Math.max(0, punchOutMinutes - punchInMinutes)
+      : null;
+  const elapsedTimeStr =
+    workedMinutes == null
+      ? "—"
+      : `${Math.floor(workedMinutes / 60)}h ${String(workedMinutes % 60).padStart(2, "0")}m`;
+  const isShiftCompleted = Boolean(hasPunchedIn && hasPunchedOut);
+  const progressPercent = Math.min(
+    100,
+    Math.round(((workedMinutes || 0) / (8 * 60)) * 100),
+  );
+  const is8HoursCompleted = (workedMinutes || 0) >= 8 * 60;
 
   return (
     <div className="card" style={{ overflow: "hidden" }}>
@@ -343,7 +378,6 @@ export default function TeacherPunchCard({ compact = false }) {
               </div>
             </div>
           </div>
-        )}
 
           {isPresent && (
             <div
@@ -381,6 +415,8 @@ export default function TeacherPunchCard({ compact = false }) {
               <AlertCircle size={13} />
               <span>You are currently recorded as Absent today.</span>
             </div>
+          )}
+        </div>
 
         {/* Action Buttons (Punch In / Punch Out / Mark Absent Demo) */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -415,6 +451,7 @@ export default function TeacherPunchCard({ compact = false }) {
           )}
 
           {isPresent && hasPunchedOut && (
+            <>
             <div style={{ width: "100%", display: "flex", gap: "8px" }}>
               <div
                 style={{
@@ -456,6 +493,7 @@ export default function TeacherPunchCard({ compact = false }) {
               <LogOut size={18} />
               <span>Punch Out</span>
             </button>
+            </>
           )}
         </div>
       </div>
@@ -483,7 +521,6 @@ export default function TeacherPunchCard({ compact = false }) {
             <Calendar size={14} />
             <span>My Attendance History</span>
           </div>
-        )}
 
         {/* STATE 3: SHIFT COMPLETED */}
         {isShiftCompleted && (
@@ -548,6 +585,8 @@ export default function TeacherPunchCard({ compact = false }) {
               <CheckCircle2 size={16} />
               <span>Shift Completed & Recorded</span>
             </div>
+          </div>
+        )}
 
           <div
             style={{
@@ -655,8 +694,8 @@ export default function TeacherPunchCard({ compact = false }) {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
