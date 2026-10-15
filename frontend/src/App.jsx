@@ -9,12 +9,16 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 
 // Auth Page
 import LoginPage from "./pages/auth/LoginPage";
+import SuperAdminLoginPage from "./pages/auth/SuperAdminLoginPage";
+import PublicRoute from "./components/auth/PublicRoute";
 
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/superAdmin/SuperAdminDashboard";
 import SchoolsManagementPage from "./pages/superAdmin/SchoolsManagementPage";
 import SuperAdminAnalyticsPage from "./pages/superAdmin/SuperAdminAnalyticsPage";
 import SuperAdminSettingsPage from "./pages/superAdmin/SuperAdminSettingsPage";
+import UsersPage from "./pages/superAdmin/UsersPage";
+import GlobalReportsPage from "./pages/superAdmin/GlobalReportsPage";
 
 // School Admin / Principal Pages
 import SchoolAdminDashboard from "./pages/school/SchoolAdminDashboard";
@@ -118,7 +122,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["super-admin"]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
@@ -142,7 +146,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["school-admin"]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
@@ -175,7 +179,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["teacher"]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
@@ -202,7 +206,7 @@ export default function App() {
                 element={
                   <RoleGuard allowedRoles={["student"]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
