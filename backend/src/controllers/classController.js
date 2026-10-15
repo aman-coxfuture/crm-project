@@ -64,6 +64,13 @@ const createClass = async (req, res) => {
   } catch (error) {
     console.error("Create class error:", error);
 
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "This class already exists in your school",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Internal server error",

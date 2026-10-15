@@ -31,6 +31,12 @@ const studentAttendanceRoutes = require("./routes/studentAttendanceRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const courseworkAssignmentRoutes = require("./routes/courseworkAssignmentRoutes");
 const noticeRoutes = require("./routes/noticeRoutes");
+const transportRoutes = require("./routes/transportRoutes");
+const libraryRoutes = require("./routes/libraryRoutes");
+const eventRoutes = require("./routes/eventRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
+const superAdminAnalyticsRoutes = require("./routes/superAdminAnalyticsRoutes");
 const app = express();
 
 app.use(helmet());
@@ -72,6 +78,13 @@ app.use("/api/student-attendance", studentAttendanceRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/coursework-assignments", courseworkAssignmentRoutes);
 app.use("/api/notices", noticeRoutes);
+app.use("/api/transport", transportRoutes);
+app.use("/api/library", libraryRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/super-admin/analytics", superAdminAnalyticsRoutes);
+
 app.get("/api/uploads/assignments/:filename", (req, res) => {
   const filePath = path.join(
     __dirname,

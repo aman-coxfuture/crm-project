@@ -532,7 +532,27 @@ const updateStudent = async (req, res) => {
     }
 
     if (section !== undefined) {
-      student.section = section ? section.trim().toUpperCase() : null;
+      if (section) {
+        const normalizedSection = section.trim().toUpperCase();
+
+        if (!schoolClass) {
+          return res.status(400).json({
+            success: false,
+            message: "Please select a valid class before assigning a section",
+          });
+        }
+
+        if (!schoolClass.sections.includes(normalizedSection)) {
+          return res.status(400).json({
+            success: false,
+            message: "Section does not belong to the selected class",
+          });
+        }
+
+        student.section = normalizedSection;
+      } else {
+        student.section = null;
+      }
     }
 
     if (isActive !== undefined) {

@@ -6,6 +6,9 @@ const {
   updateTenant,
   deleteTenant,
   reactivateTenant,
+  getTenantAdmin,
+  updateTenantAdmin,
+  getTenantStats,
 } = require("../controllers/tenantController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -15,6 +18,13 @@ const router = express.Router();
 router.get("/", authMiddleware, authorizeRoles("SUPER_ADMIN"), getAllTenants);
 
 router.post("/", authMiddleware, authorizeRoles("SUPER_ADMIN"), createTenant);
+
+router.get(
+  "/stats",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN"),
+  getTenantStats,
+);
 
 router.put("/:id", authMiddleware, authorizeRoles("SUPER_ADMIN"), updateTenant);
 
@@ -30,6 +40,20 @@ router.patch(
   authMiddleware,
   authorizeRoles("SUPER_ADMIN"),
   reactivateTenant,
+);
+
+router.get(
+  "/:id/admin",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN"),
+  getTenantAdmin,
+);
+
+router.put(
+  "/:id/admin",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN"),
+  updateTenantAdmin,
 );
 
 module.exports = router;

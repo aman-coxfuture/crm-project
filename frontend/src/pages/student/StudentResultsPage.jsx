@@ -16,15 +16,52 @@ export default function StudentResultsPage() {
       try {
         setLoading(true);
 
-        const [profileResponse, resultsResponse] = await Promise.all([
-          api.get("/students/me"),
-          api.get("/exam-marks/my-results"),
-        ]);
+        // Get logged-in student's profile
+        const profileResponse = await api.get("/students/me");
+        const currentStudent = profileResponse?.student;
 
-        setStudent(profileResponse.student);
-        setResults(resultsResponse.results || []);
+        setStudent(currentStudent);
+
+        if (!currentStudent?._id) {
+          setResults([]);
+          return;
+        }
+
+        // Get all examinations
+        const examsResponse = await api.get("/exams");
+        const exams = examsResponse?.exams || [];
+
+        // Fetch this student's result for each examination
+        const resultResponses = await Promise.all(
+          exams.map(async (exam) => {
+            try {
+              const response = await api.get(
+                `/exam-marks/result/${exam._id}/${currentStudent._id}`,
+              );
+
+              if (!response?.success) {
+                return null;
+              }
+
+              return {
+                ...response,
+                exam: response.exam || {
+                  name: exam.name,
+                  academicYear: exam.academicYear,
+                  term: exam.term,
+                },
+              };
+            } catch (error) {
+              // No marks for this particular exam
+              return null;
+            }
+          }),
+        );
+
+        setResults(resultResponses.filter(Boolean));
       } catch (error) {
         console.error("Failed to load student results:", error);
+        setResults([]);
       } finally {
         setLoading(false);
       }

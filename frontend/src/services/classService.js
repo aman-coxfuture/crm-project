@@ -1,40 +1,54 @@
-import api from './api';
-import { mockSchoolClasses, mockSchoolTimetable } from '../mock/mockClasses';
+import api from "./api";
+import { mockSchoolClasses, mockSchoolTimetable } from "../mock/mockClasses";
 
 let localClasses = [...mockSchoolClasses];
 
 export const classService = {
   async getSchoolClasses(params = {}) {
     try {
-      // return await api.get('/school/classes', { params });
-      return [...localClasses];
+      const response = await api.get("/classes", { params });
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to load classes");
+      }
+
+      return response;
     } catch (error) {
-      return [...localClasses];
+      console.error("Failed to load classes from API:", error);
+
+      return {
+        success: true,
+        classes: [...localClasses],
+      };
     }
   },
 
   async createSchoolClass(data) {
     try {
-      // return await api.post('/school/classes', data);
-      const newClass = {
-        id: `CLS-${data.grade}${data.section}`,
-        name: `Class ${data.grade} - Section ${data.section}`,
-        ...data,
-        totalStudents: 0,
-      };
-      localClasses = [...localClasses, newClass];
-      return newClass;
+      const response = await api.post("/classes", data);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to create class");
+      }
+
+      return response;
     } catch (error) {
+      console.error("Failed to create class:", error);
       throw error;
     }
   },
 
   async updateSchoolClass(id, data) {
     try {
-      // return await api.put(`/school/classes/${id}`, data);
-      localClasses = localClasses.map((c) => (c.id === id ? { ...c, ...data } : c));
-      return localClasses.find((c) => c.id === id);
+      const response = await api.put(`/classes/${id}`, data);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to update class");
+      }
+
+      return response;
     } catch (error) {
+      console.error("Failed to update class:", error);
       throw error;
     }
   },

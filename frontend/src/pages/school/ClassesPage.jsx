@@ -15,8 +15,14 @@ export default function ClassesPage() {
   const [loading, setLoading] = useState(true);
 
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false);
-  const [targetClass, setTargetClass] = useState(null);
 
+  const [targetClass, setTargetClass] = useState(null);
+  const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
+
+  const [newClass, setNewClass] = useState({
+    name: "",
+    sections: [],
+  });
   const [newSection, setNewSection] = useState({
     name: "Section C",
     classTeacher: "",
@@ -52,6 +58,52 @@ export default function ClassesPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+  const handleAddClassSubmit = async (e) => {
+    e.preventDefault();
+
+    const className = String(newClass.name || "").trim();
+
+    if (!className) {
+      error("Please select a class.");
+      return;
+    }
+
+    try {
+      const alreadyExists = classes.some(
+        (cls) =>
+          String(cls.name).trim().toLowerCase() === className.toLowerCase(),
+      );
+
+      if (alreadyExists) {
+        error(`Class ${className} already exists.`);
+        return;
+      }
+
+      const response = await api.post("/classes", {
+        name: className,
+        sections: [],
+      });
+
+      if (!response?.success) {
+        throw new Error(response?.message || "Failed to create class");
+      }
+
+      setIsAddClassModalOpen(false);
+
+      setNewClass({
+        name: "",
+        sections: [],
+      });
+
+      success(`Class ${className} created successfully!`);
+
+      await loadData();
+    } catch (err) {
+      console.error("Failed to create class:", err);
+
+      error(err?.message || "Failed to create class. Please try again.");
     }
   };
 
@@ -122,13 +174,27 @@ export default function ClassesPage() {
           <div>
             <h1 className="page-title">
               <Layers size={26} color="var(--primary)" />
-              Class & Section Management (Nursery – Class 10)
+              Class & Section Management
             </h1>
             <p className="page-subtitle">
               Configure grades, divisions, assigned educators and 7-period
               subject curriculum
             </p>
           </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setNewClass({
+                name: "",
+                sections: [],
+              });
+
+              setIsAddClassModalOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            <span>Add Class</span>
+          </button>
         </div>
 
         <div className="card" style={{ padding: "40px", textAlign: "center" }}>
@@ -144,7 +210,7 @@ export default function ClassesPage() {
         <div>
           <h1 className="page-title">
             <Layers size={26} color="var(--primary)" />
-            Class & Section Management (Nursery – Class 10)
+            Class & Section Management
           </h1>
 
           <p className="page-subtitle">
@@ -152,6 +218,20 @@ export default function ClassesPage() {
             curriculum
           </p>
         </div>
+
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setNewClass({
+              name: "",
+              sections: [],
+            });
+            setIsAddClassModalOpen(true);
+          }}
+        >
+          <Plus size={16} />
+          <span>Add Class</span>
+        </button>
       </div>
 
       <div
@@ -294,6 +374,65 @@ export default function ClassesPage() {
           ))
         )}
       </div>
+
+      {/* Add Class Modal */}
+      <Modal
+        isOpen={isAddClassModalOpen}
+        onClose={() => setIsAddClassModalOpen(false)}
+        title="Add New Class"
+        subtitle="Create a new class for your school"
+      >
+        <form onSubmit={handleAddClassSubmit}>
+          <div className="form-group">
+            <label className="form-label">Class *</label>
+
+            <select
+              className="form-select"
+              value={newClass.name}
+              onChange={(e) =>
+                setNewClass({
+                  ...newClass,
+                  name: e.target.value,
+                })
+              }
+            >
+              <option value="">Select Class</option>
+
+              <option value="Nursery">Nursery</option>
+              <option value="LKG">LKG</option>
+              <option value="UKG">UKG</option>
+
+              <option value="1">Class 1</option>
+              <option value="2">Class 2</option>
+              <option value="3">Class 3</option>
+              <option value="4">Class 4</option>
+              <option value="5">Class 5</option>
+              <option value="6">Class 6</option>
+              <option value="7">Class 7</option>
+              <option value="8">Class 8</option>
+              <option value="9">Class 9</option>
+              <option value="10">Class 10</option>
+              <option value="11">Class 11</option>
+              <option value="12">Class 12</option>
+            </select>
+          </div>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsAddClassModalOpen(false)}
+            >
+              Cancel
+            </button>
+
+            <button type="submit" className="btn btn-primary">
+              <Plus size={15} />
+              Create Class
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Add Section Modal */}
       <Modal

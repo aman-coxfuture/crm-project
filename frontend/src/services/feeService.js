@@ -38,6 +38,10 @@ export const feeService = {
     return await api.get(`/fees/student/${studentId}`);
   },
 
+  async getMyStudentFees() {
+    return await api.get("/fees/my");
+  },
+
   async getSchoolPayments(params = {}) {
     return await api.get("/fee-payments", { params });
   },

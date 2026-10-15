@@ -1,22 +1,63 @@
-import React, { useState } from 'react';
-import { useToast } from '../../context/ToastContext';
-import { FormInput, Select } from '../../components/common/FormInput';
-import { Settings, Shield, Server, Bell, Save } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { settingsService } from "../../services";
+import { useToast } from "../../context/ToastContext";
+import { FormInput, Select } from "../../components/common/FormInput";
+import { Settings, Shield, Server, Bell, Save } from "lucide-react";
 
 export default function SuperAdminSettingsPage() {
   const { success } = useToast();
-  const [platformName, setPlatformName] = useState('EduEnterprise Global School CRM');
-  const [supportEmail, setSupportEmail] = useState('support@schoolcrm.io');
-  const [sessionTimeout, setSessionTimeout] = useState('60');
+  const [platformName, setPlatformName] = useState(
+    "EduEnterprise Global School CRM",
+  );
+  const [supportEmail, setSupportEmail] = useState("support@schoolcrm.io");
+  const [sessionTimeout, setSessionTimeout] = useState("60");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [academicYear, setAcademicYear] = useState("2025-2026");
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await settingsService.getSuperAdminSettings();
 
-  const handleSave = (e) => {
+        if (data) {
+          setPlatformName(
+            data.platformName || "EduEnterprise Global School CRM",
+          );
+          setSupportEmail(data.supportEmail || "support@schoolcrm.io");
+          setAcademicYear(data.academicYear || "2025-2026");
+          setSessionTimeout(data.sessionTimeout || "60");
+          setMaintenanceMode(data.maintenanceMode ?? false);
+        }
+      } catch (error) {
+        console.error("Failed to load super admin settings:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    success('Platform settings saved successfully');
-  };
 
+    try {
+      await settingsService.updateSuperAdminSettings({
+        platformName,
+        supportEmail,
+        academicYear,
+        sessionTimeout,
+        maintenanceMode,
+      });
+
+      success("Platform settings saved successfully");
+    } catch (error) {
+      console.error("Failed to save super admin settings:", error);
+      success("Failed to save platform settings");
+    }
+  };
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div style={{ maxWidth: "900px" }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -24,13 +65,14 @@ export default function SuperAdminSettingsPage() {
             Platform & System Settings
           </h1>
           <p className="page-subtitle">
-            Configure global defaults, multi-tenant parameters and system governance
+            Configure global defaults, multi-tenant parameters and system
+            governance
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSave}>
-        <div className="card" style={{ marginBottom: '24px' }}>
+        <div className="card" style={{ marginBottom: "24px" }}>
           <div className="card-header">
             <h3 className="card-title">Global Platform Identity</h3>
           </div>
@@ -50,8 +92,9 @@ export default function SuperAdminSettingsPage() {
           <div className="grid-2">
             <Select
               label="Default Academic Year Schema"
-              value="2025-2026"
-              options={['2025-2026', '2026-2027']}
+              value={academicYear}
+              onChange={(e) => setAcademicYear(e.target.value)}
+              options={["2025-2026", "2026-2027"]}
             />
             <FormInput
               label="Session Inactivity Timeout (Minutes)"
@@ -61,22 +104,37 @@ export default function SuperAdminSettingsPage() {
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: '24px' }}>
+        <div className="card" style={{ marginBottom: "24px" }}>
           <div className="card-header">
             <h3 className="card-title">Security & Maintenance</h3>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 0",
+            }}
+          >
             <div>
               <div style={{ fontWeight: 700 }}>Maintenance Mode</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Restrict access across all school subdomains for scheduled upgrades
+              <div
+                style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
+              >
+                Restrict access across all school subdomains for scheduled
+                upgrades
               </div>
             </div>
             <input
               type="checkbox"
               checked={maintenanceMode}
               onChange={(e) => setMaintenanceMode(e.target.checked)}
-              style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+              style={{
+                width: "20px",
+                height: "20px",
+                accentColor: "var(--primary)",
+                cursor: "pointer",
+              }}
             />
           </div>
         </div>
