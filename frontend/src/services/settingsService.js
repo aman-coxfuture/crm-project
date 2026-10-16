@@ -1,60 +1,28 @@
-import api from './api';
-
-let localSettings = {
-  platformName: 'EduCRM Enterprise Platform',
-  contactEmail: 'support@edusys-corp.in',
-  sessionTimeout: '60',
-  enable2FA: true,
-  backupSchedule: 'Daily at 03:00 UTC',
-  maintenanceMode: false,
-};
-
-let localInstitutionSettings = {
-  academicYear: '2026-2027',
-  currency: 'INR (₹)',
-  emailAlerts: true,
-  smsAlerts: true,
-};
+import api from "./api";
 
 export const settingsService = {
   async getSuperAdminSettings() {
-    try {
-      // return await api.get('/settings/super-admin');
-      return { ...localSettings };
-    } catch (error) {
-      return { ...localSettings };
-    }
+    const response = await api.get("/settings/super-admin");
+
+    return response?.data || response;
   },
 
   async updateSuperAdminSettings(data) {
-    try {
-      // return await api.put('/settings/super-admin', data);
-      localSettings = { ...localSettings, ...data };
-      return { ...localSettings };
-    } catch (error) {
-      localSettings = { ...localSettings, ...data };
-      return { ...localSettings };
-    }
+    const response = await api.put("/settings/super-admin", data);
+
+    return response?.data || response;
   },
 
   async getInstitutionSettings() {
-    try {
-      // return await api.get('/settings/institution');
-      return { ...localInstitutionSettings };
-    } catch (error) {
-      return { ...localInstitutionSettings };
-    }
+    const response = await api.get("/settings/institution");
+
+    return response?.data || response;
   },
 
   async updateInstitutionSettings(data) {
-    try {
-      // return await api.put('/settings/institution', data);
-      localInstitutionSettings = { ...localInstitutionSettings, ...data };
-      return { ...localInstitutionSettings };
-    } catch (error) {
-      localInstitutionSettings = { ...localInstitutionSettings, ...data };
-      return { ...localInstitutionSettings };
-    }
+    const response = await api.put("/settings/institution", data);
+
+    return response?.data || response;
   },
 };
 

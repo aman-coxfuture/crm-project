@@ -1,81 +1,118 @@
-import api from './api';
-import { mockInstitutions, mockUniversityColleges } from '../mock/mockInstitutions';
+import api from "./api";
+import {
+  mockInstitutions,
+  mockUniversityColleges,
+} from "../mock/mockInstitutions";
 
 let localInstitutions = [...mockInstitutions];
 let localColleges = [...mockUniversityColleges];
 
 export const institutionService = {
   async getInstitutions(params = {}) {
-    try {
-      // Future API: return await api.get('/institutions', { params });
-      return [...localInstitutions];
-    } catch (error) {
-      console.warn('API /institutions failed, using mock data');
-      return [...localInstitutions];
-    }
+    const response = await api.get("/tenants", { params });
+
+    return (response.tenants || []).map((tenant) => ({
+      ...tenant,
+      id: tenant._id,
+      schoolCode: tenant.code || "—",
+      status: tenant.status === "ACTIVE" ? "Active" : "Inactive",
+      board: tenant.board || "—",
+      email: tenant.email || "—",
+      phone: tenant.phone || "—",
+      address: tenant.address || "—",
+      studentsCount: tenant.students || 0,
+      teachersCount: tenant.faculty || 0,
+      staffCount: tenant.staff || 0,
+      createdDate: tenant.createdAt ? tenant.createdAt.split("T")[0] : "",
+    }));
+  },
+
+  async getTenantStats() {
+    const response = await api.get("/tenants/stats");
+    return response.stats;
   },
 
   async getInstitutionById(id) {
-    try {
-      // return await api.get(`/institutions/${id}`);
-      return localInstitutions.find((i) => i.id === id) || null;
-    } catch (error) {
-      return localInstitutions.find((i) => i.id === id) || null;
-    }
+    const institutions = await this.getInstitutions();
+
+    return institutions.find((institution) => institution.id === id) || null;
   },
 
   async createInstitution(data) {
-    try {
-      // return await api.post('/institutions', data);
-      const newInst = {
-        ...data,
-        id: `inst-00${localInstitutions.length + 1}`,
-        code: data.code || `${data.name.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-3)}`,
-        students: data.students || 0,
-        faculty: data.faculty || 0,
-        status: data.status || 'Active',
-        createdDate: data.createdDate || new Date().toISOString().split('T')[0],
-      };
-      localInstitutions = [newInst, ...localInstitutions];
-      return newInst;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post("/tenants", {
+      name: data.name,
+      code: data.code,
+      type: "SCHOOL",
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      board: data.board,
+      adminName: data.adminName,
+      adminEmail: data.adminEmail,
+      adminPassword: data.adminPassword,
+    });
+
+    const tenant = response.tenant;
+
+    return {
+      ...tenant,
+      id: tenant.id || tenant._id,
+      status: tenant.status === "ACTIVE" ? "Active" : "Inactive",
+      createdDate: tenant.createdAt ? tenant.createdAt.split("T")[0] : "",
+      students: 0,
+      faculty: 0,
+    };
   },
 
   async updateInstitution(id, data) {
-    try {
-      // return await api.put(`/institutions/${id}`, data);
-      localInstitutions = localInstitutions.map((i) => (i.id === id ? { ...i, ...data } : i));
-      return localInstitutions.find((i) => i.id === id);
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.put(`/tenants/${id}`, {
+      name: data.name,
+      code: data.code,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      board: data.board,
+    });
+
+    const tenant = response.tenant;
+
+    return {
+      ...tenant,
+      id: tenant.id || tenant._id,
+      status: tenant.status === "ACTIVE" ? "Active" : "Inactive",
+      createdDate: tenant.createdAt ? tenant.createdAt.split("T")[0] : "",
+      students: tenant.students || 0,
+      faculty: tenant.faculty || 0,
+    };
+  },
+
+  async getInstitutionAdmin(id) {
+    const response = await api.get(`/tenants/${id}/admin`);
+    return response.admin;
+  },
+
+  async updateInstitutionAdmin(id, data) {
+    const response = await api.put(`/tenants/${id}/admin`, {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      isActive: data.isActive,
+    });
+
+    return response.admin;
   },
 
   async deleteInstitution(id) {
-    try {
-      // return await api.delete(`/institutions/${id}`);
-      localInstitutions = localInstitutions.filter((i) => i.id !== id);
-      return { success: true, id };
-    } catch (error) {
-      throw error;
-    }
+    return await api.delete(`/tenants/${id}`);
   },
 
-  async toggleStatus(id) {
-    try {
-      // return await api.patch(`/institutions/${id}/toggle-status`);
-      const target = localInstitutions.find((i) => i.id === id);
-      if (target) {
-        target.status = target.status === 'Active' ? 'Inactive' : 'Active';
-      }
-      return target;
-    } catch (error) {
-      throw error;
+  async toggleStatus(id, currentStatus) {
+    if (currentStatus === "Active") {
+      return await api.delete(`/tenants/${id}`);
     }
-  },
 
+    return await api.patch(`/tenants/${id}/reactivate`);
+  },
   // University Affiliated / Constituent Colleges
   async getUniversityColleges() {
     try {
@@ -103,7 +140,9 @@ export const institutionService = {
   async updateUniversityCollege(id, data) {
     try {
       // return await api.put(`/university/colleges/${id}`, data);
-      localColleges = localColleges.map((c) => (c.id === id ? { ...c, ...data } : c));
+      localColleges = localColleges.map((c) =>
+        c.id === id ? { ...c, ...data } : c,
+      );
       return localColleges.find((c) => c.id === id);
     } catch (error) {
       throw error;

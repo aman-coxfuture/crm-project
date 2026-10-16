@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { schoolDataService } from "../../services/schoolDataService";
 import api from "../../services/api";
+import feeService from "../../services/feeService";
 import StatCard from "../../components/common/StatCard";
 import { StatusBadge } from "../../components/common/StatusBadge";
 import {
@@ -26,6 +27,8 @@ export default function StudentDashboard() {
   const [student, setStudent] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [attendanceRate, setAttendanceRate] = React.useState(0);
+  const [feeData, setFeeData] = React.useState(null);
+  const [feeLoading, setFeeLoading] = React.useState(true);
   React.useEffect(() => {
     const fetchStudentProfile = async () => {
       try {
@@ -70,6 +73,29 @@ export default function StudentDashboard() {
     };
 
     fetchAttendance();
+  }, []);
+
+  React.useEffect(() => {
+    const fetchStudentFees = async () => {
+      try {
+        setFeeLoading(true);
+
+        const response = await feeService.getMyStudentFees();
+
+        if (!response?.success) {
+          throw new Error(response?.message || "Failed to fetch student fees");
+        }
+
+        setFeeData(response);
+      } catch (error) {
+        console.error("Failed to fetch student fees:", error);
+        setFeeData(null);
+      } finally {
+        setFeeLoading(false);
+      }
+    };
+
+    fetchStudentFees();
   }, []);
 
   if (loading) {
@@ -232,10 +258,22 @@ export default function StudentDashboard() {
         />
         <StatCard
           title="Term Fee Status"
-          value={student.feeStatus}
+          value={
+            feeLoading
+              ? "Loading..."
+              : feeData?.fees?.[0]
+                ? `₹${feeData.fees[0].pendingAmount ?? 0}`
+                : "No Fee"
+          }
           icon={DollarSign}
-          color={student.feeStatus === "Paid" ? "emerald" : "amber"}
-          subtitle={`Paid $${student.paidFee || 4500}`}
+          color={feeData?.fees?.[0]?.status === "PAID" ? "emerald" : "amber"}
+          subtitle={
+            feeLoading
+              ? "Fetching fee details..."
+              : feeData?.fees?.[0]
+                ? `Paid ₹${feeData.fees[0].paidAmount ?? 0} • Total ₹${feeData.fees[0].totalAmount ?? 0}`
+                : "No fee record available"
+          }
           onClick={() => navigate("/student/fees")}
         />
       </div>

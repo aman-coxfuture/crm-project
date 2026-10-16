@@ -61,6 +61,12 @@ const tenantSchema = new mongoose.Schema(
       default: null,
     },
 
+    board: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

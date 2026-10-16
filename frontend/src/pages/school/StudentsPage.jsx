@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useToast } from "../../context/ToastContext";
 import studentService from "../../services/studentService";
 import api from "../../services/api";
+import attendanceService from "../../services/attendanceService";
+import feeService from "../../services/feeService";
+import examService from "../../services/examService";
 import DataTable from "../../components/common/DataTable";
 import Modal from "../../components/common/Modal";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
@@ -41,7 +44,8 @@ export default function StudentsPage() {
     id: student._id,
     name: student.name || "",
     email: student.email || "",
-    rollNumber: student.admissionNumber || "",
+    admissionNumber: student.admissionNumber || "",
+    rollNumber: student.rollNumber || "",
     dob: student.dateOfBirth
       ? new Date(student.dateOfBirth).toISOString().split("T")[0]
       : "",
@@ -62,10 +66,11 @@ export default function StudentsPage() {
     parentPhone: student.parentPhone || "",
     emergencyContact: student.emergencyContact || "",
     bloodGroup: student.bloodGroup || "",
-    attendance: 0,
+
     feeStatus: "Pending",
     totalFee: 0,
     paidFee: 0,
+    attendance: 0,
   });
 
   const loadClasses = async () => {
@@ -95,12 +100,179 @@ export default function StudentsPage() {
 
       const backendStudents = response.students || [];
 
-      setStudents(backendStudents.map(mapStudent));
+      const studentsWithFees = await Promise.all(
+        backendStudents.map(async (student) => {
+          try {
+            const feeResponse = await feeService.getStudentFees(student._id);
+            const attendanceResponse =
+              await attendanceService.getStudentAttendanceSummary(student._id);
+            const attendance = attendanceResponse?.summary?.percentage ?? 0;
+            const fees = feeResponse?.fees || [];
+
+            if (fees.length === 0) {
+              return {
+                ...mapStudent(student),
+                feeStatus: "Not Assigned",
+                totalFee: 0,
+                paidFee: 0,
+                attendance,
+              };
+            }
+
+            const totalFee = fees.reduce(
+              (sum, fee) => sum + Number(fee.totalAmount || 0),
+              0,
+            );
+
+            const paidFee = fees.reduce(
+              (sum, fee) => sum + Number(fee.paidAmount || 0),
+              0,
+            );
+
+            const hasOverdue = fees.some((fee) => fee.status === "OVERDUE");
+
+            const hasPending = fees.some(
+              (fee) => fee.status === "PENDING" || fee.status === "PARTIAL",
+            );
+
+            let feeStatus = "Paid";
+
+            if (hasOverdue) {
+              feeStatus = "Overdue";
+            } else if (hasPending) {
+              feeStatus = "Pending";
+            }
+
+            return {
+              ...mapStudent(student),
+              feeStatus,
+              totalFee,
+              paidFee,
+              attendance,
+            };
+          } catch (feeError) {
+            console.error(
+              `Failed to load fees for student ${student._id}:`,
+              feeError,
+            );
+
+            return {
+              ...mapStudent(student),
+              feeStatus: "Not Assigned",
+              totalFee: 0,
+              paidFee: 0,
+              attendance: 0,
+            };
+          }
+        }),
+      );
+
+      setStudents(studentsWithFees);
     } catch (err) {
       console.error("Failed to load students:", err);
       error(err.message || "Failed to load students");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStudentExamResults = async (studentId) => {
+    try {
+      setExamResultLoading(true);
+
+      // Get all exams
+      const examsResponse = await examService.getSchoolExams();
+
+      if (!examsResponse?.success) {
+        throw new Error(examsResponse?.message || "Failed to load exams");
+      }
+
+      const exams = examsResponse.exams || [];
+
+      // Fetch this student's result for every exam
+      const results = await Promise.all(
+        exams.map(async (exam) => {
+          try {
+            const resultResponse = await examService.getStudentResult(
+              exam._id,
+              studentId,
+            );
+
+            if (!resultResponse?.success) {
+              return null;
+            }
+
+            return {
+              examId: exam._id,
+              examName: exam.name || "Exam",
+              ...resultResponse,
+            };
+          } catch (err) {
+            console.warn(`No result found for exam ${exam._id}:`, err);
+            return null;
+          }
+        }),
+      );
+
+      setExamResult(results.filter(Boolean));
+    } catch (err) {
+      console.error("Failed to load student exam results:", err);
+      setExamResult([]);
+    } finally {
+      setExamResultLoading(false);
+    }
+  };
+
+  const loadStudentAttendance = async (studentId) => {
+    if (!studentId) {
+      setAttendanceData(null);
+      return;
+    }
+
+    try {
+      setAttendanceLoading(true);
+
+      const response =
+        await attendanceService.getStudentAttendanceSummary(studentId);
+
+      if (!response?.success) {
+        throw new Error(
+          response?.message || "Failed to load student attendance",
+        );
+      }
+
+      setAttendanceData(response);
+    } catch (err) {
+      console.error("Failed to load student attendance:", err);
+      setAttendanceData(null);
+      error(err.message || "Failed to load student attendance");
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const loadStudentFees = async (studentId) => {
+    if (!studentId) {
+      setFeeData(null);
+      return;
+    }
+
+    try {
+      setFeeLoading(true);
+
+      const response = await feeService.getStudentFees(studentId);
+
+      if (!response?.success) {
+        throw new Error(response?.message || "Failed to load student fees");
+      }
+
+      setFeeData(response);
+    } catch (err) {
+      console.error("Failed to load student fees:", err);
+      setFeeData(null);
+      error(err.message || "Failed to load student fees");
+    } finally {
+      setFeeLoading(false);
     }
   };
 
@@ -115,7 +287,30 @@ export default function StudentsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [activeProfileTab, setActiveProfileTab] = useState("personal");
+  const [examResult, setExamResult] = useState(null);
+  const [examResultLoading, setExamResultLoading] = useState(false);
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [feeData, setFeeData] = useState(null);
+  const [feeLoading, setFeeLoading] = useState(false);
 
+  useEffect(() => {
+    if (activeProfileTab === "attendance" && selectedStudent?.id) {
+      loadStudentAttendance(selectedStudent.id);
+    }
+  }, [activeProfileTab, selectedStudent?.id]);
+
+  useEffect(() => {
+    if (activeProfileTab === "exams" && selectedStudent?.id) {
+      loadStudentExamResults(selectedStudent.id);
+    }
+  }, [activeProfileTab, selectedStudent?.id]);
+
+  useEffect(() => {
+    if (activeProfileTab === "fees" && selectedStudent?.id) {
+      loadStudentFees(selectedStudent.id);
+    }
+  }, [activeProfileTab, selectedStudent?.id]);
   // New Student Form State
   const [newStudent, setNewStudent] = useState({
     name: "",
@@ -139,6 +334,7 @@ export default function StudentsPage() {
   const [editStudent, setEditStudent] = useState({
     name: "",
     admissionNumber: "",
+    rollNumber: "",
     email: "",
     dateOfBirth: "",
     gender: "",
@@ -265,7 +461,7 @@ export default function StudentsPage() {
     { id: "parent", label: "Parent Details", icon: <Users size={15} /> },
     {
       id: "attendance",
-      label: "Attendance (94%)",
+      label: `Attendance (${attendanceData?.summary?.attendancePercentage ?? 0}%)`,
       icon: <CalendarCheck size={15} />,
     },
     { id: "fees", label: "Fee Profile", icon: <DollarSign size={15} /> },
@@ -302,7 +498,8 @@ export default function StudentsPage() {
               {val}
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)" }}>
-              Roll: <strong>{row.rollNumber}</strong> • ID: {row.id}
+              Roll: <strong>{row.rollNumber}</strong> • Admission No:{" "}
+              {row.admissionNumber}
             </div>
           </div>
         </div>
@@ -389,6 +586,8 @@ export default function StudentsPage() {
             onClick={() => {
               setSelectedStudent(row);
               setActiveProfileTab("personal");
+              setAttendanceData(null);
+              setFeeData(null);
             }}
             title="View Full Profile"
           >
@@ -403,7 +602,8 @@ export default function StudentsPage() {
 
               setEditStudent({
                 name: row.name || "",
-                admissionNumber: row.rollNumber || "",
+                admissionNumber: row.admissionNumber || "",
+                rollNumber: row.rollNumber || "",
                 email: row.email || "",
                 dateOfBirth: row.dob || "",
                 gender:
@@ -531,7 +731,7 @@ export default function StudentsPage() {
             ? `${selectedStudent.name} (${selectedStudent.rollNumber})`
             : "Student Profile"
         }
-        subtitle={`Class ${selectedStudent?.class}-${selectedStudent?.section} • Admission No: ${selectedStudent?.id}`}
+        subtitle={`Class ${selectedStudent?.class}-${selectedStudent?.section} • Admission No: ${selectedStudent?.admissionNumber}`}
         size="xl"
       >
         {selectedStudent && (
@@ -611,7 +811,7 @@ export default function StudentsPage() {
                       color: "var(--success-text)",
                     }}
                   >
-                    {selectedStudent.attendance}%
+                    {attendanceData?.summary?.attendancePercentage ?? 0}%
                   </div>
                 </div>
                 <div>
@@ -939,180 +1139,254 @@ export default function StudentsPage() {
               {/* Tab 4: Attendance History */}
               {activeProfileTab === "attendance" && (
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "14px",
-                    }}
-                  >
-                    <span style={{ fontWeight: 700 }}>
-                      Overall Cumulative Attendance Rate:{" "}
-                      {selectedStudent.attendance}%
-                    </span>
-                    <span className="badge badge-success">Good Standing</span>
-                  </div>
-                  <div className="table-container">
-                    <table className="custom-table">
-                      <thead>
-                        <tr>
-                          <th>Month</th>
-                          <th>Total Working Days</th>
-                          <th>Days Present</th>
-                          <th>Days Absent</th>
-                          <th>Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>August 2025</td>
-                          <td>22</td>
-                          <td>21</td>
-                          <td>1</td>
-                          <td>95.4%</td>
-                        </tr>
-                        <tr>
-                          <td>July 2025</td>
-                          <td>24</td>
-                          <td>23</td>
-                          <td>1</td>
-                          <td>95.8%</td>
-                        </tr>
-                        <tr>
-                          <td>June 2025</td>
-                          <td>20</td>
-                          <td>18</td>
-                          <td>2</td>
-                          <td>90.0%</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  {attendanceLoading ? (
+                    <div style={{ padding: "30px", textAlign: "center" }}>
+                      Loading attendance...
+                    </div>
+                  ) : !attendanceData ? (
+                    <div style={{ padding: "30px", textAlign: "center" }}>
+                      No attendance data available.
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "14px",
+                        }}
+                      >
+                        <span style={{ fontWeight: 700 }}>
+                          Overall Cumulative Attendance Rate:{" "}
+                          {attendanceData.summary?.attendancePercentage ?? 0}%
+                        </span>
+
+                        <span className="badge badge-success">
+                          {attendanceData.summary?.totalDays > 0
+                            ? "Attendance Available"
+                            : "No Records"}
+                        </span>
+                      </div>
+
+                      <div className="table-container">
+                        <table className="custom-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {attendanceData.records?.length > 0 ? (
+                              attendanceData.records.map((record) => (
+                                <tr key={record._id}>
+                                  <td>
+                                    {record.date
+                                      ? new Date(
+                                          record.date,
+                                        ).toLocaleDateString()
+                                      : "-"}
+                                  </td>
+                                  <td>
+                                    <StatusBadge
+                                      status={record.status || "UNKNOWN"}
+                                      size="sm"
+                                    />
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan="2" style={{ textAlign: "center" }}>
+                                  No attendance records found.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
               {/* Tab 5: Fee History */}
+              {/* Tab 5: Fee History */}
               {activeProfileTab === "fees" && (
                 <div>
-                  <div className="grid-3" style={{ marginBottom: "16px" }}>
-                    <div className="card" style={{ padding: "12px" }}>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-tertiary)",
-                        }}
-                      >
-                        Total Tuition Fee
-                      </div>
-                      <div style={{ fontSize: "1.1rem", fontWeight: 800 }}>
-                        ${selectedStudent.totalFee}
-                      </div>
+                  {feeLoading ? (
+                    <div style={{ padding: "30px", textAlign: "center" }}>
+                      Loading fee details...
                     </div>
-                    <div className="card" style={{ padding: "12px" }}>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-tertiary)",
-                        }}
-                      >
-                        Amount Paid
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "1.1rem",
-                          fontWeight: 800,
-                          color: "var(--success-text)",
-                        }}
-                      >
-                        ${selectedStudent.paidFee}
-                      </div>
+                  ) : !feeData ? (
+                    <div style={{ padding: "30px", textAlign: "center" }}>
+                      No fee data available.
                     </div>
-                    <div className="card" style={{ padding: "12px" }}>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-tertiary)",
-                        }}
-                      >
-                        Pending Balance
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "1.1rem",
-                          fontWeight: 800,
-                          color: "var(--danger-text)",
-                        }}
-                      >
-                        ${selectedStudent.totalFee - selectedStudent.paidFee}
-                      </div>
+                  ) : feeData.fees?.length === 0 ? (
+                    <div style={{ padding: "30px", textAlign: "center" }}>
+                      No fee records found for this student.
                     </div>
-                  </div>
-                  <StatusBadge status={selectedStudent.feeStatus} />
+                  ) : (
+                    <>
+                      {(() => {
+                        const latestFee = feeData.fees[0];
+
+                        return (
+                          <>
+                            <div
+                              className="grid-3"
+                              style={{ marginBottom: "16px" }}
+                            >
+                              <div className="card" style={{ padding: "12px" }}>
+                                <div
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "var(--text-tertiary)",
+                                  }}
+                                >
+                                  Total Fee
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: "1.1rem",
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  ₹{latestFee.totalAmount ?? 0}
+                                </div>
+                              </div>
+
+                              <div className="card" style={{ padding: "12px" }}>
+                                <div
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "var(--text-tertiary)",
+                                  }}
+                                >
+                                  Amount Paid
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: "1.1rem",
+                                    fontWeight: 800,
+                                    color: "var(--success-text)",
+                                  }}
+                                >
+                                  ₹{latestFee.paidAmount ?? 0}
+                                </div>
+                              </div>
+
+                              <div className="card" style={{ padding: "12px" }}>
+                                <div
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "var(--text-tertiary)",
+                                  }}
+                                >
+                                  Pending Balance
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: "1.1rem",
+                                    fontWeight: 800,
+                                    color: "var(--danger-text)",
+                                  }}
+                                >
+                                  ₹{latestFee.pendingAmount ?? 0}
+                                </div>
+                              </div>
+                            </div>
+
+                            <StatusBadge
+                              status={latestFee.status || "Pending"}
+                            />
+                          </>
+                        );
+                      })()}
+                    </>
+                  )}
                 </div>
               )}
 
               {/* Tab 6: Exams & Marks */}
               {activeProfileTab === "exams" && (
-                <div className="table-container">
-                  <table className="custom-table">
-                    <thead>
-                      <tr>
-                        <th>Subject</th>
-                        <th>Max Marks</th>
-                        <th>Marks Scored</th>
-                        <th>Grade</th>
-                        <th>Remarks</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>Mathematics</td>
-                        <td>100</td>
-                        <td>92</td>
-                        <td>
-                          <span className="badge badge-success">A+</span>
-                        </td>
-                        <td>Outstanding problem solving</td>
-                      </tr>
-                      <tr>
-                        <td>Physics</td>
-                        <td>100</td>
-                        <td>88</td>
-                        <td>
-                          <span className="badge badge-success">A</span>
-                        </td>
-                        <td>Very good conceptual grasp</td>
-                      </tr>
-                      <tr>
-                        <td>Chemistry</td>
-                        <td>100</td>
-                        <td>85</td>
-                        <td>
-                          <span className="badge badge-success">A</span>
-                        </td>
-                        <td>Consistent laboratory accuracy</td>
-                      </tr>
-                      <tr>
-                        <td>English Literature</td>
-                        <td>100</td>
-                        <td>90</td>
-                        <td>
-                          <span className="badge badge-success">A+</span>
-                        </td>
-                        <td>Excellent essays</td>
-                      </tr>
-                      <tr>
-                        <td>Computer Science</td>
-                        <td>100</td>
-                        <td>95</td>
-                        <td>
-                          <span className="badge badge-success">A+</span>
-                        </td>
-                        <td>Flawless programming logic</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div>
+                  {examResultLoading ? (
+                    <div className="empty-state">
+                      <p>Loading exam results...</p>
+                    </div>
+                  ) : !examResult || examResult.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No exam results found for this student.</p>
+                    </div>
+                  ) : (
+                    examResult.map((exam) => (
+                      <div key={exam.examId} style={{ marginBottom: "24px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          <h4 style={{ margin: 0 }}>{exam.examName}</h4>
+
+                          <div>
+                            <strong>{exam.percentage}%</strong>{" "}
+                            <span className="badge badge-success">
+                              {exam.grade}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="table-container">
+                          <table className="custom-table">
+                            <thead>
+                              <tr>
+                                <th>Subject</th>
+                                <th>Max Marks</th>
+                                <th>Marks Scored</th>
+                                <th>Grade</th>
+                                <th>Remarks</th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {(exam.subjects || []).map((subject, index) => (
+                                <tr key={`${exam.examId}-${index}`}>
+                                  <td>{subject.subject}</td>
+                                  <td>{subject.maxMarks}</td>
+                                  <td>{subject.marksObtained}</td>
+                                  <td>
+                                    <span className="badge badge-success">
+                                      {subject.grade}
+                                    </span>
+                                  </td>
+                                  <td>{subject.remarks || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div style={{ marginTop: "12px" }}>
+                          <strong>
+                            Total: {exam.totalMarks} / {exam.totalMaxMarks}
+                          </strong>
+                          {" • "}
+                          <strong>Percentage: {exam.percentage}%</strong>
+                          {" • "}
+                          <strong>Result: {exam.result}</strong>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -1610,6 +1884,7 @@ export default function StudentsPage() {
                 name: editStudent.name.trim(),
                 email: editStudent.email.trim().toLowerCase(),
                 admissionNumber: editStudent.admissionNumber.trim(),
+                rollNumber: editStudent.rollNumber.trim(),
                 dateOfBirth: editStudent.dateOfBirth || null,
                 gender: editStudent.gender || null,
                 classId: editStudent.classId || null,

@@ -52,6 +52,7 @@ class ApiClient {
       const response = await fetch(url, {
         ...fetchOptions,
         headers,
+        cache: "no-store",
       });
 
       if (!response.ok) {
@@ -65,8 +66,6 @@ class ApiClient {
       if (options.responseType === "blob") {
         return await response.blob();
       }
-
-      return await response.json();
 
       return await response.json();
     } catch (error) {

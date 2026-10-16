@@ -29,7 +29,7 @@ import {
   initialLeaves,
   initialStaffFeeLedgers,
   initialStaffFeeTransactions,
-} from '../data/mockData.js';
+} from "../data/mockData.js";
 
 export { SCHOOL_CLASSES, PERIOD_SLOTS };
 
@@ -41,7 +41,7 @@ function getStorage(key, initialData) {
       return JSON.parse(saved);
     }
   } catch (e) {
-    console.error('Error reading localStorage', e);
+    console.error("Error reading localStorage", e);
   }
   return initialData;
 }
@@ -50,7 +50,7 @@ function setStorage(key, data) {
   try {
     localStorage.setItem(`crm_${key}`, JSON.stringify(data));
   } catch (e) {
-    console.error('Error writing localStorage', e);
+    console.error("Error writing localStorage", e);
   }
 }
 
@@ -61,14 +61,14 @@ export const schoolDataService = {
 
   // --- Schools ---
   getSchools: () => {
-    let list = getStorage('schools', initialSchools);
+    let list = getStorage("schools", initialSchools);
     if (!list || list.length < initialSchools.length || !list[0].state) {
       list = initialSchools;
-      setStorage('schools', list);
+      setStorage("schools", list);
     }
     return list;
   },
-  saveSchools: (data) => setStorage('schools', data),
+  saveSchools: (data) => setStorage("schools", data),
   getSchoolById: (id) => {
     const schools = schoolDataService.getSchools();
     return schools.find((s) => s.id === id) || schools[0] || null;
@@ -76,26 +76,54 @@ export const schoolDataService = {
   addSchool: (school) => {
     const list = schoolDataService.getSchools();
     const newSchool = {
-      id: school.id || `SCH-${String(list.length + 1).padStart(3, '0')}`,
-      name: school.name || 'New School',
-      code: school.schoolCode || school.code || `SCH${String(list.length + 1).padStart(3, '0')}`,
-      schoolCode: school.schoolCode || school.code || `SCH${String(list.length + 1).padStart(3, '0')}`,
-      board: school.board || 'CBSE',
-      affiliation: school.board ? `${school.board} Board` : 'CBSE Board',
-      address: school.address || '',
-      city: school.city || 'Bhopal',
-      state: school.state || 'Madhya Pradesh',
-      pincode: school.pincode || '462001',
-      email: school.email || '',
-      phone: school.phone || '',
-      status: school.status || 'Active',
-      dateAdded: new Date().toISOString().split('T')[0],
-      establishedYear: school.establishedYear || '2022',
-      principal: school.principalName || (typeof school.principal === 'object' ? school.principal.name : school.principal) || 'Dr. Principal',
+      id: school.id || `SCH-${String(list.length + 1).padStart(3, "0")}`,
+      name: school.name || "New School",
+      code:
+        school.schoolCode ||
+        school.code ||
+        `SCH${String(list.length + 1).padStart(3, "0")}`,
+      schoolCode:
+        school.schoolCode ||
+        school.code ||
+        `SCH${String(list.length + 1).padStart(3, "0")}`,
+      board: school.board || "CBSE",
+      affiliation: school.board ? `${school.board} Board` : "CBSE Board",
+      address: school.address || "",
+      city: school.city || "Bhopal",
+      state: school.state || "Madhya Pradesh",
+      pincode: school.pincode || "462001",
+      email: school.email || "",
+      phone: school.phone || "",
+      status: school.status || "Active",
+      dateAdded: new Date().toISOString().split("T")[0],
+      establishedYear: school.establishedYear || "2022",
+      principal:
+        school.principalName ||
+        (typeof school.principal === "object"
+          ? school.principal.name
+          : school.principal) ||
+        "Dr. Principal",
       principalDetails: {
-        name: school.principalName || (typeof school.principal === 'object' ? school.principal.name : school.principal) || 'Dr. Principal',
-        email: school.principalEmail || (typeof school.principal === 'object' ? school.principal.email : '') || school.email || '',
-        phone: school.principalPhone || (typeof school.principal === 'object' ? school.principal.phone : '') || school.phone || '',
+        name:
+          school.principalName ||
+          (typeof school.principal === "object"
+            ? school.principal.name
+            : school.principal) ||
+          "Dr. Principal",
+        email:
+          school.principalEmail ||
+          (typeof school.principal === "object"
+            ? school.principal.email
+            : "") ||
+          school.email ||
+          "",
+        phone:
+          school.principalPhone ||
+          (typeof school.principal === "object"
+            ? school.principal.phone
+            : "") ||
+          school.phone ||
+          "",
       },
       students: Number(school.students || school.studentsCount || 0),
       studentsCount: Number(school.students || school.studentsCount || 0),
@@ -108,116 +136,130 @@ export const schoolDataService = {
       attendance: Number(school.attendance || 90),
       collectedFees: Number(school.collectedFees || 1000000),
       pendingFees: Number(school.pendingFees || 200000),
-      logo: '🏫',
+      logo: "🏫",
       ...school,
     };
     const updated = [newSchool, ...list];
-    setStorage('schools', updated);
+    setStorage("schools", updated);
     return newSchool;
   },
   toggleSchoolStatus: (id, targetStatus) => {
     const list = schoolDataService.getSchools();
     const updated = list.map((s) => {
       if (s.id === id) {
-        const nextStatus = targetStatus || (s.status === 'Active' ? 'Inactive' : 'Active');
+        const nextStatus =
+          targetStatus || (s.status === "Active" ? "Inactive" : "Active");
         return { ...s, status: nextStatus };
       }
       return s;
     });
-    setStorage('schools', updated);
+    setStorage("schools", updated);
     return updated;
   },
   updateSchool: (id, data) => {
     const list = schoolDataService.getSchools();
     const updated = list.map((s) => (s.id === id ? { ...s, ...data } : s));
-    setStorage('schools', updated);
+    setStorage("schools", updated);
     return updated;
   },
 
   // --- Students (with School Tenancy Filter) ---
   getStudents: (schoolId) => {
-    const list = getStorage('students', initialStudents);
+    const list = getStorage("students", initialStudents);
     if (schoolId) {
       return list.filter((s) => !s.schoolId || s.schoolId === schoolId);
     }
     return list;
   },
-  saveStudents: (data) => setStorage('students', data),
+  saveStudents: (data) => setStorage("students", data),
   addStudent: (student) => {
-    const list = getStorage('students', initialStudents);
+    const list = getStorage("students", initialStudents);
     const newStudent = {
-      id: `STU${String(list.length + 1).padStart(3, '0')}`,
-      rollNumber: student.rollNumber || `STU${String(list.length + 1).padStart(3, '0')}`,
-      admissionDate: new Date().toISOString().split('T')[0],
+      id: `STU${String(list.length + 1).padStart(3, "0")}`,
+      rollNumber:
+        student.rollNumber || `STU${String(list.length + 1).padStart(3, "0")}`,
+      admissionDate: new Date().toISOString().split("T")[0],
       attendance: 100,
-      feeStatus: 'Pending',
-      status: 'Active',
+      feeStatus: "Pending",
+      status: "Active",
       paidFee: 0,
       totalFee: 3800,
-      schoolId: student.schoolId || 'SCH-001',
-      profilePhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      schoolId: student.schoolId || "SCH-001",
+      profilePhoto:
+        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       ...student,
     };
     const updated = [newStudent, ...list];
-    setStorage('students', updated);
+    setStorage("students", updated);
     return newStudent;
   },
   updateStudent: (id, updatedFields) => {
-    const list = getStorage('students', initialStudents);
-    const updated = list.map((s) => (s.id === id ? { ...s, ...updatedFields } : s));
-    setStorage('students', updated);
+    const list = getStorage("students", initialStudents);
+    const updated = list.map((s) =>
+      s.id === id ? { ...s, ...updatedFields } : s,
+    );
+    setStorage("students", updated);
     return updated;
   },
   deleteStudent: (id) => {
-    const list = getStorage('students', initialStudents);
+    const list = getStorage("students", initialStudents);
     const updated = list.filter((s) => s.id !== id);
-    setStorage('students', updated);
+    setStorage("students", updated);
     return updated;
   },
 
   // --- Teachers (with School Tenancy Filter) ---
   getTeachers: (schoolId) => {
-    const list = getStorage('teachers', initialTeachers);
+    const list = getStorage("teachers", initialTeachers);
     if (schoolId) {
       return list.filter((t) => !t.schoolId || t.schoolId === schoolId);
     }
     return list;
   },
-  saveTeachers: (data) => setStorage('teachers', data),
+  saveTeachers: (data) => setStorage("teachers", data),
   addTeacher: (teacher) => {
-    const list = getStorage('teachers', initialTeachers);
+    const list = getStorage("teachers", initialTeachers);
     const newTeacher = {
-      id: `TCH-${String(list.length + 1).padStart(3, '0')}`,
-      joiningDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
+      id: `TCH-${String(list.length + 1).padStart(3, "0")}`,
+      joiningDate: new Date().toISOString().split("T")[0],
+      status: "Active",
       totalStudents: 0,
-      schoolId: teacher.schoolId || 'SCH-001',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      classes: teacher.classes || ['Class 5'],
-      assignedSubjects: [teacher.subject || 'General'],
+      schoolId: teacher.schoolId || "SCH-001",
+      avatar:
+        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      classes: teacher.classes || ["Class 5"],
+      assignedSubjects: [teacher.subject || "General"],
       ...teacher,
     };
     const updated = [newTeacher, ...list];
-    setStorage('teachers', updated);
+    setStorage("teachers", updated);
     return newTeacher;
   },
   deleteTeacher: (id) => {
-    const list = getStorage('teachers', initialTeachers);
+    const list = getStorage("teachers", initialTeachers);
     const updated = list.filter((t) => t.id !== id);
-    setStorage('teachers', updated);
+    setStorage("teachers", updated);
     return updated;
   },
 
   // --- Teacher Class & Subject Assignments (Principal -> Teacher -> Class) ---
   getTeacherAssignments: (schoolId) => {
-    const list = getStorage('teacher_assignments', initialTeacherAssignments);
+    const list = getStorage("teacher_assignments", initialTeacherAssignments);
     if (schoolId) {
       return list.filter((a) => !a.schoolId || a.schoolId === schoolId);
     }
     return list;
   },
-  saveTeacherAssignments: (data) => setStorage('teacher_assignments', data),
-  assignTeacherToClass: ({ teacherId, teacherName, className, section, subject, room, schoolId = 'SCH-001' }) => {
+  saveTeacherAssignments: (data) => setStorage("teacher_assignments", data),
+  assignTeacherToClass: ({
+    teacherId,
+    teacherName,
+    className,
+    section,
+    subject,
+    room,
+    schoolId = "SCH-001",
+  }) => {
     const assignments = schoolDataService.getTeacherAssignments();
     const newAssignment = {
       id: `ASN-TCH-${Date.now().toString().slice(-4)}`,
@@ -225,18 +267,21 @@ export const schoolDataService = {
       teacherId,
       teacherName,
       class: className,
-      section: section || 'A',
+      section: section || "A",
       subject,
-      room: room || 'Room 201',
-      assignedDate: new Date().toISOString().split('T')[0],
+      room: room || "Room 201",
+      assignedDate: new Date().toISOString().split("T")[0],
     };
     const updatedAssignments = [newAssignment, ...assignments];
-    setStorage('teacher_assignments', updatedAssignments);
+    setStorage("teacher_assignments", updatedAssignments);
 
     // Also update teacher's classes list if not already present
     const teachers = schoolDataService.getTeachers();
     const updatedTeachers = teachers.map((t) => {
-      if (t.id === teacherId || t.name.toLowerCase() === (teacherName || '').toLowerCase()) {
+      if (
+        t.id === teacherId ||
+        t.name.toLowerCase() === (teacherName || "").toLowerCase()
+      ) {
         const existingClasses = new Set(t.classes || []);
         existingClasses.add(className);
         const existingSubjects = new Set(t.assignedSubjects || [t.subject]);
@@ -249,138 +294,252 @@ export const schoolDataService = {
       }
       return t;
     });
-    setStorage('teachers', updatedTeachers);
+    setStorage("teachers", updatedTeachers);
 
     return newAssignment;
   },
 
   // --- Staff ---
   getStaff: (schoolId) => {
-    const list = getStorage('staff', initialStaff);
-    if (schoolId) return list.filter((s) => !s.schoolId || s.schoolId === schoolId);
+    const list = getStorage("staff", initialStaff);
+    if (schoolId)
+      return list.filter((s) => !s.schoolId || s.schoolId === schoolId);
     return list;
   },
-  saveStaff: (data) => setStorage('staff', data),
+  saveStaff: (data) => setStorage("staff", data),
   addStaff: (member) => {
-    const list = getStorage('staff', initialStaff);
+    const list = getStorage("staff", initialStaff);
     const newStaff = {
       id: `STF-${String(list.length + 101)}`,
-      joiningDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
-      schoolId: member.schoolId || 'SCH-001',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      joiningDate: new Date().toISOString().split("T")[0],
+      status: "Active",
+      schoolId: member.schoolId || "SCH-001",
+      avatar:
+        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       ...member,
     };
     const updated = [newStaff, ...list];
-    setStorage('staff', updated);
+    setStorage("staff", updated);
     return newStaff;
   },
 
   // --- Drivers & Transport ---
   getDrivers: (schoolId) => {
-    const list = getStorage('drivers', initialDrivers);
-    if (schoolId) return list.filter((d) => !d.schoolId || d.schoolId === schoolId);
+    const list = getStorage("drivers", initialDrivers);
+    if (schoolId)
+      return list.filter((d) => !d.schoolId || d.schoolId === schoolId);
     return list;
   },
-  saveDrivers: (data) => setStorage('drivers', data),
+  saveDrivers: (data) => setStorage("drivers", data),
   addDriver: (driver) => {
-    const list = getStorage('drivers', initialDrivers);
+    const list = getStorage("drivers", initialDrivers);
     const newDriver = {
-      id: `DRV-${String(list.length + 1).padStart(3, '0')}`,
-      driverId: `DRV-${String(list.length + 1).padStart(3, '0')}`,
-      status: 'Active',
-      joiningDate: new Date().toISOString().split('T')[0],
-      schoolId: driver.schoolId || 'SCH-001',
+      id: `DRV-${String(list.length + 1).padStart(3, "0")}`,
+      driverId: `DRV-${String(list.length + 1).padStart(3, "0")}`,
+      status: "Active",
+      joiningDate: new Date().toISOString().split("T")[0],
+      schoolId: driver.schoolId || "SCH-001",
       ...driver,
     };
     const updated = [newDriver, ...list];
-    setStorage('drivers', updated);
+    setStorage("drivers", updated);
     return newDriver;
   },
   getVehicles: (schoolId) => {
-    const list = getStorage('vehicles', initialVehicles);
-    if (schoolId) return list.filter((v) => !v.schoolId || v.schoolId === schoolId);
+    const list = getStorage("vehicles", initialVehicles);
+    if (schoolId)
+      return list.filter((v) => !v.schoolId || v.schoolId === schoolId);
     return list;
   },
-  saveVehicles: (data) => setStorage('vehicles', data),
+  saveVehicles: (data) => setStorage("vehicles", data),
   getRoutes: (schoolId) => {
-    const list = getStorage('routes', initialRoutes);
-    if (schoolId) return list.filter((r) => !r.schoolId || r.schoolId === schoolId);
+    const list = getStorage("routes", initialRoutes);
+    if (schoolId)
+      return list.filter((r) => !r.schoolId || r.schoolId === schoolId);
     return list;
   },
-  saveRoutes: (data) => setStorage('routes', data),
+  saveRoutes: (data) => setStorage("routes", data),
 
   // --- Classes & Sections (Nursery to Class 10) ---
   getClasses: (schoolId) => {
-    const list = getStorage('classes', initialClasses);
-    if (schoolId) return list.filter((c) => !c.schoolId || c.schoolId === schoolId);
+    const list = getStorage("classes", initialClasses);
+    if (schoolId)
+      return list.filter((c) => !c.schoolId || c.schoolId === schoolId);
     return list;
   },
-  saveClasses: (data) => setStorage('classes', data),
+  saveClasses: (data) => setStorage("classes", data),
 
   // --- 7-Period Timetable ---
-  getTimetable: () => getStorage('timetable', initialTimetable),
-  saveTimetable: (data) => setStorage('timetable', data),
+  getTimetable: () => getStorage("timetable", initialTimetable),
+  saveTimetable: (data) => setStorage("timetable", data),
 
   getTimetableForClass: (classKey) => {
     const all = schoolDataService.getTimetable();
     if (all[classKey]) return all[classKey];
     // Fallback: Return template 7 periods with lunch
     return [
-      { period: 1, time: '08:00 - 08:40', monday: 'Mathematics', tuesday: 'English', wednesday: 'Science', thursday: 'Hindi', friday: 'Computer', subject: 'Mathematics', teacher: 'Rahul Sharma', class: classKey, room: 'Room 201' },
-      { period: 2, time: '08:40 - 09:20', monday: 'English', tuesday: 'Mathematics', wednesday: 'Social Science', thursday: 'Science', friday: 'English', subject: 'English', teacher: 'Priya Singh', class: classKey, room: 'Room 201' },
-      { period: 3, time: '09:20 - 10:00', monday: 'Science', tuesday: 'Hindi', wednesday: 'Mathematics', thursday: 'English', friday: 'Science', subject: 'Science', teacher: 'Amit Kumar', class: classKey, room: 'Room 201' },
-      { period: 4, time: '10:00 - 10:40', monday: 'Hindi', tuesday: 'Science', wednesday: 'Computer', thursday: 'Social Science', friday: 'Hindi', subject: 'Hindi', teacher: 'Neha Sharma', class: classKey, room: 'Room 201' },
-      { period: 'Lunch', time: '10:40 - 11:10', monday: '🍱 LUNCH BREAK', tuesday: '🍱 LUNCH BREAK', wednesday: '🍱 LUNCH BREAK', thursday: '🍱 LUNCH BREAK', friday: '🍱 LUNCH BREAK', isBreak: true },
-      { period: 5, time: '11:10 - 11:50', monday: 'Computer', tuesday: 'Social Science', wednesday: 'English', thursday: 'Mathematics', friday: 'Computer', subject: 'Computer', teacher: 'Rahul Sharma', class: classKey, room: 'Lab 1' },
-      { period: 6, time: '11:50 - 12:30', monday: 'Social Science', tuesday: 'Computer', wednesday: 'Hindi', thursday: 'PT', friday: 'Social Science', subject: 'Social Science', teacher: 'Amit Kumar', class: classKey, room: 'Room 201' },
-      { period: 7, time: '12:30 - 01:10', monday: 'PT / Games', tuesday: 'Library', wednesday: 'Art & Craft', thursday: 'PT / Games', friday: 'Activity', subject: 'PT', teacher: 'Sports Teacher', class: classKey, room: 'Ground' },
+      {
+        period: 1,
+        time: "08:00 - 08:40",
+        monday: "Mathematics",
+        tuesday: "English",
+        wednesday: "Science",
+        thursday: "Hindi",
+        friday: "Computer",
+        subject: "Mathematics",
+        teacher: "Rahul Sharma",
+        class: classKey,
+        room: "Room 201",
+      },
+      {
+        period: 2,
+        time: "08:40 - 09:20",
+        monday: "English",
+        tuesday: "Mathematics",
+        wednesday: "Social Science",
+        thursday: "Science",
+        friday: "English",
+        subject: "English",
+        teacher: "Priya Singh",
+        class: classKey,
+        room: "Room 201",
+      },
+      {
+        period: 3,
+        time: "09:20 - 10:00",
+        monday: "Science",
+        tuesday: "Hindi",
+        wednesday: "Mathematics",
+        thursday: "English",
+        friday: "Science",
+        subject: "Science",
+        teacher: "Amit Kumar",
+        class: classKey,
+        room: "Room 201",
+      },
+      {
+        period: 4,
+        time: "10:00 - 10:40",
+        monday: "Hindi",
+        tuesday: "Science",
+        wednesday: "Computer",
+        thursday: "Social Science",
+        friday: "Hindi",
+        subject: "Hindi",
+        teacher: "Neha Sharma",
+        class: classKey,
+        room: "Room 201",
+      },
+      {
+        period: "Lunch",
+        time: "10:40 - 11:10",
+        monday: "🍱 LUNCH BREAK",
+        tuesday: "🍱 LUNCH BREAK",
+        wednesday: "🍱 LUNCH BREAK",
+        thursday: "🍱 LUNCH BREAK",
+        friday: "🍱 LUNCH BREAK",
+        isBreak: true,
+      },
+      {
+        period: 5,
+        time: "11:10 - 11:50",
+        monday: "Computer",
+        tuesday: "Social Science",
+        wednesday: "English",
+        thursday: "Mathematics",
+        friday: "Computer",
+        subject: "Computer",
+        teacher: "Rahul Sharma",
+        class: classKey,
+        room: "Lab 1",
+      },
+      {
+        period: 6,
+        time: "11:50 - 12:30",
+        monday: "Social Science",
+        tuesday: "Computer",
+        wednesday: "Hindi",
+        thursday: "PT",
+        friday: "Social Science",
+        subject: "Social Science",
+        teacher: "Amit Kumar",
+        class: classKey,
+        room: "Room 201",
+      },
+      {
+        period: 7,
+        time: "12:30 - 01:10",
+        monday: "PT / Games",
+        tuesday: "Library",
+        wednesday: "Art & Craft",
+        thursday: "PT / Games",
+        friday: "Activity",
+        subject: "PT",
+        teacher: "Sports Teacher",
+        class: classKey,
+        room: "Ground",
+      },
     ];
   },
 
   getTimetableForTeacher: (teacherNameOrId) => {
     const all = schoolDataService.getTimetable();
-    const key = (teacherNameOrId || '').toLowerCase();
-    if (key.includes('rahul') || key === 'tch-001') {
-      return all['Teacher-Rahul'] || [];
+    const key = (teacherNameOrId || "").toLowerCase();
+    if (key.includes("rahul") || key === "tch-001") {
+      return all["Teacher-Rahul"] || [];
     }
-    if (key.includes('priya') || key === 'tch-002') {
-      return all['Teacher-Priya'] || [];
+    if (key.includes("priya") || key === "tch-002") {
+      return all["Teacher-Priya"] || [];
     }
-    if (key.includes('sarah') || key === 'tch-005') {
-      return all['Teacher-Sarah'] || [];
+    if (key.includes("sarah") || key === "tch-005") {
+      return all["Teacher-Sarah"] || [];
     }
-    return all['Teacher-Rahul'] || [];
+    return all["Teacher-Rahul"] || [];
   },
 
   // --- Attendance (Student Attendance & Teacher Attendance / Punch In-Out) ---
-  getAttendanceRecords: () => getStorage('attendance', initialAttendanceRecords),
+  getAttendanceRecords: () =>
+    getStorage("attendance", initialAttendanceRecords),
   saveAttendance: (classKey, records) => {
     const all = schoolDataService.getAttendanceRecords();
     const updated = {
       ...all,
       [classKey]: records,
     };
-    setStorage('attendance', updated);
+    setStorage("attendance", updated);
     return updated;
   },
 
   // --- Student Attendance Records (Class + Section + Date) ---
-  getStudentAttendanceRecords: () => getStorage('student_attendance', initialStudentAttendanceRecords),
-  saveStudentAttendanceRecords: (data) => setStorage('student_attendance', data),
+  getStudentAttendanceRecords: () =>
+    getStorage("student_attendance", initialStudentAttendanceRecords),
+  saveStudentAttendanceRecords: (data) =>
+    setStorage("student_attendance", data),
 
-  getStudentAttendanceForClass: ({ schoolId = 'SCH-001', className, section = 'A', date = '2026-09-09' }) => {
+  getStudentAttendanceForClass: ({
+    schoolId = "SCH-001",
+    className,
+    section = "A",
+    date = "2026-09-09",
+  }) => {
     const all = schoolDataService.getStudentAttendanceRecords();
     return all.filter(
       (r) =>
         (!r.schoolId || r.schoolId === schoolId) &&
         r.classId === className &&
         r.sectionId === section &&
-        r.date === date
+        r.date === date,
     );
   },
 
-  saveStudentAttendance: ({ schoolId = 'SCH-001', teacherId, className, section = 'A', date = '2026-09-09', records }) => {
+  saveStudentAttendance: ({
+    schoolId = "SCH-001",
+    teacherId,
+    className,
+    section = "A",
+    date = "2026-09-09",
+    records,
+  }) => {
     const all = schoolDataService.getStudentAttendanceRecords();
     // Filter out previous records for this specific class + section + date
     const filtered = all.filter(
@@ -390,18 +549,18 @@ export const schoolDataService = {
           r.classId === className &&
           r.sectionId === section &&
           r.date === date
-        )
+        ),
     );
 
     const newRecords = records.map((rec) => ({
       id: `SA-${rec.studentId}-${date}`,
       schoolId,
-      teacherId: teacherId || 'TCH-001',
+      teacherId: teacherId || "TCH-001",
       classId: className,
       sectionId: section,
       studentId: rec.studentId,
       date,
-      status: (rec.status || 'present').toLowerCase(),
+      status: (rec.status || "present").toLowerCase(),
     }));
 
     const updated = [...newRecords, ...filtered];
@@ -410,38 +569,61 @@ export const schoolDataService = {
     // Also update legacy classKey record map for compatibility
     const classKey = `${className}-${section}`;
     const legacy = schoolDataService.getAttendanceRecords();
-    setStorage('attendance', { ...legacy, [classKey]: records });
+    setStorage("attendance", { ...legacy, [classKey]: records });
 
     return newRecords;
   },
 
   // --- Teacher Punch In / Out & Faculty Attendance ---
-  getTeacherAttendanceRecords: () => getStorage('teacher_attendance', initialTeacherAttendance),
-  saveTeacherAttendanceRecords: (data) => setStorage('teacher_attendance', data),
+  getTeacherAttendanceRecords: () =>
+    getStorage("teacher_attendance", initialTeacherAttendance),
+  saveTeacherAttendanceRecords: (data) =>
+    setStorage("teacher_attendance", data),
 
-  getTeacherActivities: () => getStorage('teacher_activities', [
-    { id: 'act-1', text: 'Rahul Sharma is present today.', punchIn: '08:02 AM', date: new Date().toISOString().split('T')[0], timestamp: Date.now() - 3600000 },
-    { id: 'act-2', text: 'Priya Singh is present today.', punchIn: '08:15 AM', date: new Date().toISOString().split('T')[0], timestamp: Date.now() - 2400000 },
-  ]),
-  saveTeacherActivities: (data) => setStorage('teacher_activities', data),
+  getTeacherActivities: () =>
+    getStorage("teacher_activities", [
+      {
+        id: "act-1",
+        text: "Rahul Sharma is present today.",
+        punchIn: "08:02 AM",
+        date: new Date().toISOString().split("T")[0],
+        timestamp: Date.now() - 3600000,
+      },
+      {
+        id: "act-2",
+        text: "Priya Singh is present today.",
+        punchIn: "08:15 AM",
+        date: new Date().toISOString().split("T")[0],
+        timestamp: Date.now() - 2400000,
+      },
+    ]),
+  saveTeacherActivities: (data) => setStorage("teacher_activities", data),
 
   addTeacherActivity: (activity) => {
     const list = schoolDataService.getTeacherActivities();
-    const updated = [{ id: `act-${Date.now()}`, timestamp: Date.now(), ...activity }, ...list].slice(0, 20);
+    const updated = [
+      { id: `act-${Date.now()}`, timestamp: Date.now(), ...activity },
+      ...list,
+    ].slice(0, 20);
     schoolDataService.saveTeacherActivities(updated);
     return updated;
   },
 
-  calculateWorkingHours: (punchInTime, punchOutTime, punchInTs = null, punchOutTs = null) => {
-    if (!punchInTime || punchInTime === '—') return '00h 00m';
-    
+  calculateWorkingHours: (
+    punchInTime,
+    punchOutTime,
+    punchInTs = null,
+    punchOutTs = null,
+  ) => {
+    if (!punchInTime || punchInTime === "—") return "00h 00m";
+
     // If timestamps available
     if (punchInTs && punchOutTs) {
       const diffMs = Math.max(0, punchOutTs - punchInTs);
       const totalMinutes = Math.floor(diffMs / (1000 * 60));
       const hours = Math.floor(totalMinutes / 60);
       const mins = totalMinutes % 60;
-      return `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m`;
+      return `${String(hours).padStart(2, "0")}h ${String(mins).padStart(2, "0")}m`;
     }
 
     // Parse time strings e.g. "09:32 AM" and "05:35 PM"
@@ -453,36 +635,40 @@ export const schoolDataService = {
         let hours = parseInt(h, 10);
         const minutes = parseInt(m, 10);
         if (mer) {
-          if (mer.toUpperCase() === 'PM' && hours < 12) hours += 12;
-          if (mer.toUpperCase() === 'AM' && hours === 12) hours = 0;
+          if (mer.toUpperCase() === "PM" && hours < 12) hours += 12;
+          if (mer.toUpperCase() === "AM" && hours === 12) hours = 0;
         }
         return hours * 60 + minutes;
       };
 
       const inMins = parseTime(punchInTime);
-      const outMins = punchOutTime && punchOutTime !== '—' ? parseTime(punchOutTime) : null;
+      const outMins =
+        punchOutTime && punchOutTime !== "—" ? parseTime(punchOutTime) : null;
 
       if (inMins !== null && outMins !== null) {
         let diff = outMins - inMins;
         if (diff < 0) diff += 24 * 60;
         const hours = Math.floor(diff / 60);
         const mins = diff % 60;
-        return `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m`;
+        return `${String(hours).padStart(2, "0")}h ${String(mins).padStart(2, "0")}m`;
       }
     } catch (e) {
       console.error(e);
     }
-    return '08h 00m';
+    return "08h 00m";
   },
 
-  getTeacherAttendance: (schoolId = 'SCH-001', date = null) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+  getTeacherAttendance: (schoolId = "SCH-001", date = null) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
     const list = schoolDataService.getTeacherAttendanceRecords();
     const teachers = schoolDataService.getTeachers(schoolId);
 
     return teachers.map((teacher) => {
       const record = list.find(
-        (r) => r.teacherId === teacher.id && (!targetDate || r.date === targetDate) && (!schoolId || !r.schoolId || r.schoolId === schoolId)
+        (r) =>
+          r.teacherId === teacher.id &&
+          (!targetDate || r.date === targetDate) &&
+          (!schoolId || !r.schoolId || r.schoolId === schoolId),
       );
       if (record) {
         return {
@@ -502,18 +688,22 @@ export const schoolDataService = {
         subject: teacher.subject,
         avatar: teacher.avatar,
         date: targetDate,
-        status: 'not_marked',
-        punchIn: '—',
-        punchOut: '—',
-        totalWorkingHours: '—',
+        status: "not_marked",
+        punchIn: "—",
+        punchOut: "—",
+        totalWorkingHours: "—",
       };
     });
   },
 
   getTodayTeacherAttendance: (teacherId, date = null) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || new Date().toISOString().split("T")[0];
     const list = schoolDataService.getTeacherAttendanceRecords();
-    const found = list.find((r) => (r.teacherId === teacherId || r.teacherName === teacherId) && r.date === targetDate);
+    const found = list.find(
+      (r) =>
+        (r.teacherId === teacherId || r.teacherName === teacherId) &&
+        r.date === targetDate,
+    );
     return found || null;
   },
 
@@ -524,41 +714,58 @@ export const schoolDataService = {
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   },
 
-  punchInTeacher: ({ schoolId = 'SCH-001', teacherId, teacherName, date = null, time = null, timestamp = null }) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
-    const punchTime = time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  punchInTeacher: ({
+    schoolId = "SCH-001",
+    teacherId,
+    teacherName,
+    date = null,
+    time = null,
+    timestamp = null,
+  }) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
+    const punchTime =
+      time ||
+      new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
     const punchTs = timestamp || Date.now();
 
     const list = schoolDataService.getTeacherAttendanceRecords();
-    const existingIndex = list.findIndex((r) => (r.teacherId === teacherId || r.teacherName === teacherName) && r.date === targetDate);
+    const existingIndex = list.findIndex(
+      (r) =>
+        (r.teacherId === teacherId || r.teacherName === teacherName) &&
+        r.date === targetDate,
+    );
 
     let updated;
     if (existingIndex >= 0) {
       // Prevent duplicate punch in if already punched in
-      if (list[existingIndex].punchIn && list[existingIndex].punchIn !== '—') {
+      if (list[existingIndex].punchIn && list[existingIndex].punchIn !== "—") {
         return list[existingIndex];
       }
       updated = [...list];
       updated[existingIndex] = {
         ...updated[existingIndex],
-        status: 'present',
+        status: "present",
         punchIn: punchTime,
         punchInTimestamp: punchTs,
-        punchOut: '—',
-        totalWorkingHours: 'In Progress',
+        punchOut: "—",
+        totalWorkingHours: "In Progress",
       };
     } else {
       const newRecord = {
         id: `TA-${Date.now().toString().slice(-4)}`,
         schoolId,
         teacherId,
-        teacherName: teacherName || 'Rahul Sharma',
+        teacherName: teacherName || "Rahul Sharma",
         date: targetDate,
-        status: 'present',
+        status: "present",
         punchIn: punchTime,
         punchInTimestamp: punchTs,
-        punchOut: '—',
-        totalWorkingHours: 'In Progress',
+        punchOut: "—",
+        totalWorkingHours: "In Progress",
       };
       updated = [newRecord, ...list];
     }
@@ -566,31 +773,55 @@ export const schoolDataService = {
 
     // Log notification for Principal / Admin Dashboard
     schoolDataService.addTeacherActivity({
-      text: `${teacherName || 'Teacher'} is present today.`,
+      text: `${teacherName || "Teacher"} is present today.`,
       punchIn: punchTime,
-      teacherName: teacherName || 'Rahul Sharma',
+      teacherName: teacherName || "Rahul Sharma",
       teacherId,
       schoolId,
       date: targetDate,
     });
 
-    return updated.find((r) => (r.teacherId === teacherId || r.teacherName === teacherName) && r.date === targetDate);
+    return updated.find(
+      (r) =>
+        (r.teacherId === teacherId || r.teacherName === teacherName) &&
+        r.date === targetDate,
+    );
   },
 
-  punchOutTeacher: ({ teacherId, teacherName = null, date = null, time = null, timestamp = null }) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
-    const punchOutTime = time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  punchOutTeacher: ({
+    teacherId,
+    teacherName = null,
+    date = null,
+    time = null,
+    timestamp = null,
+  }) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
+    const punchOutTime =
+      time ||
+      new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
     const punchOutTs = timestamp || Date.now();
 
     const list = schoolDataService.getTeacherAttendanceRecords();
-    const existing = list.find((r) => (r.teacherId === teacherId || r.teacherName === teacherName) && r.date === targetDate);
+    const existing = list.find(
+      (r) =>
+        (r.teacherId === teacherId || r.teacherName === teacherName) &&
+        r.date === targetDate,
+    );
 
-    if (!existing || !existing.punchIn || existing.punchIn === '—') {
+    if (!existing || !existing.punchIn || existing.punchIn === "—") {
       return null;
     }
 
     // Prevent double punch out
-    if (existing.punchOut && existing.punchOut !== '—' && existing.status === 'shift_completed') {
+    if (
+      existing.punchOut &&
+      existing.punchOut !== "—" &&
+      existing.status === "shift_completed"
+    ) {
       return existing;
     }
 
@@ -598,16 +829,19 @@ export const schoolDataService = {
       existing.punchIn,
       punchOutTime,
       existing.punchInTimestamp,
-      punchOutTs
+      punchOutTs,
     );
 
     const updated = list.map((r) => {
-      if ((r.teacherId === teacherId || r.teacherName === teacherName) && r.date === targetDate) {
+      if (
+        (r.teacherId === teacherId || r.teacherName === teacherName) &&
+        r.date === targetDate
+      ) {
         return {
           ...r,
           punchOut: punchOutTime,
           punchOutTimestamp: punchOutTs,
-          status: 'shift_completed',
+          status: "shift_completed",
           totalWorkingHours: workingHours,
         };
       }
@@ -618,22 +852,34 @@ export const schoolDataService = {
 
     // Log notification for Principal / Admin Dashboard
     schoolDataService.addTeacherActivity({
-      text: `${existing.teacherName || teacherName || 'Teacher'} completed shift.`,
+      text: `${existing.teacherName || teacherName || "Teacher"} completed shift.`,
       punchIn: existing.punchIn,
       punchOut: punchOutTime,
       workingHours,
-      teacherName: existing.teacherName || teacherName || 'Rahul Sharma',
+      teacherName: existing.teacherName || teacherName || "Rahul Sharma",
       teacherId,
       date: targetDate,
     });
 
-    return updated.find((r) => (r.teacherId === teacherId || r.teacherName === teacherName) && r.date === targetDate);
+    return updated.find(
+      (r) =>
+        (r.teacherId === teacherId || r.teacherName === teacherName) &&
+        r.date === targetDate,
+    );
   },
 
-  setTeacherStatus: ({ schoolId = 'SCH-001', teacherId, teacherName, date = null, status = 'absent' }) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+  setTeacherStatus: ({
+    schoolId = "SCH-001",
+    teacherId,
+    teacherName,
+    date = null,
+    status = "absent",
+  }) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
     const list = schoolDataService.getTeacherAttendanceRecords();
-    const existingIndex = list.findIndex((r) => r.teacherId === teacherId && r.date === targetDate);
+    const existingIndex = list.findIndex(
+      (r) => r.teacherId === teacherId && r.date === targetDate,
+    );
 
     let updated;
     if (existingIndex >= 0) {
@@ -641,97 +887,113 @@ export const schoolDataService = {
       updated[existingIndex] = {
         ...updated[existingIndex],
         status,
-        punchIn: status === 'absent' ? '—' : updated[existingIndex].punchIn || '08:00 AM',
-        punchOut: status === 'absent' ? '—' : updated[existingIndex].punchOut,
+        punchIn:
+          status === "absent"
+            ? "—"
+            : updated[existingIndex].punchIn || "08:00 AM",
+        punchOut: status === "absent" ? "—" : updated[existingIndex].punchOut,
       };
     } else {
       const newRecord = {
         id: `TA-${Date.now().toString().slice(-4)}`,
         schoolId,
         teacherId,
-        teacherName: teacherName || 'Rahul Sharma',
+        teacherName: teacherName || "Rahul Sharma",
         date: targetDate,
         status,
-        punchIn: status === 'absent' ? '—' : '08:00 AM',
-        punchOut: '—',
+        punchIn: status === "absent" ? "—" : "08:00 AM",
+        punchOut: "—",
       };
       updated = [newRecord, ...list];
     }
     schoolDataService.saveTeacherAttendanceRecords(updated);
-    return updated.find((r) => r.teacherId === teacherId && r.date === targetDate);
+    return updated.find(
+      (r) => r.teacherId === teacherId && r.date === targetDate,
+    );
   },
 
-  getAbsentTeachersToday: (schoolId = 'SCH-001', date = null) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
-    const records = schoolDataService.getTeacherAttendance(schoolId, targetDate);
-    return records.filter((r) => r.status === 'absent');
+  getAbsentTeachersToday: (schoolId = "SCH-001", date = null) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
+    const records = schoolDataService.getTeacherAttendance(
+      schoolId,
+      targetDate,
+    );
+    return records.filter((r) => r.status === "absent");
   },
 
   // --- Exams & Marks ---
   getExams: (schoolId) => {
-    const list = getStorage('exams', initialExams);
-    if (schoolId) return list.filter((e) => !e.schoolId || e.schoolId === schoolId);
+    const list = getStorage("exams", initialExams);
+    if (schoolId)
+      return list.filter((e) => !e.schoolId || e.schoolId === schoolId);
     return list;
   },
-  saveExams: (data) => setStorage('exams', data),
+  saveExams: (data) => setStorage("exams", data),
   addExam: (exam) => {
-    const list = getStorage('exams', initialExams);
+    const list = getStorage("exams", initialExams);
     const newExam = {
       id: `EXM-${Date.now().toString().slice(-4)}`,
-      status: 'Upcoming',
+      status: "Upcoming",
       schedule: [],
-      schoolId: exam.schoolId || 'SCH-001',
+      schoolId: exam.schoolId || "SCH-001",
       ...exam,
     };
     const updated = [newExam, ...list];
-    setStorage('exams', updated);
+    setStorage("exams", updated);
     return newExam;
   },
-  getMarks: () => getStorage('marks', initialMarks),
+  getMarks: () => getStorage("marks", initialMarks),
   saveMarks: (studentId, marksObj) => {
     const all = schoolDataService.getMarks();
     const updated = { ...all, [studentId]: marksObj };
-    setStorage('marks', updated);
+    setStorage("marks", updated);
     return updated;
   },
 
   // --- Assignments ---
   getAssignments: (schoolId) => {
-    const list = getStorage('assignments', initialAssignments);
-    if (schoolId) return list.filter((a) => !a.schoolId || a.schoolId === schoolId);
+    const list = getStorage("assignments", initialAssignments);
+    if (schoolId)
+      return list.filter((a) => !a.schoolId || a.schoolId === schoolId);
     return list;
   },
-  saveAssignments: (data) => setStorage('assignments', data),
+  saveAssignments: (data) => setStorage("assignments", data),
   addAssignment: (assignment) => {
-    const list = getStorage('assignments', initialAssignments);
+    const list = getStorage("assignments", initialAssignments);
     const newAsn = {
       id: `ASN-${String(list.length + 101)}`,
-      assignedDate: new Date().toISOString().split('T')[0],
+      assignedDate: new Date().toISOString().split("T")[0],
       totalSubmissions: 0,
       totalStudents: 35,
-      status: 'Active',
-      schoolId: assignment.schoolId || 'SCH-001',
+      status: "Active",
+      schoolId: assignment.schoolId || "SCH-001",
       submissions: [],
       ...assignment,
     };
     const updated = [newAsn, ...list];
-    setStorage('assignments', updated);
+    setStorage("assignments", updated);
     return newAsn;
   },
   submitAssignmentWork: (assignmentId, studentSubmission) => {
-    const list = getStorage('assignments', initialAssignments);
+    const list = getStorage("assignments", initialAssignments);
     const updated = list.map((a) => {
       if (a.id === assignmentId) {
-        const existingSub = a.submissions?.filter((s) => s.studentId !== studentSubmission.studentId) || [];
+        const existingSub =
+          a.submissions?.filter(
+            (s) => s.studentId !== studentSubmission.studentId,
+          ) || [];
         return {
           ...a,
           submissions: [
             ...existingSub,
             {
-              submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              status: 'Submitted',
+              submittedAt: new Date()
+                .toISOString()
+                .replace("T", " ")
+                .substring(0, 16),
+              status: "Submitted",
               marks: null,
-              feedback: '',
+              feedback: "",
               ...studentSubmission,
             },
           ],
@@ -740,29 +1002,46 @@ export const schoolDataService = {
       }
       return a;
     });
-    setStorage('assignments', updated);
+    setStorage("assignments", updated);
     return updated;
   },
 
   // --- Fee Management & Ledgers ---
-  getLateFineSettings: (schoolId = 'SCH-001') => {
-    const settings = getStorage('late_fine_settings', initialLateFineSettings);
-    return settings[schoolId] || initialLateFineSettings['SCH-001'] || {
-      gracePeriod: 5,
-      fineType: 'per_day',
-      fineAmount: 50,
-      fixedAmount: 500,
-    };
+  getLateFineSettings: (schoolId = "SCH-001") => {
+    const settings = getStorage("late_fine_settings", initialLateFineSettings);
+    return (
+      settings[schoolId] ||
+      initialLateFineSettings["SCH-001"] || {
+        gracePeriod: 5,
+        fineType: "per_day",
+        fineAmount: 50,
+        fixedAmount: 500,
+      }
+    );
   },
-  saveLateFineSettings: (newSettings, schoolId = 'SCH-001') => {
-    const all = getStorage('late_fine_settings', initialLateFineSettings);
-    const updated = { ...all, [schoolId]: { ...all[schoolId], ...newSettings } };
-    setStorage('late_fine_settings', updated);
+  saveLateFineSettings: (newSettings, schoolId = "SCH-001") => {
+    const all = getStorage("late_fine_settings", initialLateFineSettings);
+    const updated = {
+      ...all,
+      [schoolId]: { ...all[schoolId], ...newSettings },
+    };
+    setStorage("late_fine_settings", updated);
     return updated[schoolId];
   },
 
-  calculateLateFine: (dueDateStr, paidAmount = 0, totalFee = 50000, fineSettings = null, asOfDateStr = '2026-05-10') => {
-    const settings = fineSettings || { gracePeriod: 5, fineType: 'per_day', fineAmount: 50, fixedAmount: 500 };
+  calculateLateFine: (
+    dueDateStr,
+    paidAmount = 0,
+    totalFee = 50000,
+    fineSettings = null,
+    asOfDateStr = "2026-05-10",
+  ) => {
+    const settings = fineSettings || {
+      gracePeriod: 5,
+      fineType: "per_day",
+      fineAmount: 50,
+      fixedAmount: 500,
+    };
     const paid = Number(paidAmount) || 0;
     const total = Number(totalFee) || 0;
     const isFullyPaid = paid >= total;
@@ -773,14 +1052,14 @@ export const schoolDataService = {
         lateDaysAfterGrace: 0,
         fineAmount: 0,
         isOverdue: false,
-        status: 'PAID',
+        status: "PAID",
         pendingAmount: 0,
         totalOutstanding: 0,
       };
     }
 
     const due = new Date(dueDateStr);
-    const asOf = asOfDateStr ? new Date(asOfDateStr) : new Date('2026-05-10');
+    const asOf = asOfDateStr ? new Date(asOfDateStr) : new Date("2026-05-10");
     const diffTime = asOf.getTime() - due.getTime();
     const lateDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
     const gracePeriod = Number(settings.gracePeriod ?? 5);
@@ -788,7 +1067,7 @@ export const schoolDataService = {
 
     let fineAmount = 0;
     if (lateDaysAfterGrace > 0) {
-      if (settings.fineType === 'fixed') {
+      if (settings.fineType === "fixed") {
         fineAmount = Number(settings.fixedAmount || settings.fineAmount || 500);
       } else {
         fineAmount = lateDaysAfterGrace * Number(settings.fineAmount || 50);
@@ -796,11 +1075,11 @@ export const schoolDataService = {
     }
 
     const isOverdue = lateDays > 0;
-    let status = 'PENDING';
+    let status = "PENDING";
     if (isOverdue) {
-      status = 'OVERDUE';
+      status = "OVERDUE";
     } else if (paid > 0) {
-      status = 'PARTIAL';
+      status = "PARTIAL";
     }
 
     const pendingAmount = Math.max(0, total - paid);
@@ -818,32 +1097,33 @@ export const schoolDataService = {
   },
 
   getFeeStructure: (schoolId) => {
-    const list = getStorage('fee_structure', initialFeeStructure);
-    if (schoolId) return list.filter((f) => !f.schoolId || f.schoolId === schoolId);
+    const list = getStorage("fee_structure", initialFeeStructure);
+    if (schoolId)
+      return list.filter((f) => !f.schoolId || f.schoolId === schoolId);
     return list;
   },
   saveFeeStructure: (data) => {
-    setStorage('fee_structure', data);
+    setStorage("fee_structure", data);
     return data;
   },
   addFeeStructure: (item) => {
     const list = schoolDataService.getFeeStructure();
     const newItem = {
       id: `FS-${Date.now().toString().slice(-4)}`,
-      schoolId: item.schoolId || 'SCH-001',
-      academicSession: item.academicSession || '2026-27',
-      frequency: item.frequency || 'Yearly',
+      schoolId: item.schoolId || "SCH-001",
+      academicSession: item.academicSession || "2026-27",
+      frequency: item.frequency || "Yearly",
       ...item,
     };
     const updated = [newItem, ...list];
-    setStorage('fee_structure', updated);
+    setStorage("fee_structure", updated);
     return newItem;
   },
 
-  getStudentFeeLedgers: (schoolId = 'SCH-001') => {
-    const ledgers = getStorage('student_fee_ledgers', initialStudentFeeLedgers);
+  getStudentFeeLedgers: (schoolId = "SCH-001") => {
+    const ledgers = getStorage("student_fee_ledgers", initialStudentFeeLedgers);
     const fineSettings = schoolDataService.getLateFineSettings(schoolId);
-    
+
     // Enrich with dynamic deterministic late fines
     const enriched = ledgers
       .filter((l) => !schoolId || !l.schoolId || l.schoolId === schoolId)
@@ -852,14 +1132,19 @@ export const schoolDataService = {
           ledger.dueDate,
           ledger.paidAmount,
           ledger.totalFee,
-          fineSettings
+          fineSettings,
         );
         return {
           ...ledger,
           lateDays: fineResult.lateDays,
           lateDaysAfterGrace: fineResult.lateDaysAfterGrace,
           fineAmount: fineResult.fineAmount,
-          status: ledger.paidAmount >= ledger.totalFee ? 'PAID' : (ledger.paidAmount > 0 && !fineResult.isOverdue ? 'PARTIAL' : fineResult.status),
+          status:
+            ledger.paidAmount >= ledger.totalFee
+              ? "PAID"
+              : ledger.paidAmount > 0 && !fineResult.isOverdue
+                ? "PARTIAL"
+                : fineResult.status,
           pendingAmount: Math.max(0, ledger.totalFee - ledger.paidAmount),
           totalOutstanding: fineResult.totalOutstanding,
         };
@@ -868,17 +1153,18 @@ export const schoolDataService = {
     return enriched;
   },
   saveStudentFeeLedgers: (data) => {
-    setStorage('student_fee_ledgers', data);
+    setStorage("student_fee_ledgers", data);
     return data;
   },
 
   getFeeTransactions: (schoolId) => {
-    const list = getStorage('fee_transactions', initialFeeTransactions);
-    if (schoolId) return list.filter((f) => !f.schoolId || f.schoolId === schoolId);
+    const list = getStorage("fee_transactions", initialFeeTransactions);
+    if (schoolId)
+      return list.filter((f) => !f.schoolId || f.schoolId === schoolId);
     return list;
   },
   saveFeeTransactions: (data) => {
-    setStorage('fee_transactions', data);
+    setStorage("fee_transactions", data);
     return data;
   },
 
@@ -887,63 +1173,88 @@ export const schoolDataService = {
     const receiptSeq = Math.floor(100 + Math.random() * 900);
     const newTxn = {
       id: `TXN-${Date.now().toString().slice(-5)}`,
-      receiptNo: payment.receiptNo || `REC-${new Date().getFullYear()}-${receiptSeq}`,
-      paidDate: payment.paymentDate || new Date().toISOString().split('T')[0],
-      paymentDate: payment.paymentDate || new Date().toISOString().split('T')[0],
+      receiptNo:
+        payment.receiptNo || `REC-${new Date().getFullYear()}-${receiptSeq}`,
+      paidDate: payment.paymentDate || new Date().toISOString().split("T")[0],
+      paymentDate:
+        payment.paymentDate || new Date().toISOString().split("T")[0],
       amount: Number(payment.amount),
-      paymentMethod: payment.paymentMethod || payment.mode || 'UPI',
-      mode: payment.paymentMethod || payment.mode || 'UPI',
-      feeType: payment.feeType || payment.feeHead || 'Tuition Fee',
-      feeHead: payment.feeType || payment.feeHead || 'Tuition Fee',
+      paymentMethod: payment.paymentMethod || payment.mode || "UPI",
+      mode: payment.paymentMethod || payment.mode || "UPI",
+      feeType: payment.feeType || payment.feeHead || "Tuition Fee",
+      feeHead: payment.feeType || payment.feeHead || "Tuition Fee",
       studentId: payment.studentId,
       studentName: payment.studentName,
       rollNumber: payment.rollNumber,
       class: payment.class,
       classId: payment.classId || payment.class,
-      section: payment.section || 'A',
-      academicSession: payment.academicSession || '2026-27',
-      notes: payment.notes || 'Payment recorded via School CRM counter',
-      status: 'Success',
-      schoolId: payment.schoolId || 'SCH-001',
+      section: payment.section || "A",
+      academicSession: payment.academicSession || "2026-27",
+      notes: payment.notes || "Payment recorded via School CRM counter",
+      status: "Success",
+      schoolId: payment.schoolId || "SCH-001",
     };
-    
+
     const updatedTxns = [newTxn, ...txns];
-    setStorage('fee_transactions', updatedTxns);
+    setStorage("fee_transactions", updatedTxns);
 
     // Update Student Fee Ledger
-    const allLedgers = getStorage('student_fee_ledgers', initialStudentFeeLedgers);
+    const allLedgers = getStorage(
+      "student_fee_ledgers",
+      initialStudentFeeLedgers,
+    );
     const updatedLedgers = allLedgers.map((ledger) => {
-      if (ledger.studentId === payment.studentId || ledger.id === payment.ledgerId) {
+      if (
+        ledger.studentId === payment.studentId ||
+        ledger.id === payment.ledgerId
+      ) {
         const newPaid = Number(ledger.paidAmount || 0) + Number(payment.amount);
         const newPending = Math.max(0, Number(ledger.totalFee || 0) - newPaid);
-        
+
         // Update breakdown if matching feeType
         const updatedBreakdown = (ledger.breakdown || []).map((b) => {
-          if (b.type.toLowerCase().includes((payment.feeType || '').toLowerCase().replace(' fee', ''))) {
-            const bPaid = Math.min(b.amount, (b.paid || 0) + Number(payment.amount));
+          if (
+            b.type
+              .toLowerCase()
+              .includes(
+                (payment.feeType || "").toLowerCase().replace(" fee", ""),
+              )
+          ) {
+            const bPaid = Math.min(
+              b.amount,
+              (b.paid || 0) + Number(payment.amount),
+            );
             return {
               ...b,
               paid: bPaid,
               pending: Math.max(0, b.amount - bPaid),
-              status: bPaid >= b.amount ? 'Paid' : (bPaid > 0 ? 'Partial' : 'Pending'),
+              status:
+                bPaid >= b.amount ? "Paid" : bPaid > 0 ? "Partial" : "Pending",
             };
           }
           return b;
         });
 
-        const newStatus = newPaid >= ledger.totalFee ? 'PAID' : (newPaid > 0 ? 'PARTIAL' : 'PENDING');
+        const newStatus =
+          newPaid >= ledger.totalFee
+            ? "PAID"
+            : newPaid > 0
+              ? "PARTIAL"
+              : "PENDING";
 
         return {
           ...ledger,
           paidAmount: newPaid,
           pendingAmount: newPending,
           status: newStatus,
-          breakdown: updatedBreakdown.length ? updatedBreakdown : ledger.breakdown,
+          breakdown: updatedBreakdown.length
+            ? updatedBreakdown
+            : ledger.breakdown,
         };
       }
       return ledger;
     });
-    setStorage('student_fee_ledgers', updatedLedgers);
+    setStorage("student_fee_ledgers", updatedLedgers);
 
     // Also sync student list
     if (payment.studentId) {
@@ -954,7 +1265,7 @@ export const schoolDataService = {
           return {
             ...s,
             paidFee: newPaid,
-            feeStatus: newPaid >= s.totalFee ? 'Paid' : 'Pending',
+            feeStatus: newPaid >= s.totalFee ? "Paid" : "Pending",
           };
         }
         return s;
@@ -965,33 +1276,54 @@ export const schoolDataService = {
     return newTxn;
   },
 
-  getFeeDashboardMetrics: (schoolId = 'SCH-001') => {
+  getFeeDashboardMetrics: (schoolId = "SCH-001") => {
     const ledgers = schoolDataService.getStudentFeeLedgers(schoolId);
     const txns = schoolDataService.getFeeTransactions(schoolId);
 
     const totalStudents = ledgers.length;
-    const totalFees = ledgers.reduce((acc, l) => acc + (Number(l.totalFee) || 0), 0);
-    const totalCollected = ledgers.reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0);
-    const totalPending = ledgers.reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0);
+    const totalFees = ledgers.reduce(
+      (acc, l) => acc + (Number(l.totalFee) || 0),
+      0,
+    );
+    const totalCollected = ledgers.reduce(
+      (acc, l) => acc + (Number(l.paidAmount) || 0),
+      0,
+    );
+    const totalPending = ledgers.reduce(
+      (acc, l) => acc + (Number(l.pendingAmount) || 0),
+      0,
+    );
     const totalOverdue = ledgers
-      .filter((l) => l.status === 'OVERDUE')
+      .filter((l) => l.status === "OVERDUE")
       .reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0);
     const totalLateFineCollected = txns
-      .filter((t) => (t.feeType || '').toLowerCase().includes('fine') || (t.notes || '').toLowerCase().includes('fine'))
+      .filter(
+        (t) =>
+          (t.feeType || "").toLowerCase().includes("fine") ||
+          (t.notes || "").toLowerCase().includes("fine"),
+      )
       .reduce((acc, t) => acc + (Number(t.amount) || 0), 75000);
 
     const statusCounts = {
-      PAID: ledgers.filter((l) => l.status === 'PAID').length,
-      PARTIAL: ledgers.filter((l) => l.status === 'PARTIAL').length,
-      PENDING: ledgers.filter((l) => l.status === 'PENDING').length,
-      OVERDUE: ledgers.filter((l) => l.status === 'OVERDUE').length,
+      PAID: ledgers.filter((l) => l.status === "PAID").length,
+      PARTIAL: ledgers.filter((l) => l.status === "PARTIAL").length,
+      PENDING: ledgers.filter((l) => l.status === "PENDING").length,
+      OVERDUE: ledgers.filter((l) => l.status === "OVERDUE").length,
     };
 
     const statusAmounts = {
-      PAID: ledgers.filter((l) => l.status === 'PAID').reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0),
-      PARTIAL: ledgers.filter((l) => l.status === 'PARTIAL').reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0),
-      PENDING: ledgers.filter((l) => l.status === 'PENDING').reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0),
-      OVERDUE: ledgers.filter((l) => l.status === 'OVERDUE').reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0),
+      PAID: ledgers
+        .filter((l) => l.status === "PAID")
+        .reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0),
+      PARTIAL: ledgers
+        .filter((l) => l.status === "PARTIAL")
+        .reduce((acc, l) => acc + (Number(l.paidAmount) || 0), 0),
+      PENDING: ledgers
+        .filter((l) => l.status === "PENDING")
+        .reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0),
+      OVERDUE: ledgers
+        .filter((l) => l.status === "OVERDUE")
+        .reduce((acc, l) => acc + (Number(l.pendingAmount) || 0), 0),
     };
 
     return {
@@ -1008,43 +1340,51 @@ export const schoolDataService = {
 
   // --- Library ---
   getLibraryBooks: (schoolId) => {
-    let list = getStorage('library_books', initialLibraryBooks);
+    let list = getStorage("library_books", initialLibraryBooks);
     // If stored list is outdated (e.g. less than initial items), seed with initialLibraryBooks
     if (!list || list.length < initialLibraryBooks.length) {
       list = initialLibraryBooks;
-      setStorage('library_books', list);
+      setStorage("library_books", list);
     }
-    if (schoolId) return list.filter((b) => !b.schoolId || b.schoolId === schoolId);
+    if (schoolId)
+      return list.filter((b) => !b.schoolId || b.schoolId === schoolId);
     return list;
   },
-  saveLibraryBooks: (data) => setStorage('library_books', data),
+  saveLibraryBooks: (data) => setStorage("library_books", data),
   addLibraryBook: (bookData) => {
     const list = schoolDataService.getLibraryBooks();
     const totalCopies = parseInt(bookData.totalCopies, 10) || 1;
     const newBook = {
-      id: bookData.id || `BOOK-${String(list.length + 1).padStart(3, '0')}`,
+      id: bookData.id || `BOOK-${String(list.length + 1).padStart(3, "0")}`,
       name: bookData.name || bookData.title,
       title: bookData.name || bookData.title,
-      author: bookData.author || 'Unknown Author',
-      category: bookData.category || 'Other',
-      publisher: bookData.publisher || 'School Press',
+      author: bookData.author || "Unknown Author",
+      category: bookData.category || "Other",
+      publisher: bookData.publisher || "School Press",
       totalCopies: totalCopies,
       availableCopies: totalCopies,
       issuedCopies: 0,
-      shelfLocation: bookData.shelfLocation || 'Shelf GEN-01',
-      isbn: bookData.isbn || `978-81${Math.floor(10000000 + Math.random() * 90000000)}`,
-      schoolId: bookData.schoolId || 'SCH-001',
+      shelfLocation: bookData.shelfLocation || "Shelf GEN-01",
+      isbn:
+        bookData.isbn ||
+        `978-81${Math.floor(10000000 + Math.random() * 90000000)}`,
+      schoolId: bookData.schoolId || "SCH-001",
       ...bookData,
     };
     const updated = [newBook, ...list];
-    setStorage('library_books', updated);
+    setStorage("library_books", updated);
     return newBook;
   },
   updateLibraryBook: (id, bookData) => {
     const list = schoolDataService.getLibraryBooks();
     const updated = list.map((b) => {
       if (b.id === id) {
-        const totalCopies = parseInt(bookData.totalCopies !== undefined ? bookData.totalCopies : b.totalCopies, 10);
+        const totalCopies = parseInt(
+          bookData.totalCopies !== undefined
+            ? bookData.totalCopies
+            : b.totalCopies,
+          10,
+        );
         const issuedCopies = b.issuedCopies || 0;
         const availableCopies = Math.max(0, totalCopies - issuedCopies);
         return {
@@ -1059,62 +1399,73 @@ export const schoolDataService = {
       }
       return b;
     });
-    setStorage('library_books', updated);
+    setStorage("library_books", updated);
     return updated;
   },
   deleteLibraryBook: (id) => {
     const list = schoolDataService.getLibraryBooks();
     const updated = list.filter((b) => b.id !== id);
-    setStorage('library_books', updated);
+    setStorage("library_books", updated);
     return updated;
   },
   getIssuedBooks: (schoolId) => {
-    let list = getStorage('issued_books', initialIssuedBooks);
+    let list = getStorage("issued_books", initialIssuedBooks);
     if (!list || (list.length === 0 && initialIssuedBooks.length > 0)) {
       list = initialIssuedBooks;
-      setStorage('issued_books', list);
+      setStorage("issued_books", list);
     }
-    if (schoolId) return list.filter((i) => !i.schoolId || i.schoolId === schoolId);
+    if (schoolId)
+      return list.filter((i) => !i.schoolId || i.schoolId === schoolId);
     return list;
   },
-  saveIssuedBooks: (data) => setStorage('issued_books', data),
+  saveIssuedBooks: (data) => setStorage("issued_books", data),
   issueBook: (issueData) => {
     const issuedList = schoolDataService.getIssuedBooks();
-    const issueDateStr = issueData.issueDate || new Date().toISOString().split('T')[0];
+    const issueDateStr =
+      issueData.issueDate || new Date().toISOString().split("T")[0];
     const issueDateObj = new Date(issueDateStr);
-    const dueDateObj = new Date(issueDateObj.getTime() + 10 * 24 * 60 * 60 * 1000);
-    const dueDateStr = issueData.dueDate || dueDateObj.toISOString().split('T')[0];
+    const dueDateObj = new Date(
+      issueDateObj.getTime() + 10 * 24 * 60 * 60 * 1000,
+    );
+    const dueDateStr =
+      issueData.dueDate || dueDateObj.toISOString().split("T")[0];
 
     const newIssue = {
       id: `ISS-${String(Date.now()).slice(-4)}`,
       issueDate: issueDateStr,
       dueDate: dueDateStr,
       returnDate: null,
-      status: 'Issued',
+      status: "Issued",
       fine: 0,
-      schoolId: issueData.schoolId || 'SCH-001',
+      schoolId: issueData.schoolId || "SCH-001",
       ...issueData,
     };
-    setStorage('issued_books', [newIssue, ...issuedList]);
+    setStorage("issued_books", [newIssue, ...issuedList]);
 
     const books = schoolDataService.getLibraryBooks();
-    const updatedBooks = books.map((b) => (b.id === issueData.bookId ? {
-      ...b,
-      availableCopies: Math.max(0, (b.availableCopies || 0) - 1),
-      issuedCopies: (b.issuedCopies || 0) + 1,
-    } : b));
-    setStorage('library_books', updatedBooks);
+    const updatedBooks = books.map((b) =>
+      b.id === issueData.bookId
+        ? {
+            ...b,
+            availableCopies: Math.max(0, (b.availableCopies || 0) - 1),
+            issuedCopies: (b.issuedCopies || 0) + 1,
+          }
+        : b,
+    );
+    setStorage("library_books", updatedBooks);
     return newIssue;
   },
   returnBook: (issueId, bookId, returnData = {}) => {
-    const returnDateStr = returnData.returnDate || new Date().toISOString().split('T')[0];
+    const returnDateStr =
+      returnData.returnDate || new Date().toISOString().split("T")[0];
     const issuedList = schoolDataService.getIssuedBooks();
     const updated = issuedList.map((i) => {
       if (i.id === issueId) {
-        const fine = returnData.fine !== undefined ? returnData.fine : (i.fine || 0);
+        const fine =
+          returnData.fine !== undefined ? returnData.fine : i.fine || 0;
         return {
           ...i,
-          status: 'Returned',
+          status: "Returned",
           returnDate: returnDateStr,
           fine: fine,
           lateDays: returnData.lateDays || 0,
@@ -1122,121 +1473,155 @@ export const schoolDataService = {
       }
       return i;
     });
-    setStorage('issued_books', updated);
+    setStorage("issued_books", updated);
 
     const books = schoolDataService.getLibraryBooks();
-    const targetBookId = bookId || issuedList.find((i) => i.id === issueId)?.bookId;
-    const updatedBooks = books.map((b) => (b.id === targetBookId ? {
-      ...b,
-      availableCopies: (b.availableCopies || 0) + 1,
-      issuedCopies: Math.max(0, (b.issuedCopies || 0) - 1),
-    } : b));
-    setStorage('library_books', updatedBooks);
+    const targetBookId =
+      bookId || issuedList.find((i) => i.id === issueId)?.bookId;
+    const updatedBooks = books.map((b) =>
+      b.id === targetBookId
+        ? {
+            ...b,
+            availableCopies: (b.availableCopies || 0) + 1,
+            issuedCopies: Math.max(0, (b.issuedCopies || 0) - 1),
+          }
+        : b,
+    );
+    setStorage("library_books", updatedBooks);
     return updated;
   },
   getLibraryStaff: (schoolId) => {
-    let list = getStorage('library_staff', initialLibraryStaff);
+    let list = getStorage("library_staff", initialLibraryStaff);
     if (!list || list.length === 0) {
       list = initialLibraryStaff;
-      setStorage('library_staff', list);
+      setStorage("library_staff", list);
     }
-    if (schoolId) return list.filter((s) => !s.schoolId || s.schoolId === schoolId);
+    if (schoolId)
+      return list.filter((s) => !s.schoolId || s.schoolId === schoolId);
     return list;
   },
-  saveLibraryStaff: (data) => setStorage('library_staff', data),
+  saveLibraryStaff: (data) => setStorage("library_staff", data),
 
   // --- Events ---
   getEvents: (schoolId) => {
-    const list = getStorage('events', initialEvents);
-    if (schoolId) return list.filter((e) => !e.schoolId || e.schoolId === schoolId);
+    const list = getStorage("events", initialEvents);
+    if (schoolId)
+      return list.filter((e) => !e.schoolId || e.schoolId === schoolId);
     return list;
   },
-  saveEvents: (data) => setStorage('events', data),
+  saveEvents: (data) => setStorage("events", data),
   addEvent: (evt) => {
-    const list = getStorage('events', initialEvents);
+    const list = getStorage("events", initialEvents);
     const newEvt = {
       id: `EVT-${Date.now().toString().slice(-4)}`,
-      status: 'Upcoming',
-      schoolId: evt.schoolId || 'SCH-001',
+      status: "Upcoming",
+      schoolId: evt.schoolId || "SCH-001",
       ...evt,
     };
     const updated = [newEvt, ...list];
-    setStorage('events', updated);
+    setStorage("events", updated);
     return newEvt;
+  },
+  getEventsFromApi: async (role = "school") => {
+    const response = await api.get(`/events?role=${role}`);
+
+    return response?.events || response?.data || [];
+  },
+
+  addEventFromApi: async (data, role = "school") => {
+    const response = await api.post("/events", {
+      ...data,
+      role,
+    });
+
+    return response.data?.event || response.data?.data || response.data;
+  },
+
+  deleteEventFromApi: async (id) => {
+    const response = await api.delete(`/events/${id}`);
+    return response.data;
   },
 
   // --- Notices ---
   getNotices: (schoolId) => {
-    const list = getStorage('notices', initialNotices);
-    if (schoolId) return list.filter((n) => !n.schoolId || n.schoolId === schoolId);
+    const list = getStorage("notices", initialNotices);
+    if (schoolId)
+      return list.filter((n) => !n.schoolId || n.schoolId === schoolId);
     return list;
   },
-  saveNotices: (data) => setStorage('notices', data),
+  saveNotices: (data) => setStorage("notices", data),
   addNotice: (notice) => {
-    const list = getStorage('notices', initialNotices);
+    const list = getStorage("notices", initialNotices);
     const newNotice = {
-      id: `NTC-${String(list.length + 1).padStart(2, '0')}`,
-      date: new Date().toISOString().split('T')[0],
-      status: 'Active',
-      schoolId: notice.schoolId || 'SCH-001',
+      id: `NTC-${String(list.length + 1).padStart(2, "0")}`,
+      date: new Date().toISOString().split("T")[0],
+      status: "Active",
+      schoolId: notice.schoolId || "SCH-001",
       ...notice,
     };
     const updated = [newNotice, ...list];
-    setStorage('notices', updated);
+    setStorage("notices", updated);
     return newNotice;
   },
 
   // --- Leave Management ---
   getLeaves: (schoolId) => {
-    const list = getStorage('leaves', initialLeaves);
-    if (schoolId) return list.filter((l) => !l.schoolId || l.schoolId === schoolId);
+    const list = getStorage("leaves", initialLeaves);
+    if (schoolId)
+      return list.filter((l) => !l.schoolId || l.schoolId === schoolId);
     return list;
   },
-  saveLeaves: (data) => setStorage('leaves', data),
+  saveLeaves: (data) => setStorage("leaves", data),
   applyLeave: (leave) => {
-    const list = getStorage('leaves', initialLeaves);
+    const list = getStorage("leaves", initialLeaves);
     const newLeave = {
-      id: `LEV-${String(list.length + 1).padStart(2, '0')}`,
-      status: 'Pending',
-      appliedOn: new Date().toISOString().split('T')[0],
-      schoolId: leave.schoolId || 'SCH-001',
+      id: `LEV-${String(list.length + 1).padStart(2, "0")}`,
+      status: "Pending",
+      appliedOn: new Date().toISOString().split("T")[0],
+      schoolId: leave.schoolId || "SCH-001",
       ...leave,
     };
     const updated = [newLeave, ...list];
-    setStorage('leaves', updated);
+    setStorage("leaves", updated);
     return newLeave;
   },
   updateLeaveStatus: (id, status) => {
-    const list = getStorage('leaves', initialLeaves);
+    const list = getStorage("leaves", initialLeaves);
     const updated = list.map((l) => (l.id === id ? { ...l, status } : l));
-    setStorage('leaves', updated);
+    setStorage("leaves", updated);
     return updated;
   },
 
   // --- Staff Fee / Salary Management ---
   getStaffFeeLedgers: (schoolId) => {
-    const list = getStorage('staff_fee_ledgers', initialStaffFeeLedgers);
-    if (schoolId) return list.filter((l) => !l.schoolId || l.schoolId === schoolId);
+    const list = getStorage("staff_fee_ledgers", initialStaffFeeLedgers);
+    if (schoolId)
+      return list.filter((l) => !l.schoolId || l.schoolId === schoolId);
     return list;
   },
-  saveStaffFeeLedgers: (data) => setStorage('staff_fee_ledgers', data),
+  saveStaffFeeLedgers: (data) => setStorage("staff_fee_ledgers", data),
 
   getStaffFeeTransactions: (schoolId) => {
-    const list = getStorage('staff_fee_transactions', initialStaffFeeTransactions);
-    if (schoolId) return list.filter((t) => !t.schoolId || t.schoolId === schoolId);
+    const list = getStorage(
+      "staff_fee_transactions",
+      initialStaffFeeTransactions,
+    );
+    if (schoolId)
+      return list.filter((t) => !t.schoolId || t.schoolId === schoolId);
     return list;
   },
-  saveStaffFeeTransactions: (data) => setStorage('staff_fee_transactions', data),
+  saveStaffFeeTransactions: (data) =>
+    setStorage("staff_fee_transactions", data),
 
   recordStaffPayment: ({
     employeeId,
     amount,
-    paymentMonth = 'September 2026',
-    paymentDate = new Date().toISOString().split('T')[0],
-    paymentMethod = 'Bank Transfer',
+    paymentMonth = "September 2026",
+    paymentDate = new Date().toISOString().split("T")[0],
+    paymentMethod = "Bank Transfer",
     transactionId,
-    notes = '',
-    schoolId = 'SCH-001',
+    notes = "",
+    schoolId = "SCH-001",
   }) => {
     const ledgers = schoolDataService.getStaffFeeLedgers(schoolId);
     const numericAmount = Number(amount) || 0;
@@ -1248,7 +1633,8 @@ export const schoolDataService = {
         const salary = Number(emp.monthlySalary) || 0;
         const newPaid = Math.min(salary, currentPaid + numericAmount);
         const newPending = Math.max(0, salary - newPaid);
-        const newStatus = newPending === 0 ? 'PAID' : newPaid > 0 ? 'PARTIAL' : 'PENDING';
+        const newStatus =
+          newPending === 0 ? "PAID" : newPaid > 0 ? "PARTIAL" : "PENDING";
 
         const historyEntry = {
           month: paymentMonth,
@@ -1257,12 +1643,20 @@ export const schoolDataService = {
           pending: newPending,
           date: paymentDate,
           method: paymentMethod,
-          status: newStatus === 'PAID' ? 'Paid' : newStatus === 'PARTIAL' ? 'Partially Paid' : 'Pending',
-          transactionId: transactionId || `TXN-SAL-${Date.now().toString().slice(-4)}`,
+          status:
+            newStatus === "PAID"
+              ? "Paid"
+              : newStatus === "PARTIAL"
+                ? "Partially Paid"
+                : "Pending",
+          transactionId:
+            transactionId || `TXN-SAL-${Date.now().toString().slice(-4)}`,
         };
 
         const existingHistory = emp.history || [];
-        const filteredHistory = existingHistory.filter((h) => h.month !== paymentMonth);
+        const filteredHistory = existingHistory.filter(
+          (h) => h.month !== paymentMonth,
+        );
 
         updatedEmployee = {
           ...emp,
@@ -1271,7 +1665,8 @@ export const schoolDataService = {
           status: newStatus,
           paymentDate,
           paymentMethod,
-          transactionId: transactionId || `TXN-SAL-${Date.now().toString().slice(-4)}`,
+          transactionId:
+            transactionId || `TXN-SAL-${Date.now().toString().slice(-4)}`,
           history: [historyEntry, ...filteredHistory],
         };
         return updatedEmployee;
@@ -1296,9 +1691,10 @@ export const schoolDataService = {
         amount: numericAmount,
         paymentDate,
         paymentMethod,
-        transactionId: transactionId || `TXN-SAL-${Date.now().toString().slice(-4)}`,
+        transactionId:
+          transactionId || `TXN-SAL-${Date.now().toString().slice(-4)}`,
         notes: notes || `Salary payment for ${paymentMonth}`,
-        status: 'Completed',
+        status: "Completed",
       };
       schoolDataService.saveStaffFeeTransactions([newTxn, ...txns]);
     }
