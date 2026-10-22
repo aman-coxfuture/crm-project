@@ -76,7 +76,6 @@ export const authService = {
     }
   },
 
-<<<<<<< HEAD
   /**
    * Authenticates user against mock records.
    * Note: In production, this method will dispatch an HTTP POST to /api/auth/login.
@@ -90,10 +89,6 @@ export const authService = {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPassword = (password || '').trim();
     const cleanRoll = (rollNumber || '').trim().toUpperCase();
-=======
-  login: async (credentials) => {
-    const { email, password, role, schoolCode } = credentials;
->>>>>>> c6e69dd (completed school crm)
 
     if (!cleanEmail) {
       throw new Error('Please enter your email address.');
@@ -102,17 +97,8 @@ export const authService = {
       throw new Error('Please enter your password.');
     }
 
-<<<<<<< HEAD
     // Search across defined mock users
     let matchedUser = mockUsersList.find((u) => u.email.toLowerCase() === cleanEmail);
-=======
-    const response = await api.post("/auth/login", {
-      email: email.trim().toLowerCase(),
-      password,
-      role,
-      schoolCode: schoolCode?.trim().toUpperCase(),
-    });
->>>>>>> c6e69dd (completed school crm)
 
     // If not in primary mock list, check extended students and teachers database
     if (!matchedUser) {

@@ -55,6 +55,7 @@ export default function TeacherAssignmentsPage() {
 
   useEffect(() => {
     const loadAssignedClasses = async () => {
+      if (!localStorage.getItem("educrm_token")) return;
       try {
         const response = await api.get("/students/my-students");
 

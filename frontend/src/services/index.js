@@ -38,6 +38,8 @@ export { default as reportService } from "./reportService";
 
 export { default as analyticsService } from "./analyticsService";
 
+export { default as superAdminAnalyticsService } from "./superAdminAnalyticsService";
+
 export { default as settingsService } from "./settingsService";
 
 export { default as messageService } from "./messageService";

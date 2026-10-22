@@ -27,7 +27,7 @@ import {
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const { success, error } = useToast();
+  const { success, error, info } = useToast();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [rollNumber, setRollNumber] = useState("");
   const [isStudentMode, setIsStudentMode] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("principal");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,18 +100,21 @@ export default function LoginPage() {
   const handleQuickFill = (roleType) => {
     setFormError("");
     if (roleType === "principal") {
+      setSelectedRole("principal");
       setEmail("principal@school.com");
       setPassword("principal123");
       setRollNumber("");
       setIsStudentMode(false);
       info("Loaded demo credentials for Principal");
     } else if (roleType === "teacher") {
+      setSelectedRole("teacher");
       setEmail("rahul@example.com");
       setPassword("teacher123");
       setRollNumber("");
       setIsStudentMode(false);
       info("Loaded demo credentials for Teacher (Rahul)");
     } else if (roleType === "student") {
+      setSelectedRole("student");
       setEmail("student@example.com");
       setRollNumber("STU001");
       setPassword("student123");
@@ -498,7 +502,7 @@ export default function LoginPage() {
                 letterSpacing: "-0.02em",
               }}
             >
-              Sign In to Your Account
+              Sign In to Your Portal
             </h1>
             <p
               style={{
@@ -507,8 +511,74 @@ export default function LoginPage() {
                 marginTop: "4px",
               }}
             >
-              Enter your official credentials to access your school dashboard
+              Select your role and authenticate with your school credentials
             </p>
+          </div>
+
+          <div style={{ marginBottom: "24px" }}>
+            <div
+              style={{
+                color: "var(--text-tertiary)",
+                fontSize: "0.75rem",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                marginBottom: "10px",
+              }}
+            >
+              Select Portal Persona
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "4px",
+                padding: "4px",
+                borderRadius: "14px",
+                background: "var(--bg-tertiary)",
+              }}
+            >
+              {[
+                ["principal", "Principal", School],
+                ["teacher", "Teacher", GraduationCap],
+                ["student", "Student", GraduationCap],
+                ["super-admin", "Super Admin", Shield],
+              ].map(([role, label, Icon]) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => {
+                    if (role === "super-admin") {
+                      navigate("/super-admin/login");
+                      return;
+                    }
+                    setSelectedRole(role);
+                    handleQuickFill(role);
+                  }}
+                  style={{
+                    minHeight: "72px",
+                    border: "none",
+                    borderRadius: "10px",
+                    background:
+                      selectedRole === role
+                        ? "linear-gradient(135deg, #6366f1, #4f46e5)"
+                        : "transparent",
+                    color:
+                      selectedRole === role ? "#fff" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  <Icon size={17} />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Error Banner */}
@@ -537,28 +607,21 @@ export default function LoginPage() {
             onSubmit={handleLogin}
             style={{ display: "flex", flexDirection: "column", gap: "18px" }}
           >
-            {/* School Code Field */}
-            {["school-admin", "teacher", "student"].includes(selectedRole) && (
+            {selectedRole === "principal" && (
               <div className="form-group">
                 <label className="form-label" htmlFor="school-code">
                   School Code
                 </label>
-
                 <input
                   id="school-code"
-                  type="text"
                   className="form-input"
-                  value={schoolCode}
-                  onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
-                  placeholder="Enter school code"
-                  style={{
-                    height: "44px",
-                    fontSize: "0.9rem",
-                  }}
-                  required
+                  value="DPSDELHI"
+                  readOnly
+                  style={{ height: "44px", fontSize: "0.9rem" }}
                 />
               </div>
             )}
+
             {/* Email Field */}
             <div className="form-group">
               <label className="form-label" htmlFor="school-email">
