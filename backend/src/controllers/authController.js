@@ -6,6 +6,30 @@ const Faculty = require("../models/Faculty");
 const Student = require("../models/Student");
 const Tenant = require("../models/Tenant");
 
+const getLoginSchools = async (req, res) => {
+  try {
+    const schools = await Tenant.find({
+      type: "SCHOOL",
+      status: "ACTIVE",
+    })
+      .select("_id name code")
+      .sort({ name: 1 });
+
+    return res.status(200).json({
+      success: true,
+      count: schools.length,
+      schools,
+    });
+  } catch (error) {
+    console.error("Get login schools error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load schools",
+    });
+  }
+};
+
 const login = async (req, res) => {
   try {
     const { email, password, role, schoolCode } = req.body;
@@ -140,4 +164,5 @@ const login = async (req, res) => {
 
 module.exports = {
   login,
+  getLoginSchools,
 };

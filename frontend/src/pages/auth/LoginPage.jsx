@@ -21,6 +21,7 @@ import {
   Shield,
   HelpCircle,
   School,
+  Hash,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -34,9 +35,10 @@ export default function LoginPage() {
   // Form Fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [schoolCode, setSchoolCode] = useState("");
+  const [selectedRole, setSelectedRole] = useState("teacher");
   const [rollNumber, setRollNumber] = useState("");
   const [isStudentMode, setIsStudentMode] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("principal");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,32 +55,25 @@ export default function LoginPage() {
 
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
-    const cleanRoll = rollNumber.trim();
 
     if (!cleanEmail) {
       setFormError("Please enter your registered email address.");
       return;
     }
-    if (!cleanPassword) {
-      setFormError("Please enter your password.");
-      return;
-    }
-    if (isStudentMode && !cleanRoll) {
-      setFormError("Please enter your Student Roll Number (e.g. STU001).");
+    if (selectedRole !== "super-admin" && !schoolCode.trim()) {
+      setFormError("Please select your School Code.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Simulate rapid server validation
-      await new Promise((res) => setTimeout(res, 250));
-
       const user = await login(
         {
           email: cleanEmail,
           password: cleanPassword,
-          rollNumber: cleanRoll || undefined,
+          role: selectedRole,
+          schoolCode: schoolCode,
         },
         rememberMe,
       );
@@ -603,24 +598,88 @@ export default function LoginPage() {
           )}
 
           {/* Main Auth Form */}
+
+          {/*
+          Role Selector — temporarily hidden per design request.
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "8px",
+              marginBottom: "20px",
+            }}
+          >
+            {[
+              { key: "teacher", label: "Teacher" },
+              { key: "student", label: "Student" },
+              { key: "principal", label: "Admin" },
+            ].map((role) => (
+              <button
+                key={role.key}
+                type="button"
+                onClick={() => {
+                  setSelectedRole(role.key);
+                  setEmail("");
+                  setPassword("");
+                  setSchoolCode("");
+                  setFormError("");
+                }}
+                style={{
+                  padding: "10px 6px",
+                  borderRadius: "8px",
+                  border:
+                    selectedRole === role.key
+                      ? "2px solid var(--primary)"
+                      : "1px solid var(--border-color)",
+                  background:
+                    selectedRole === role.key
+                      ? "var(--primary)"
+                      : "transparent",
+                  color:
+                    selectedRole === role.key
+                      ? "#ffffff"
+                      : "var(--text-primary)",
+                  fontWeight: 600,
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {role.label}
+              </button>
+            ))}
+          </div>
+          */}
           <form
             onSubmit={handleLogin}
             style={{ display: "flex", flexDirection: "column", gap: "18px" }}
           >
-            {selectedRole === "principal" && (
+            {/* School Code Field */}
+            {/* School Code Field */}
+            {selectedRole !== "super-admin" && (
               <div className="form-group">
-                <label className="form-label" htmlFor="school-code">
+                <label className="form-label" htmlFor="schoolCode">
                   School Code
                 </label>
+
                 <input
-                  id="school-code"
+                  id="schoolCode"
+                  value={schoolCode}
+                  onChange={(e) => {
+                    setSchoolCode(e.target.value);
+                    if (formError) setFormError("");
+                  }}
                   className="form-input"
-                  value="DPSDELHI"
-                  readOnly
-                  style={{ height: "44px", fontSize: "0.9rem" }}
+                  placeholder="Enter school code"
+                  required
+                  style={{
+                    height: "44px",
+                    fontSize: "0.9rem",
+                  }}
                 />
               </div>
             )}
+
 
             {/* Email Field */}
             <div className="form-group">
@@ -740,82 +799,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Student Roll Number Expandable Toggle */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setIsStudentMode(!isStudentMode)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  padding: "2px 0",
-                  color: isStudentMode
-                    ? "var(--primary)"
-                    : "var(--text-secondary)",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <span>
-                  🎓{" "}
-                  {isStudentMode
-                    ? "Student mode enabled"
-                    : "Logging in as a Student?"}
-                </span>
-                {isStudentMode ? (
-                  <ChevronUp size={14} />
-                ) : (
-                  <ChevronDown size={14} />
-                )}
-              </button>
-
-              {isStudentMode && (
-                <div className="form-group" style={{ marginTop: "10px" }}>
-                  <label className="form-label" htmlFor="student-roll">
-                    Student Roll Number{" "}
-                    <span
-                      style={{ color: "var(--primary)", fontSize: "0.75rem" }}
-                    >
-                      (Required for students)
-                    </span>
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <Hash
-                      size={17}
-                      style={{
-                        position: "absolute",
-                        left: "14px",
-                        top: "50%",
-                        transform: "translateY(-50)",
-                        color: "var(--text-tertiary)",
-                      }}
-                    />
-                    <input
-                      id="student-roll"
-                      type="text"
-                      className="form-input"
-                      value={rollNumber}
-                      onChange={(e) => {
-                        setRollNumber(e.target.value);
-                        if (formError) setFormError("");
-                      }}
-                      placeholder="e.g. STU001"
-                      style={{
-                        paddingLeft: "42px",
-                        height: "44px",
-                        fontSize: "0.9rem",
-                      }}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Remember Me Option */}
             <div
               style={{
@@ -890,77 +873,6 @@ export default function LoginPage() {
             <span style={{ color: "var(--text-secondary)", fontWeight: 600 }}>
               Contact your school administrator.
             </span>
-          </div>
-
-          {/* Instant 1-Click Demo Fill Selector for Evaluators */}
-          <div
-            style={{
-              marginTop: "28px",
-              paddingTop: "20px",
-              borderTop: "1px solid var(--border-color)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.725rem",
-                fontWeight: 700,
-                color: "var(--text-tertiary)",
-                textAlign: "center",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                marginBottom: "10px",
-              }}
-            >
-              Quick Demo Account Fill
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "8px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => handleQuickFill("principal")}
-                className="btn btn-secondary btn-sm"
-                style={{
-                  justifyContent: "center",
-                  padding: "8px 6px",
-                  fontSize: "0.78rem",
-                }}
-                title="Fill Principal credentials (principal@school.com)"
-              >
-                <span>🏫 Principal</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill("teacher")}
-                className="btn btn-secondary btn-sm"
-                style={{
-                  justifyContent: "center",
-                  padding: "8px 6px",
-                  fontSize: "0.78rem",
-                }}
-                title="Fill Teacher credentials (rahul@example.com)"
-              >
-                <span>👩‍🏫 Teacher</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill("student")}
-                className="btn btn-secondary btn-sm"
-                style={{
-                  justifyContent: "center",
-                  padding: "8px 6px",
-                  fontSize: "0.78rem",
-                }}
-                title="Fill Student credentials (student@example.com / STU001)"
-              >
-                <span>🎒 Student</span>
-              </button>
-            </div>
           </div>
 
           {/* Subtle link to Super Admin Portal */}

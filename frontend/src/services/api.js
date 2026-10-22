@@ -14,7 +14,10 @@ class ApiClient {
   }
 
   getAuthHeader() {
-    const token = localStorage.getItem("educrm_token");
+    const token =
+      localStorage.getItem("educrm_token") ||
+      sessionStorage.getItem("educrm_token");
+
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 

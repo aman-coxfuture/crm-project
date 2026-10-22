@@ -1,12 +1,27 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authService, mockUsers } from '../services/authService';
-import { matchesRole, matchesAnyRole, normalizeRole, ROLES } from '../config/roles';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { authService } from "../services/authService";
+import {
+  matchesRole,
+  matchesAnyRole,
+  normalizeRole,
+  ROLES,
+} from "../config/roles";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
-  const [selectedSchool, setSelectedSchool] = useState(() => authService.getSelectedSchool());
+  const [currentUser, setCurrentUser] = useState(() =>
+    authService.getCurrentUser(),
+  );
+  const [selectedSchool, setSelectedSchool] = useState(() =>
+    authService.getSelectedSchool(),
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const isAuthenticated = !!currentUser;
@@ -36,15 +51,21 @@ export function AuthProvider({ children }) {
     setSelectedSchool(null);
   }, []);
 
-  const hasRole = useCallback((targetRole) => {
-    if (!currentUser) return false;
-    return matchesRole(currentUser.role, targetRole);
-  }, [currentUser]);
+  const hasRole = useCallback(
+    (targetRole) => {
+      if (!currentUser) return false;
+      return matchesRole(currentUser.role, targetRole);
+    },
+    [currentUser],
+  );
 
-  const hasAnyRole = useCallback((allowedRoles = []) => {
-    if (!currentUser) return false;
-    return matchesAnyRole(currentUser.role, allowedRoles);
-  }, [currentUser]);
+  const hasAnyRole = useCallback(
+    (allowedRoles = []) => {
+      if (!currentUser) return false;
+      return matchesAnyRole(currentUser.role, allowedRoles);
+    },
+    [currentUser],
+  );
 
   const changeSchool = useCallback((school) => {
     authService.setSelectedSchool(school);
@@ -56,13 +77,26 @@ export function AuthProvider({ children }) {
     const norm = normalizeRole(roleName);
     let creds;
     if (norm === ROLES.SUPER_ADMIN) {
-      creds = { email: mockUsers.superAdmin.email, password: mockUsers.superAdmin.password };
+      creds = {
+        email: mockUsers.superAdmin.email,
+        password: mockUsers.superAdmin.password,
+      };
     } else if (norm === ROLES.TEACHER) {
-      creds = { email: mockUsers.teacher.email, password: mockUsers.teacher.password };
+      creds = {
+        email: mockUsers.teacher.email,
+        password: mockUsers.teacher.password,
+      };
     } else if (norm === ROLES.STUDENT) {
-      creds = { email: mockUsers.student.email, rollNumber: mockUsers.student.rollNumber, password: mockUsers.student.password };
+      creds = {
+        email: mockUsers.student.email,
+        rollNumber: mockUsers.student.rollNumber,
+        password: mockUsers.student.password,
+      };
     } else {
-      creds = { email: mockUsers.principal.email, password: mockUsers.principal.password };
+      creds = {
+        email: mockUsers.principal.email,
+        password: mockUsers.principal.password,
+      };
     }
     return await login(creds, true);
   }, []);
@@ -92,7 +126,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

@@ -113,7 +113,7 @@ export default function TeacherDashboard() {
   return (
     <div>
       {/* Teacher Dashboard Header */}
-      <div className="page-header" style={{ alignItems: 'center' }}>
+      <div className="page-header" style={{ alignItems: "center" }}>
         <div>
           <h1 className="page-title">
             <span>Welcome, {teacherName}! 👨‍🏫</span>

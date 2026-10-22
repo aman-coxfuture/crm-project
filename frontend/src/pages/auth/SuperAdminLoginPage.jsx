@@ -66,6 +66,7 @@ export default function SuperAdminLoginPage() {
         {
           email: cleanEmail,
           password: cleanPassword,
+          role: 'super_admin',
         },
         rememberMe
       );
@@ -87,8 +88,8 @@ export default function SuperAdminLoginPage() {
   };
 
   const handleQuickFill = () => {
-    setEmail('admin@crm.com');
-    setPassword('admin123');
+    setEmail('superadmin@crm.com');
+    setPassword('Admin@123');
     setFormError('');
     info('Loaded demo credentials for Super Admin');
   };
@@ -384,7 +385,7 @@ export default function SuperAdminLoginPage() {
                     setEmail(e.target.value);
                     if (formError) setFormError('');
                   }}
-                  placeholder="admin@crm.com"
+                  placeholder="superadmin@crm.com"
                   autoComplete="username email"
                   style={{ paddingLeft: '42px', height: '44px', fontSize: '0.9rem' }}
                   required
@@ -534,7 +535,7 @@ export default function SuperAdminLoginPage() {
               className="btn btn-secondary btn-sm"
               style={{ width: '100%', justifyContent: 'center', padding: '9px 12px', fontSize: '0.825rem' }}
             >
-              <span>🛡️ Super Admin Demo (admin@crm.com / admin123)</span>
+              <span>🛡️ Super Admin Demo (superadmin@crm.com / Admin@123)</span>
             </button>
           </div>
 
@@ -579,7 +580,7 @@ export default function SuperAdminLoginPage() {
               className="form-input"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
-              placeholder="admin@crm.com"
+              placeholder="superadmin@crm.com"
               autoComplete="email"
             />
           </div>

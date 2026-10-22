@@ -1,0 +1,27 @@
+[33mc6e69dd[m[33m ([m[1;36mHEAD[m[33m, [m[1;32mbackup-before-main-merge[m[33m)[m HEAD@{Thu Oct 22 19:05:04 2026}: checkout: moving from anamika to c6e69dd
+[33md8ff264[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/anamika[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mbackup-current-state[m[33m, [m[1;32manamika[m[33m)[m HEAD@{Wed Oct 21 16:15:38 2026}: reset: moving to origin/anamika
+[33md8ff264[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/anamika[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mbackup-current-state[m[33m, [m[1;32manamika[m[33m)[m HEAD@{Wed Oct 21 12:41:23 2026}: checkout: moving from c6e69dd63a3f948d8bbeb414662a5df1159a3dfa to anamika
+[33mc6e69dd[m[33m ([m[1;36mHEAD[m[33m, [m[1;32mbackup-before-main-merge[m[33m)[m HEAD@{Fri Oct 16 16:06:09 2026}: checkout: moving from anamika to c6e69dd
+[33md8ff264[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/anamika[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mbackup-current-state[m[33m, [m[1;32manamika[m[33m)[m HEAD@{Fri Oct 16 11:13:44 2026}: reset: moving to HEAD
+[33md8ff264[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/anamika[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mbackup-current-state[m[33m, [m[1;32manamika[m[33m)[m HEAD@{Fri Oct 16 10:40:01 2026}: pull origin main: Fast-forward
+[33mbf6ad06[m HEAD@{Fri Oct 16 10:32:18 2026}: rebase (finish): returning to refs/heads/anamika
+[33mbf6ad06[m HEAD@{Fri Oct 16 10:31:17 2026}: rebase (continue): A
+[33m6d6ae83[m HEAD@{Thu Oct 15 18:16:48 2026}: pull origin anamika --rebase (start): checkout 6d6ae83bf1f7ee70703281f295d4a123687abf21
+[33mc6e69dd[m[33m ([m[1;36mHEAD[m[33m, [m[1;32mbackup-before-main-merge[m[33m)[m HEAD@{Thu Oct 15 18:14:27 2026}: commit: completed school crm
+[33m4af331f[m[33m ([m[1;32mbackup-before-force-push[m[33m)[m HEAD@{Wed Sep 30 17:08:06 2026}: rebase (abort): returning to refs/heads/anamika
+[33m3fd546d[m HEAD@{Wed Sep 30 17:07:47 2026}: pull --rebase origin anamika (pick): admin module completed
+[33m1c6c840[m HEAD@{Wed Sep 30 17:07:47 2026}: pull --rebase origin anamika (start): checkout 1c6c8402f456c1699ac261d3f372f88d123f99d2
+[33m4af331f[m[33m ([m[1;32mbackup-before-force-push[m[33m)[m HEAD@{Wed Sep 30 17:00:59 2026}: commit: module integrated fully
+[33m78e9c22[m HEAD@{Wed Sep 23 18:15:46 2026}: commit: admin module completed
+[33m9a7566c[m HEAD@{Fri Sep 18 15:28:17 2026}: commit: implemented fees module
+[33m6836939[m HEAD@{Thu Sep 17 11:59:35 2026}: commit: implemented attendance module
+[33m3c05394[m HEAD@{Thu Sep 10 14:53:43 2026}: pull origin main: Fast-forward
+[33m1000d9d[m HEAD@{Thu Sep 10 14:50:08 2026}: commit: made apis
+[33m5107405[m HEAD@{Wed Sep 9 18:21:52 2026}: pull origin main: Fast-forward
+[33m08d682f[m HEAD@{Wed Sep 9 18:17:14 2026}: commit: implemented api
+[33mb308bed[m HEAD@{Wed Sep 9 10:43:43 2026}: commit: Implement backend authentication and tenant management
+[33mb478258[m HEAD@{Wed Sep 9 10:20:41 2026}: pull origin main: Fast-forward
+[33mbf48fdf[m HEAD@{Mon Sep 7 10:55:12 2026}: pull origin main: Fast-forward
+[33m0144717[m[33m ([m[1;32mmain[m[33m)[m HEAD@{Fri Sep 4 18:21:04 2026}: checkout: moving from main to anamika
+[33m0144717[m[33m ([m[1;32mmain[m[33m)[m HEAD@{Fri Sep 4 18:19:10 2026}: commit: connected database
+[33mde3d5b7[m HEAD@{Fri Sep 4 12:31:08 2026}: clone: from https://github.com/aman-coxfuture/crm-project.git
