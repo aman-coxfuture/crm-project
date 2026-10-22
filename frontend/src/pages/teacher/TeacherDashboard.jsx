@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Layers,
   Calendar,
+  CalendarCheck,
   AlertCircle,
 } from "lucide-react";
 
@@ -26,6 +27,12 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     const loadFacultyProfile = async () => {
+      // The demo login stores a local mock session, not a backend JWT.
+      // Avoid calling protected backend endpoints without a token.
+      if (!localStorage.getItem("educrm_token")) {
+        return;
+      }
+
       try {
         const response = await api.get("/faculty/me");
 

@@ -343,8 +343,6 @@ export default function TeacherPunchCard({ compact = false }) {
               </div>
             </div>
           </div>
-        )}
-
           {isPresent && (
             <div
               style={{
@@ -381,6 +379,7 @@ export default function TeacherPunchCard({ compact = false }) {
               <AlertCircle size={13} />
               <span>You are currently recorded as Absent today.</span>
             </div>
+          )}
 
         {/* Action Buttons (Punch In / Punch Out / Mark Absent Demo) */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -448,20 +447,12 @@ export default function TeacherPunchCard({ compact = false }) {
               </button>
             </div>
 
-            <button
-              className="btn btn-primary"
-              onClick={handlePunchIn}
-              style={{ flex: 1, justifyContent: "center" }}
-            >
-              <LogOut size={18} />
-              <span>Punch Out</span>
-            </button>
           )}
         </div>
       </div>
+      </div>
 
       {/* PART 13: ATTENDANCE HISTORY */}
-      {showHistory && (
         <div
           style={{
             borderTop: "1px solid var(--border-color)",
@@ -483,11 +474,8 @@ export default function TeacherPunchCard({ compact = false }) {
             <Calendar size={14} />
             <span>My Attendance History</span>
           </div>
-        )}
-
         {/* STATE 3: SHIFT COMPLETED */}
-        {isShiftCompleted && (
-          <div>
+        <div>
             <div
               style={{
                 display: 'grid',
@@ -655,7 +643,7 @@ export default function TeacherPunchCard({ compact = false }) {
               </tbody>
             </table>
           </div>
-        )}
+          </div>
       </div>
     </div>
   );

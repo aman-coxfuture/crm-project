@@ -26,6 +26,7 @@ export default function TeacherAttendancePage() {
 
   useEffect(() => {
     const loadFacultyAssignments = async () => {
+      if (!localStorage.getItem("educrm_token")) return;
       try {
         setLoadingAssignments(true);
 
@@ -78,6 +79,7 @@ export default function TeacherAttendancePage() {
 
   useEffect(() => {
     const loadStudents = async () => {
+      if (!localStorage.getItem("educrm_token")) return;
       try {
         setLoadingStudents(true);
         const response = await api.get("/students/my-students");

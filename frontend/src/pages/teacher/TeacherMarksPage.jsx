@@ -36,6 +36,7 @@ export default function TeacherMarksPage() {
 
   useEffect(() => {
     const loadAssignments = async () => {
+      if (!localStorage.getItem("educrm_token")) return;
       try {
         setLoadingAssignments(true);
 

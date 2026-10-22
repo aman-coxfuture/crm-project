@@ -3,18 +3,23 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
+import { ROLES } from "./config/roles";
+import PublicRoute from "./components/auth/PublicRoute";
 
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
 
 // Auth Page
 import LoginPage from "./pages/auth/LoginPage";
+import SuperAdminLoginPage from "./pages/auth/SuperAdminLoginPage";
 
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/superAdmin/SuperAdminDashboard";
 import SchoolsManagementPage from "./pages/superAdmin/SchoolsManagementPage";
 import SuperAdminAnalyticsPage from "./pages/superAdmin/SuperAdminAnalyticsPage";
 import SuperAdminSettingsPage from "./pages/superAdmin/SuperAdminSettingsPage";
+import UsersPage from "./pages/superAdmin/UsersPage";
+import GlobalReportsPage from "./pages/superAdmin/GlobalReportsPage";
 
 // School Admin / Principal Pages
 import SchoolAdminDashboard from "./pages/school/SchoolAdminDashboard";
@@ -65,10 +70,10 @@ function RoleGuard({ allowedRoles, children }) {
   }
   if (!allowedRoles.includes(role)) {
     // Redirect to user's assigned dashboard
-    if (role === "super-admin")
+    if (role === ROLES.SUPER_ADMIN)
       return <Navigate to="/super-admin/dashboard" replace />;
-    if (role === "teacher") return <Navigate to="/teacher/dashboard" replace />;
-    if (role === "student") return <Navigate to="/student/dashboard" replace />;
+    if (role === ROLES.TEACHER) return <Navigate to="/teacher/dashboard" replace />;
+    if (role === ROLES.STUDENT) return <Navigate to="/student/dashboard" replace />;
     return <Navigate to="/school-admin/dashboard" replace />;
   }
   return children;
@@ -79,10 +84,10 @@ function RootRedirect() {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  if (role === "super-admin")
+  if (role === ROLES.SUPER_ADMIN)
     return <Navigate to="/super-admin/dashboard" replace />;
-  if (role === "teacher") return <Navigate to="/teacher/dashboard" replace />;
-  if (role === "student") return <Navigate to="/student/dashboard" replace />;
+  if (role === ROLES.TEACHER) return <Navigate to="/teacher/dashboard" replace />;
+  if (role === ROLES.STUDENT) return <Navigate to="/student/dashboard" replace />;
   return <Navigate to="/school-admin/dashboard" replace />;
 }
 
@@ -116,9 +121,9 @@ export default function App() {
               <Route
                 path="/super-admin"
                 element={
-                  <RoleGuard allowedRoles={["super-admin"]}>
+                  <RoleGuard allowedRoles={[ROLES.SUPER_ADMIN]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
@@ -140,9 +145,9 @@ export default function App() {
               <Route
                 path="/school-admin"
                 element={
-                  <RoleGuard allowedRoles={["school-admin"]}>
+                  <RoleGuard allowedRoles={[ROLES.PRINCIPAL]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
@@ -173,9 +178,9 @@ export default function App() {
               <Route
                 path="/teacher"
                 element={
-                  <RoleGuard allowedRoles={["teacher"]}>
+                  <RoleGuard allowedRoles={[ROLES.TEACHER]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
@@ -200,9 +205,9 @@ export default function App() {
               <Route
                 path="/student"
                 element={
-                  <RoleGuard allowedRoles={["student"]}>
+                  <RoleGuard allowedRoles={[ROLES.STUDENT]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               >
                 <Route
